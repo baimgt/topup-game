@@ -1,0 +1,488 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #09090b;
+  --foreground: #ffffff;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(9, 9, 11, 0.8);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(37, 99, 235, 0.8);
+}
+
+/* Glow effects */
+.glow-orange {
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+}
+
+.glow-pink {
+  box-shadow: 0 0 20px rgba(234, 88, 12, 0.4);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #f97316, #ea580c, #f43f5e);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shine 3s linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(18, 18, 30, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-panel {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Hide scrollbar for tabs */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Light theme for homepage with diagonal stripes */
+.gaming-light-theme {
+  background-color: #e2e8f0;
+  background-image: 
+    linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 50%, #e8edf4 100%);
+  position: relative;
+  color: #1e293b;
+}
+
+.gaming-light-theme::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(145deg, transparent 40%, rgba(249, 115, 22, 0.04) 40%, rgba(249, 115, 22, 0.04) 43%, transparent 43%),
+    linear-gradient(145deg, transparent 50%, rgba(59, 130, 246, 0.03) 50%, rgba(59, 130, 246, 0.03) 55%, transparent 55%),
+    linear-gradient(35deg, transparent 30%, rgba(168, 85, 247, 0.04) 30%, rgba(168, 85, 247, 0.04) 34%, transparent 34%),
+    linear-gradient(35deg, transparent 60%, rgba(236, 72, 153, 0.03) 60%, rgba(236, 72, 153, 0.03) 64%, transparent 64%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.gaming-light-theme h1,
+.gaming-light-theme h2,
+.gaming-light-theme h3,
+.gaming-light-theme h4 {
+  color: #0f172a !important;
+}
+
+.gaming-light-theme p {
+  color: #475569 !important;
+}
+
+.gaming-light-theme .bg-gaming-card {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
+}
+
+.gaming-light-theme .bg-gaming-card\/50 {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
+}
+
+.gaming-light-theme .bg-gaming-card\/30 {
+  background-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.gaming-light-theme .text-white:not(button):not(a):not(.text-white-force):not(button *):not(a *) {
+  color: #0f172a !important;
+}
+
+.gaming-light-theme .text-gray-300 {
+  color: #334155 !important;
+}
+
+.gaming-light-theme .text-gray-400 {
+  color: #4b5563 !important;
+}
+
+.gaming-light-theme .text-gray-500 {
+  color: #64748b !important;
+}
+
+.gaming-light-theme .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.gaming-light-theme .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.07) !important;
+}
+
+.gaming-light-theme .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+.gaming-light-theme .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+.gaming-light-theme .bg-black\/20 {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Input and Form fields overrides for light theme */
+.gaming-light-theme input,
+.gaming-light-theme select,
+.gaming-light-theme textarea {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+.gaming-light-theme input::placeholder,
+.gaming-light-theme textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Modals overrides for light theme */
+.gaming-light-theme .relative.w-full.bg-\[\#0a0a0a\]\/90 {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* --- Navbar & Header Overrides for Light Theme --- */
+.gaming-light-theme nav {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02) !important;
+}
+
+.gaming-light-theme nav a,
+.gaming-light-theme nav span,
+.gaming-light-theme nav button {
+  color: #334155 !important;
+}
+
+.gaming-light-theme nav a span.text-transparent {
+  background: linear-gradient(135deg, #3b82f6, #4f46e5) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.gaming-light-theme nav a:hover {
+  color: #3b82f6 !important;
+}
+
+.gaming-light-theme nav div.pr-4.pl-1.5.py-1.5 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.gaming-light-theme nav div.pr-4.pl-1.5.py-1.5 span {
+  color: #1e293b !important;
+}
+
+/* Mobile menu container override */
+.gaming-light-theme .md\:hidden.bg-gaming-card\/95 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.gaming-light-theme .md\:hidden.bg-gaming-card\/95 a {
+  color: #334155 !important;
+}
+
+.gaming-light-theme .md\:hidden.bg-gaming-card\/95 a:hover {
+  color: #3b82f6 !important;
+}
+
+/* --- Button variant overrides inside light theme --- */
+/* Ghost buttons */
+.gaming-light-theme button.text-gray-400.hover\:text-white {
+  color: #475569 !important;
+}
+
+.gaming-light-theme button.text-gray-400.hover\:text-white:hover {
+  color: #0f172a !important;
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Secondary buttons */
+.gaming-light-theme button.bg-gaming-card.hover\:bg-gaming-cardHover,
+.gaming-light-theme a button.bg-gaming-card.hover\:bg-gaming-cardHover {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.gaming-light-theme button.bg-gaming-card.hover\:bg-gaming-cardHover:hover {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Outline buttons */
+.gaming-light-theme .border-purple-500\/50.text-purple-400,
+.gaming-light-theme .border-orange-500\/50.text-orange-400,
+.gaming-light-theme button.border-purple-500\/50.text-purple-400,
+.gaming-light-theme button.border-orange-500\/50.text-orange-400 {
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  color: #2563eb !important;
+}
+
+.gaming-light-theme .border-purple-500\/50.text-purple-400:hover,
+.gaming-light-theme .border-orange-500\/50.text-orange-400:hover,
+.gaming-light-theme button.border-purple-500\/50.text-purple-400:hover,
+.gaming-light-theme button.border-orange-500\/50.text-orange-400:hover {
+  background-color: rgba(59, 130, 246, 0.06) !important;
+  border-color: #3b82f6 !important;
+  color: #3b82f6 !important;
+}
+
+/* --- Card elements overrides for light theme --- */
+.gaming-light-theme .glass-panel {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.03) !important;
+}
+
+.gaming-light-theme .absolute.bg-gradient-to-t.from-gaming-card {
+  background-image: linear-gradient(to top, #ffffff 0%, rgba(255, 255, 255, 0.2) 60%, transparent 100%) !important;
+}
+
+.gaming-light-theme .group:hover .ring-white\/10 {
+  --tw-ring-color: rgba(59, 130, 246, 0.25) !important;
+}
+
+.gaming-light-theme .group:hover h3.text-white {
+  color: #3b82f6 !important;
+}
+
+/* --- High-Legibility & Contrast Overrides for Light Theme --- */
+
+/* Elements that must have white text in the light theme (e.g. over dark gradients or badges) */
+.gaming-light-theme button.bg-gradient-to-r,
+.gaming-light-theme button.bg-gradient-to-r *,
+.gaming-light-theme button.bg-red-600,
+.gaming-light-theme button.bg-red-600 *,
+.gaming-light-theme .bg-red-500,
+.gaming-light-theme .bg-red-500 *,
+.gaming-light-theme .bg-red-600,
+.gaming-light-theme .bg-red-600 *,
+.gaming-light-theme .bg-orange-500,
+.gaming-light-theme .bg-orange-500 *,
+.gaming-light-theme .bg-purple-500,
+.gaming-light-theme .bg-purple-500 *,
+.gaming-light-theme .bg-gray-600,
+.gaming-light-theme .bg-gray-600 *,
+.gaming-light-theme .bg-gradient-to-br.from-purple-500.via-pink-500.to-cyan-500,
+.gaming-light-theme .bg-gradient-to-br.from-purple-500.via-pink-500.to-cyan-500 *,
+.gaming-light-theme .bg-gradient-to-br.from-purple-500.to-cyan-500,
+.gaming-light-theme .bg-gradient-to-br.from-purple-500.to-cyan-500 *,
+.gaming-light-theme .lg\:col-span-1.bg-gradient-to-br *,
+.gaming-light-theme .banner-slide-card h3,
+.gaming-light-theme .banner-slide-card p,
+.gaming-light-theme .banner-slide-card span.bg-white\/10,
+.gaming-light-theme .banner-slide-card div.border-t,
+.gaming-light-theme .banner-slide-card div.border-t span,
+.gaming-light-theme .banner-slide-card .lucide {
+  color: #ffffff !important;
+}
+
+/* Restore checkmark icons to preserve white */
+.gaming-light-theme button.bg-purple-500 .lucide,
+.gaming-light-theme .w-5.h-5.bg-purple-500 .lucide {
+  color: #ffffff !important;
+}
+
+/* Stepper timeline bullets background in light theme */
+.gaming-light-theme .bg-\[\#0a0a0f\] {
+  background-color: #ffffff !important;
+}
+
+/* Selected product nominal cards & selected payment method cards overrides (to Blue/Indigo brand colors) */
+.gaming-light-theme .border-purple-500 {
+  border-color: #3b82f6 !important;
+}
+
+.gaming-light-theme .bg-purple-500\/10 {
+  background-color: rgba(59, 130, 246, 0.08) !important;
+}
+
+.gaming-light-theme .shadow-purple-500\/20 {
+  box-shadow: 0 10px 20px -2px rgba(59, 130, 246, 0.15) !important;
+}
+
+.gaming-light-theme .bg-purple-500 {
+  background-color: #3b82f6 !important;
+}
+
+/* Text status colors overrides for light theme (higher contrast/readability) */
+.gaming-light-theme .text-purple-300 {
+  color: #3b82f6 !important;
+}
+
+.gaming-light-theme .text-purple-400 {
+  color: #2563eb !important;
+}
+
+.gaming-light-theme .text-purple-500 {
+  color: #3b82f6 !important;
+}
+
+/* Remap all yellow/gold assets, status badges and icons to blue/indigo */
+.gaming-light-theme .text-yellow-300,
+.gaming-light-theme .text-yellow-400,
+.gaming-light-theme .text-yellow-500 {
+  color: #2563eb !important;
+}
+
+.gaming-light-theme .bg-yellow-400,
+.gaming-light-theme .bg-yellow-500 {
+  background-color: #3b82f6 !important;
+}
+
+.gaming-light-theme .bg-yellow-500\/10,
+.gaming-light-theme .bg-yellow-500\/20,
+.gaming-light-theme .bg-yellow-500\/30,
+.gaming-light-theme .bg-yellow-400\/10 {
+  background-color: rgba(59, 130, 246, 0.08) !important;
+}
+
+.gaming-light-theme .border-yellow-500,
+.gaming-light-theme .border-yellow-500\/30,
+.gaming-light-theme .border-yellow-500\/20,
+.gaming-light-theme .border-yellow-400\/50 {
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.gaming-light-theme .fill-yellow-400 {
+  fill: #3b82f6 !important;
+}
+
+.gaming-light-theme .text-green-400 {
+  color: #16a34a !important;
+}
+
+.gaming-light-theme .text-red-400 {
+  color: #dc2626 !important;
+}
+
+.gaming-light-theme .text-cyan-400 {
+  color: #3b82f6 !important;
+}
+
+/* Hover background overrides for unselected components and cards */
+.gaming-light-theme .bg-gaming-accent {
+  background-color: #f8fafc !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+.gaming-light-theme .bg-gaming-accent\/50 {
+  background-color: rgba(248, 250, 252, 0.5) !important;
+  border-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.gaming-light-theme .bg-gaming-accent\/30 {
+  background-color: rgba(248, 250, 252, 0.3) !important;
+}
+
+.gaming-light-theme .hover\:bg-gaming-accent:hover {
+  background-color: rgba(59, 130, 246, 0.04) !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+.gaming-light-theme .hover\:border-purple-500\/50:hover {
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+.gaming-light-theme .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+.gaming-light-theme .hover\:bg-gaming-cardHover:hover {
+  background-color: rgba(59, 130, 246, 0.04) !important;
+}
+
+/* --- Light Game Card Overrides in Light Theme --- */
+.gaming-light-theme .group.relative.bg-gaming-card\/80 {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04) !important;
+}
+
+.gaming-light-theme .group.relative.bg-gaming-card\/80 h3.text-white {
+  color: #0f172a !important;
+}
+
+.gaming-light-theme .group.relative.bg-gaming-card\/80 p.text-gray-400 {
+  color: #475569 !important;
+}
+
+.gaming-light-theme .group.relative.bg-gaming-card\/80 span.text-gray-300 {
+  color: #334155 !important;
+}
+
+/* Ensure cover image bottom fade matches the light card background */
+.gaming-light-theme .group.relative.bg-gaming-card\/80 .absolute.bg-gradient-to-t.from-gaming-card {
+  background-image: linear-gradient(to top, #ffffff 0%, rgba(255, 255, 255, 0.2) 60%, transparent 100%) !important;
+}
+
+/* Hover glow for game cards */
+.gaming-light-theme .group.relative.bg-gaming-card\/80:hover {
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.08) !important;
+}
+
+.gaming-light-theme .group.relative.bg-gaming-card\/80:hover h3.text-white {
+  color: #3b82f6 !important;
+}
+
+/* Checkout summary card override (soft light gradient and matching blue border) */
+.gaming-light-theme .bg-gradient-to-br.from-gaming-card.to-gaming-dark {
+  background-image: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
+}
