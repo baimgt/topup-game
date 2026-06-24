@@ -44,6 +44,8 @@ export interface Order {
   paymentMethod?: string;
   paymentToken?: string;
   paymentUrl?: string;
+  vaNumber?: string;
+  qrString?: string;
   paidAt?: string;
   digiflazzRef?: string;
   notes?: string;
