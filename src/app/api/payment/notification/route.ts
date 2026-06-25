@@ -38,6 +38,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
     }
 
+    // ── SECURITY: Verify amount integrity to prevent manipulation ──────────
+    // Gross amount from Midtrans must match the order total in our database
+    const notifAmount = parseFloat(gross_amount);
+    if (Math.abs(notifAmount - order.totalAmount) > 1) {
+      console.error(`[SECURITY] Amount mismatch for ${order_id}: notif=${notifAmount}, db=${order.totalAmount}`);
+      return NextResponse.json({ success: false, error: "Amount mismatch" }, { status: 400 });
+    }
+
+    // ── Idempotency guard: skip if already processed ───────────────────────
+    if (order.paymentStatus === "PAID") {
+      return NextResponse.json({ success: true, message: "Already processed" });
+    }
+
     const oldStatus = order.paymentStatus;
     
     // Determine new payment status

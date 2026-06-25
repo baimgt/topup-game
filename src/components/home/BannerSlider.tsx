@@ -111,7 +111,7 @@ export default function BannerSlider() {
         )}
 
         {/* Carousel Area */}
-        <div className="w-full flex items-center justify-center h-[260px] md:h-[340px] relative">
+        <div className="w-full flex items-center justify-center min-h-[200px] h-[240px] sm:h-[280px] md:h-[340px] relative">
           <AnimatePresence initial={false} mode="popLayout">
             {banners.map((banner, index) => {
               // Calculate relative positioning for 3D/center active layout
@@ -146,20 +146,20 @@ export default function BannerSlider() {
                         <span className="bg-white/10 backdrop-blur-md text-white font-bold text-xs uppercase tracking-wider px-3.5 py-1.5 rounded-full border border-white/10">
                           {banner.badge || "Promo"}
                         </span>
-                        <span className={`font-black text-2xl md:text-4xl italic tracking-tighter ${banner.textColor || "text-blue-400"}`}>
+                        <span className={`font-black text-xl sm:text-2xl md:text-4xl italic tracking-tighter ${banner.textColor || "text-blue-400"}`}>
                           {banner.discount}
                         </span>
                       </div>
 
                       {/* Banner Content */}
                       <div className="relative z-10 space-y-1.5 md:space-y-3 w-full text-left">
-                        <h3 className="text-white text-2xl md:text-4xl font-extrabold tracking-tight">
+                        <h3 className="text-white text-lg sm:text-2xl md:text-4xl font-extrabold tracking-tight leading-tight">
                           {banner.title}
                         </h3>
-                        <p className="text-white/80 font-medium text-sm md:text-lg line-clamp-1">
+                        <p className="text-white/80 font-medium text-xs sm:text-sm md:text-lg line-clamp-1">
                           {banner.subtitle}
                         </p>
-                        <p className="text-white/60 text-xs md:text-sm max-w-xl line-clamp-1 md:line-clamp-2 leading-relaxed">
+                        <p className="text-white/60 text-xs md:text-sm max-w-xl line-clamp-1 md:line-clamp-2 leading-relaxed hidden sm:block">
                           {banner.description}
                         </p>
                       </div>
@@ -192,7 +192,7 @@ export default function BannerSlider() {
                   }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ type: "spring", stiffness: 300, damping: 28 }}
-                  className={`absolute w-[80%] md:w-[65%] max-w-4xl h-[220px] md:h-[280px] rounded-3xl border border-white/10 overflow-hidden shadow-2xl transition-all banner-slide-card ${
+                  className={`absolute w-[88%] sm:w-[82%] md:w-[65%] max-w-4xl min-h-[180px] h-[200px] sm:h-[240px] md:h-[280px] rounded-2xl md:rounded-3xl border border-white/10 overflow-hidden shadow-2xl transition-all banner-slide-card ${
                     isCenter ? "shadow-indigo-500/5" : "cursor-pointer"
                   }`}
                   onClick={() => {
@@ -200,11 +200,11 @@ export default function BannerSlider() {
                   }}
                 >
                   {isCenter && banner.linkUrl ? (
-                    <Link href={banner.linkUrl} className="absolute inset-0 flex flex-col justify-between p-6 md:p-10 z-20">
+                    <Link href={banner.linkUrl} className="absolute inset-0 flex flex-col justify-between p-4 sm:p-6 md:p-10 z-20">
                       {cardContent}
                     </Link>
                   ) : (
-                    <div className="w-full h-full flex flex-col justify-between p-6 md:p-10">
+                    <div className="w-full h-full flex flex-col justify-between p-4 sm:p-6 md:p-10">
                       {cardContent}
                     </div>
                   )}

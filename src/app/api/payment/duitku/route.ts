@@ -54,6 +54,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
     }
 
+    // ── SECURITY: Verify amount integrity ─────────────────────────────────
+    const notifAmount = parseFloat(amount);
+    if (Math.abs(notifAmount - order.totalAmount) > 1) {
+      console.error(`[SECURITY] Duitku amount mismatch for ${merchantOrderId}: notif=${notifAmount}, db=${order.totalAmount}`);
+      return NextResponse.json({ success: false, error: "Amount mismatch" }, { status: 400 });
+    }
+
+    // ── Idempotency guard ──────────────────────────────────────────────────
     if (order.paymentStatus === "PAID") {
       return NextResponse.json({ success: true, message: "Order already paid" });
     }

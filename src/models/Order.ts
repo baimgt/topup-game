@@ -91,6 +91,14 @@ const OrderSchema = new Schema<IOrder>(
   { timestamps: true }
 );
 
+// ── Performance indexes ─────────────────────────────────────────────────────
+// These significantly speed up the most common queries in the app
+OrderSchema.index({ orderNumber: 1 }); // Order detail page lookup
+OrderSchema.index({ customerEmail: 1, createdAt: -1 }); // My Orders page
+OrderSchema.index({ userId: 1, createdAt: -1 }); // Logged-in user orders
+OrderSchema.index({ paymentStatus: 1, orderStatus: 1 }); // Admin filtering
+OrderSchema.index({ orderStatus: 1, createdAt: -1 }); // Recent transactions
+
 const Order: Model<IOrder> =
   mongoose.models.Order || mongoose.model<IOrder>("Order", OrderSchema);
 
