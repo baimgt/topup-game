@@ -17,7 +17,8 @@ async function getFeaturedGames() {
   try {
     await connectDB();
     const games = await Game.find({ isActive: true }).sort({ sortOrder: 1 }).lean();
-    return await Promise.all(
+    // Run all product queries in parallel instead of one-by-one for much better performance
+    const results = await Promise.all(
       games.map(async (game) => {
         const products = await Product.find({ gameId: game._id, isActive: true })
           .sort({ sortOrder: 1 })
@@ -25,6 +26,7 @@ async function getFeaturedGames() {
         return JSON.parse(JSON.stringify({ ...game, id: game._id.toString(), products }));
       })
     );
+    return results;
   } catch {
     return [];
   }
@@ -35,7 +37,8 @@ async function getRecentTransactions() {
     await connectDB();
     const orders = await Order.find({ orderStatus: "SUCCESS" })
       .sort({ createdAt: -1 })
-      .limit(15)
+      .limit(12) // reduced from 15
+      .select("_id customerName gameName orderItems orderStatus createdAt gameId") // only fetch needed fields
       .populate("gameId", "imageUrl")
       .lean();
 
@@ -61,8 +64,11 @@ const features = [
 ];
 
 export default async function HomePage() {
-  const games = await getFeaturedGames();
-  const recentTransactions = await getRecentTransactions();
+  // Fetch both data sources in parallel for maximum speed
+  const [games, recentTransactions] = await Promise.all([
+    getFeaturedGames(),
+    getRecentTransactions(),
+  ]);
 
   return (
     <div className="gaming-light-theme min-h-screen overflow-hidden">
