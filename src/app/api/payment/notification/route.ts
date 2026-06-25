@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, message: "Already processed" });
     }
 
-    const oldStatus = order.paymentStatus;
+    const oldStatus = order.paymentStatus as PaymentStatus;
     
     // Determine new payment status
     let newStatus: PaymentStatus = order.paymentStatus;
