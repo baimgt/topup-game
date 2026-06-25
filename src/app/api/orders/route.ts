@@ -160,6 +160,10 @@ export async function POST(req: NextRequest) {
     let paymentToken = "";
     let paymentUrl = "";
 
+    const protocol = req.headers.get("x-forwarded-proto") || "http";
+    const host = req.headers.get("host");
+    const appUrl = host ? `${protocol}://${host}` : undefined;
+
     if (activeGateway === "midtrans") {
       const midtrans = await createSnapTransaction({
         orderId: order.orderNumber,
@@ -191,6 +195,7 @@ export async function POST(req: NextRequest) {
         merchantCode: paymentConfig?.duitkuMerchantCode || "",
         apiKey: paymentConfig?.duitkuApiKey || "",
         isProduction: paymentConfig?.duitkuIsProduction || false,
+        appUrl: appUrl,
       });
       
       order.paymentToken = duitku.reference;

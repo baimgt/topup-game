@@ -4,6 +4,7 @@ interface DuitkuConfig {
   merchantCode: string;
   apiKey: string;
   isProduction: boolean;
+  appUrl?: string;
 }
 
 export async function createDuitkuTransaction(
@@ -32,6 +33,8 @@ export async function createDuitkuTransaction(
   const signatureString = `${merchantCode}${params.orderId}${params.amount}${apiKey}`;
   const signature = crypto.createHash("md5").update(signatureString).digest("hex");
 
+  const baseUrl = config.appUrl || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
   const payload: any = {
     merchantCode: merchantCode,
     paymentAmount: params.amount,
@@ -41,8 +44,8 @@ export async function createDuitkuTransaction(
     phoneNumber: params.customerPhone || "081234567890", // Duitku needs a phone number for direct API
     customerVaName: params.customerName,
     itemDetails: params.items,
-    callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/payment/duitku`,
-    returnUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/order/${params.orderId}`,
+    callbackUrl: `${baseUrl}/api/payment/duitku`,
+    returnUrl: `${baseUrl}/order/${params.orderId}`,
     signature: signature,
     expiryPeriod: 60, // 60 menit
   };
