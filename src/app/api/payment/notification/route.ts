@@ -5,7 +5,7 @@ import Order from "@/models/Order";
 import PaymentConfig from "@/models/PaymentConfig";
 import { verifyMidtransSignature } from "@/lib/midtrans";
 import { createTransaction, generateRefId } from "@/lib/digiflazz";
-import { MidtransNotification } from "@/types";
+import { MidtransNotification, PaymentStatus } from "@/types";
 import { sendInvoiceEmail } from "@/lib/mail";
 
 export async function POST(req: NextRequest) {
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     const oldStatus = order.paymentStatus;
     
     // Determine new payment status
-    let newStatus = order.paymentStatus;
+    let newStatus: PaymentStatus = order.paymentStatus;
     if (transaction_status === "capture" || transaction_status === "settlement") {
       if (fraud_status === "accept" || !fraud_status) newStatus = "PAID";
     } else if (["deny", "cancel"].includes(transaction_status)) {
