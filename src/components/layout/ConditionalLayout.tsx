@@ -128,18 +128,15 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
       </AnimatePresence>
 
       <Navbar />
-      <AnimatePresence mode="wait">
-        <motion.main
-          key={pathname}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -15 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="pt-16 min-h-screen flex flex-col"
-        >
-          {children}
-        </motion.main>
-      </AnimatePresence>
+      <motion.main
+        key={pathname}
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="pt-16 min-h-screen flex flex-col"
+      >
+        {children}
+      </motion.main>
       <Footer />
     </>
   );
