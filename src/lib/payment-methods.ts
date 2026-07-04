@@ -45,11 +45,11 @@ export const defaultDuitkuMethods: PaymentMethod[] = [
   { id: "SQ", name: "QRIS ShopeePay", group: "QRIS", enabled: false, fee: 0.7, feeType: "percent" },
   { id: "LQ", name: "QRIS LinkAja", group: "QRIS", enabled: false, fee: 0.7, feeType: "percent" },
   // Transfer Bank
-  { id: "B1", name: "BCA Virtual Account", group: "Transfer Bank", enabled: true, fee: 4000, feeType: "flat" },
+  { id: "BC", name: "BCA Virtual Account", group: "Transfer Bank", enabled: true, fee: 4000, feeType: "flat" },
   { id: "M2", name: "Mandiri Virtual Account", group: "Transfer Bank", enabled: true, fee: 4000, feeType: "flat" },
   { id: "I1", name: "BNI Virtual Account", group: "Transfer Bank", enabled: true, fee: 4000, feeType: "flat" },
   { id: "BR", name: "BRI Virtual Account", group: "Transfer Bank", enabled: true, fee: 4000, feeType: "flat" },
-  { id: "B8", name: "CIMB Virtual Account", group: "Transfer Bank", enabled: false, fee: 4000, feeType: "flat" },
+  { id: "B1", name: "CIMB Virtual Account", group: "Transfer Bank", enabled: false, fee: 4000, feeType: "flat" },
   { id: "BT", name: "Permata Virtual Account", group: "Transfer Bank", enabled: false, fee: 4000, feeType: "flat" },
   { id: "D1", name: "Danamon Virtual Account", group: "Transfer Bank", enabled: false, fee: 4000, feeType: "flat" },
   { id: "M1", name: "Maybank Virtual Account", group: "Transfer Bank", enabled: false, fee: 4000, feeType: "flat" },
