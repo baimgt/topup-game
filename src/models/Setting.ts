@@ -4,6 +4,7 @@ export interface ISetting extends Document {
   siteName: string;
   siteLogo: string;
   siteDescription: string;
+  companyAddress: string;
   contactEmail: string;
   contactPhone: string;
   whatsappNumber: string;
@@ -24,9 +25,10 @@ export interface ISetting extends Document {
 
 const SettingSchema = new Schema<ISetting>(
   {
-    siteName: { type: String, default: "GamerStore" },
+    siteName: { type: String, default: "GameTopUp" },
     siteLogo: { type: String, default: "" },
     siteDescription: { type: String, default: "Platform top up game terpercaya" },
+    companyAddress: { type: String, default: "Jakarta, Indonesia" },
     contactEmail: { type: String, default: "support@gametopup.com" },
     contactPhone: { type: String, default: "+62 812-3456-7890" },
     whatsappNumber: { type: String, default: "6281234567890" },

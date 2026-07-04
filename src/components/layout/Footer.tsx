@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Gamepad2, Instagram, Phone, Mail, MessageCircle, X } from "lucide-react";
+import { Gamepad2, Instagram, Phone, Mail, MessageCircle, X, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -13,6 +13,7 @@ export default function Footer() {
   const [instagramUrl, setInstagramUrl] = useState("https://instagram.com/gametopup");
   const [contactEmail, setContactEmail] = useState("support@gametopup.com");
   const [contactPhone, setContactPhone] = useState("+62 812-3456-7890");
+  const [companyAddress, setCompanyAddress] = useState("Jakarta, Indonesia");
 
   const [activeModal, setActiveModal] = useState<"faq" | "contact" | "terms" | "privacy" | null>(null);
 
@@ -28,6 +29,7 @@ export default function Footer() {
           if (data.data.instagramUrl) setInstagramUrl(data.data.instagramUrl);
           if (data.data.contactEmail) setContactEmail(data.data.contactEmail);
           if (data.data.contactPhone) setContactPhone(data.data.contactPhone);
+          if (data.data.companyAddress) setCompanyAddress(data.data.companyAddress);
         }
       })
       .catch(() => {});
@@ -94,9 +96,10 @@ export default function Footer() {
 
         <div className="border-t border-white/5 mt-8 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-col items-center md:items-start gap-4">
-            <p className="text-gray-500 text-sm">
-              © {new Date().getFullYear()} {siteName}. All rights reserved.
-            </p>
+            <div className="text-gray-500 text-sm">
+              <p>© {new Date().getFullYear()} {siteName}. All rights reserved.</p>
+              <p className="mt-1 flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {companyAddress}</p>
+            </div>
             <div className="flex items-center gap-3">
               <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white/5 hover:bg-green-500/20 border border-white/10 hover:border-green-500/50 flex items-center justify-center transition-all group">
                 <MessageCircle className="w-4 h-4 text-gray-400 group-hover:text-green-400" />
@@ -165,6 +168,11 @@ export default function Footer() {
                       <Phone className="w-8 h-8 text-purple-400 mx-auto mb-3" />
                       <h4 className="text-white font-medium mb-1">Telepon</h4>
                       <a href={`tel:${contactPhone}`} className="text-purple-400 text-sm hover:underline">{contactPhone}</a>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-6 text-center border border-white/5 sm:col-span-2">
+                      <MapPin className="w-8 h-8 text-red-400 mx-auto mb-3" />
+                      <h4 className="text-white font-medium mb-1">Alamat Kantor</h4>
+                      <p className="text-red-400 text-sm">{companyAddress}</p>
                     </div>
                   </div>
                 )}

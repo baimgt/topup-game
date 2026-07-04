@@ -11,6 +11,7 @@ interface Settings {
   siteName: string;
   siteLogo: string;
   siteDescription: string;
+  companyAddress: string;
   contactEmail: string;
   contactPhone: string;
   whatsappNumber: string;
@@ -32,6 +33,7 @@ const defaultSettings: Settings = {
   siteName: "GamerStore",
   siteLogo: "",
   siteDescription: "Platform top up game terpercaya",
+  companyAddress: "Jakarta, Indonesia",
   contactEmail: "support@gametopup.com",
   contactPhone: "+62 812-3456-7890",
   whatsappNumber: "6281234567890",
@@ -245,6 +247,13 @@ export default function AdminSettingsPage() {
             onChange={(e) => update("contactEmail", e.target.value)}
             icon={<Mail className="w-4 h-4" />}
             placeholder="support@gametopup.com"
+          />
+          <Input
+            label="Alamat Perusahaan"
+            type="text"
+            value={settings.companyAddress}
+            onChange={(e) => update("companyAddress", e.target.value)}
+            placeholder="Jakarta, Indonesia"
           />
           <Input
             label="Nomor Telepon"
