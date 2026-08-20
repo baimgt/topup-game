@@ -13,6 +13,9 @@ import Order from "@/models/Order";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 async function getFeaturedGames() {
   try {
     await connectDB();
@@ -39,7 +42,7 @@ async function getRecentTransactions() {
       .sort({ createdAt: -1 })
       .limit(12) // reduced from 15
       .select("_id customerName gameName orderItems orderStatus createdAt gameId") // only fetch needed fields
-      .populate("gameId", "imageUrl")
+      .populate("gameId", "imageUrl iconUrl bannerUrl")
       .lean();
 
     return orders.map((order: any) => ({
@@ -49,7 +52,7 @@ async function getRecentTransactions() {
       productName: order.orderItems[0]?.productName || "Product",
       status: order.orderStatus,
       timeElapsed: formatDistanceToNow(new Date(order.createdAt), { addSuffix: true, locale: id }),
-      gameImage: order.gameId?.imageUrl || "https://placehold.co/100x100",
+      gameImage: order.gameId?.iconUrl || order.gameId?.imageUrl || "https://placehold.co/100x100",
     }));
   } catch (err) {
     return [];
