@@ -23,13 +23,14 @@ export default function NewGamePage() {
     category: "",
     statusCategory: "",
     sortOrder: 0,
+    homeSortOrder: 0,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: name === "sortOrder" ? parseInt(value) || 0 : value,
+      [name]: (name === "sortOrder" || name === "homeSortOrder") ? parseInt(value) || 0 : value,
       ...(name === "name" && {
         slug: value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
       }),
@@ -249,7 +250,28 @@ export default function NewGamePage() {
               )}
             </div>
 
-            <Input label="Urutan Tampil" name="sortOrder" type="number" value={form.sortOrder.toString()} onChange={handleChange} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-purple-950/30 border border-purple-500/30 rounded-xl p-3.5 space-y-1">
+                <Input
+                  label="🏠 Urutan di Tab Kategori Beranda"
+                  name="homeSortOrder"
+                  type="number"
+                  value={form.homeSortOrder.toString()}
+                  onChange={handleChange}
+                />
+                <p className="text-[11px] text-purple-300">Posisi di tab kategori Beranda (1 = Paling Depan/Kiri).</p>
+              </div>
+              <div className="bg-cyan-950/30 border border-cyan-500/30 rounded-xl p-3.5 space-y-1">
+                <Input
+                  label="🎮 Urutan di Halaman /games"
+                  name="sortOrder"
+                  type="number"
+                  value={form.sortOrder.toString()}
+                  onChange={handleChange}
+                />
+                <p className="text-[11px] text-cyan-300">Posisi di Daftar Semua Game / Kategori Game (1 = Paling Depan/Kiri).</p>
+              </div>
+            </div>
 
             <div className="flex gap-3 pt-2">
               <Link href="/admin" className="flex-1">

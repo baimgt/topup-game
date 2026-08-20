@@ -10,6 +10,7 @@ export interface Game {
   category: string;
   isActive: boolean;
   sortOrder: number;
+  homeSortOrder?: number;
   isCheckAccountSupported: boolean;
   targetInputs?: { name: string; label?: string; placeholder?: string; type: string }[];
   targetFormat?: string;

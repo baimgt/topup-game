@@ -24,15 +24,21 @@ export default function HomeGamesList({ initialGames }: HomeGamesListProps) {
   const [activeTab, setActiveTab] = useState("popular");
   const [showAll, setShowAll] = useState(false);
 
-  // Filter games based on selected tab
-  const filteredGames = initialGames.filter((game) => {
-    const currentCat = HOME_CATEGORIES.find((cat) => cat.id === activeTab);
-    const hasPopularGames = initialGames.some(g => g.statusCategory === "Lagi Populer");
-    if (activeTab === "popular" && !hasPopularGames) {
-      return true; // Fallback: show all games if none are marked "Lagi Populer"
-    }
-    return game.statusCategory === currentCat?.dbValue;
-  });
+  // Filter games based on selected tab and strictly sort by sortOrder
+  const filteredGames = [...initialGames]
+    .filter((game) => {
+      const currentCat = HOME_CATEGORIES.find((cat) => cat.id === activeTab);
+      const hasPopularGames = initialGames.some(g => g.statusCategory === "Lagi Populer");
+      if (activeTab === "popular" && !hasPopularGames) {
+        return true; // Fallback: show all games if none are marked "Lagi Populer"
+      }
+      return game.statusCategory === currentCat?.dbValue;
+    })
+    .sort((a, b) => {
+      const orderA = (a.homeSortOrder !== undefined && a.homeSortOrder !== 0) ? Number(a.homeSortOrder) : (Number(a.sortOrder) || 0);
+      const orderB = (b.homeSortOrder !== undefined && b.homeSortOrder !== 0) ? Number(b.homeSortOrder) : (Number(b.sortOrder) || 0);
+      return orderA - orderB;
+    });
 
   // Paginated/limited games list
   const displayedGames = showAll ? filteredGames : filteredGames.slice(0, 10);

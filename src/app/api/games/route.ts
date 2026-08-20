@@ -18,20 +18,23 @@ export async function GET(req: NextRequest) {
     if (category) filter.category = category;
     if (search) filter.name = { $regex: search, $options: "i" };
 
-    const games = await Game.find(filter).sort({ sortOrder: 1 }).lean();
+    const games = await Game.find(filter).sort({ sortOrder: 1, createdAt: 1 }).lean();
 
     // Attach products to each game
     const gamesWithProducts = await Promise.all(
       games.map(async (game) => {
         const products = await Product.find({ gameId: game._id, isActive: true })
-          .sort({ sortOrder: 1 })
+          .sort({ sortOrder: 1, sellingPrice: 1 })
           .lean();
         const formattedProducts = products.map((p: any) => ({ ...p, id: p._id.toString() }));
         return { ...game, id: game._id.toString(), products: formattedProducts };
       })
     );
 
-    return NextResponse.json({ success: true, data: gamesWithProducts });
+    // Keep sortOrder-based sort for /games page (default). homeSortOrder is available in data for Beranda.
+    const sortedGames = gamesWithProducts.sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0));
+
+    return NextResponse.json({ success: true, data: sortedGames });
   } catch (error) {
     console.error("Get games error:", error);
     return NextResponse.json({ success: false, error: "Gagal mengambil data game" }, { status: 500 });
@@ -48,6 +51,7 @@ const createGameSchema = z.object({
   category: z.string().min(1),
   statusCategory: z.string().optional(),
   sortOrder: z.number().optional(),
+  homeSortOrder: z.number().optional(),
   isCheckAccountSupported: z.boolean().optional(),
   targetFormat: z.string().optional(),
   categoryOrder: z.array(z.string()).optional(),

@@ -19,17 +19,21 @@ export const revalidate = 0;
 async function getFeaturedGames() {
   try {
     await connectDB();
-    const games = await Game.find({ isActive: true }).sort({ sortOrder: 1 }).lean();
+    const games = await Game.find({ isActive: true }).sort({ sortOrder: 1, createdAt: 1 }).lean();
     // Run all product queries in parallel instead of one-by-one for much better performance
     const results = await Promise.all(
       games.map(async (game) => {
         const products = await Product.find({ gameId: game._id, isActive: true })
-          .sort({ sortOrder: 1 })
+          .sort({ sortOrder: 1, sellingPrice: 1 })
           .lean();
         return JSON.parse(JSON.stringify({ ...game, id: game._id.toString(), products }));
       })
     );
-    return results;
+    return results.sort((a, b) => {
+      const orderA = (a.homeSortOrder !== undefined && a.homeSortOrder !== 0) ? Number(a.homeSortOrder) : (Number(a.sortOrder) || 0);
+      const orderB = (b.homeSortOrder !== undefined && b.homeSortOrder !== 0) ? Number(b.homeSortOrder) : (Number(b.sortOrder) || 0);
+      return orderA - orderB;
+    });
   } catch {
     return [];
   }

@@ -109,14 +109,14 @@ export default function OrderForm({ game }: OrderFormProps) {
 
     const entries = Object.entries(groupMap).map(([categoryName, products]) => ({
       categoryName,
-      products,
+      products: [...products].sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) || a.sellingPrice - b.sellingPrice),
     }));
 
     // Jika ada produk flash sale di game ini, tampilkan Kategori "⚡ Flash Sale" paling atas!
     if (flashSaleProducts.length > 0) {
       entries.unshift({
         categoryName: "⚡ Flash Sale",
-        products: flashSaleProducts,
+        products: [...flashSaleProducts].sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) || a.sellingPrice - b.sellingPrice),
       });
     }
 

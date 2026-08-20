@@ -14,7 +14,7 @@ import ImportGameModal from "@/components/admin/ImportGameModal";
 const CATEGORIES = ["Mobile", "PC", "Console", "RPG", "Lainnya"];
 const STATUS_CATEGORIES = ["Lagi Populer", "Baru Rilis", "Voucher", "Top Up Langsung", "Top Up Login", "Pulsa", "Entertainment"];
 
-interface Game { _id: string; name: string; slug: string; description?: string; imageUrl?: string; bannerUrl?: string; iconUrl?: string; category: string; statusCategory?: string; isActive: boolean; sortOrder: number; isCheckAccountSupported: boolean; targetFormat?: string; targetInputs?: any[]; products?: Product[]; categoryOrder?: string[]; }
+interface Game { _id: string; name: string; slug: string; description?: string; imageUrl?: string; bannerUrl?: string; iconUrl?: string; category: string; statusCategory?: string; isActive: boolean; sortOrder: number; homeSortOrder?: number; isCheckAccountSupported: boolean; targetFormat?: string; targetInputs?: any[]; products?: Product[]; categoryOrder?: string[]; }
 interface Product { _id: string; name: string; description?: string; price: number; sellingPrice: number; digiflazzSku: string; category: string; isActive: boolean; sortOrder: number; }
 
 function formatSamplePreview(inputs: any[], format?: string) {
@@ -80,6 +80,7 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
     category: game.category || CATEGORIES[0], 
     statusCategory: game.statusCategory || "",
     sortOrder: game.sortOrder || 0,
+    homeSortOrder: (game as any).homeSortOrder !== undefined ? (game as any).homeSortOrder : (game.sortOrder || 0),
     isCheckAccountSupported: game.isCheckAccountSupported || false,
     targetFormat: (game as any).targetFormat || "concat",
     categoryOrder: (game as any).categoryOrder || [],
@@ -108,11 +109,10 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
             });
             const list = Array.from(set);
             setCategoriesList(list);
-            setForm((prev) => ({ ...prev, categoryOrder: list }));
           }
         });
     }
-  }, [game._id]);
+  }, [game._id, game.categoryOrder]);
 
   const moveCategory = (index: number, direction: "up" | "down") => {
     const newList = [...categoriesList];
@@ -144,7 +144,7 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
 
       const data = await res.json();
       if (data.success && data.url) {
-        setForm((prev) => ({ ...prev, bannerUrl: data.url, imageUrl: data.url }));
+        setForm((prev) => ({ ...prev, bannerUrl: data.url }));
         toast.success("Gambar banner berhasil diunggah!");
       } else {
         toast.error(data.error || "Gagal mengunggah banner");
@@ -210,93 +210,107 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
       ...form, 
       targetInputs: [
         ...form.targetInputs, 
-        { name: `Input ${idx}`, label: "", placeholder: "", type: "text" }
+        { name: `input_${idx}`, label: `Kolom ${idx}`, placeholder: `Masukkan data ${idx}`, type: "text" }
       ] 
     });
   };
 
   const removeTargetInput = (index: number) => {
-    const newInputs = [...form.targetInputs];
-    newInputs.splice(index, 1);
-    setForm({ ...form, targetInputs: newInputs });
+    const next = [...form.targetInputs];
+    next.splice(index, 1);
+    setForm({ ...form, targetInputs: next });
   };
 
   const updateTargetInput = (index: number, field: string, value: string) => {
-    const newInputs = [...form.targetInputs];
-    newInputs[index] = { ...newInputs[index], [field]: value };
-    setForm({ ...form, targetInputs: newInputs });
+    const next = [...form.targetInputs];
+    next[index] = { ...next[index], [field]: value };
+    setForm({ ...form, targetInputs: next });
   };
 
   return (
-    <div className="space-y-4">
-      <Input label="Nama Game" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") })} />
-      <Input label="Slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
+    <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
+      <Input label="Nama Game *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+      <Input label="Slug *" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1.5">Kategori</label>
-        <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full bg-gaming-accent border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
+        <label className="text-sm font-medium text-gray-300 block mb-1.5">Kategori Game (/games) *</label>
+        <select
+          value={form.category}
+          onChange={(e) => setForm({ ...form, category: e.target.value })}
+          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+        >
           {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1.5">Status Kategori (Tampil di Home)</label>
-        <select value={form.statusCategory} onChange={(e) => setForm({ ...form, statusCategory: e.target.value })} className="w-full bg-gaming-accent border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
-          <option value="">Tanpa Status Kategori (Tidak Tampil di Home)</option>
-          {STATUS_CATEGORIES.map((sc) => <option key={sc} value={sc}>{sc}</option>)}
+        <label className="text-sm font-medium text-gray-300 block mb-1.5">Kategori Status (Beranda) *</label>
+        <select
+          value={form.statusCategory}
+          onChange={(e) => setForm({ ...form, statusCategory: e.target.value })}
+          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+        >
+          <option value="">-- Tidak Tampil di Tab Status Beranda --</option>
+          {STATUS_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1.5">Deskripsi</label>
-        <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full bg-gaming-accent border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none text-sm" />
+        <label className="text-sm font-medium text-gray-300 block mb-1.5">Deskripsi</label>
+        <textarea
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          rows={3}
+          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 resize-none"
+        />
       </div>
-      {/* URL Gambar Banner / Cover */}
-      <div className="bg-black/20 border border-white/5 rounded-xl p-3.5 space-y-2">
-        <label className="block text-xs font-bold text-purple-300 uppercase tracking-wider">
-          🖼️ Gambar Banner / Cover Game (Landscape)
-        </label>
-        <div className="flex gap-2 items-center">
-          <Input 
-            value={form.bannerUrl || form.imageUrl} 
-            onChange={(e) => setForm({ ...form, bannerUrl: e.target.value, imageUrl: e.target.value })} 
-            placeholder="https://... atau klik tombol Unggah Banner" 
+
+      {/* Upload & URL Banner Game */}
+      <div className="bg-black/20 border border-white/5 rounded-xl p-4 space-y-3">
+        <label className="text-sm font-medium text-white block">🖼️ Foto Banner / Cover Game (Landscape)</label>
+        <div className="flex gap-2">
+          <Input
+            placeholder="https://... atau unggah gambar banner"
+            value={form.bannerUrl}
+            onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
+            className="flex-1"
           />
-          <label className={`flex items-center justify-center gap-1.5 px-4 py-3 bg-purple-600/20 border border-purple-500/30 hover:bg-purple-600/30 text-purple-300 hover:text-white rounded-xl text-sm font-bold transition-all cursor-pointer flex-shrink-0 ${uploadingBanner ? "opacity-50 pointer-events-none" : ""}`}>
-            <Upload className="w-4 h-4" />
+          <label className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600/30 to-blue-600/30 hover:from-purple-600/50 hover:to-blue-600/50 text-white border border-white/10 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all self-end h-[42px]">
+            <Upload className="w-4 h-4 text-purple-400" />
             {uploadingBanner ? "Mengunggah..." : "Unggah Banner"}
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleBannerUpload} 
-              className="hidden" 
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleBannerUpload}
+              disabled={uploadingBanner}
             />
           </label>
         </div>
-        {(form.bannerUrl || form.imageUrl) && (
-          <div className="mt-2 relative h-20 w-full rounded-lg overflow-hidden border border-white/10 bg-black/40">
+        {form.bannerUrl && (
+          <div className="mt-2 relative w-full h-24 rounded-xl overflow-hidden border border-purple-500/30 bg-black/40 shadow-lg">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={form.bannerUrl || form.imageUrl} alt="Banner Preview" className="w-full h-full object-cover" />
+            <img src={form.bannerUrl} alt="Banner Preview" className="w-full h-full object-cover" />
           </div>
         )}
       </div>
 
-      {/* URL Gambar Icon Game (Persegi) */}
-      <div className="bg-black/20 border border-white/5 rounded-xl p-3.5 space-y-2">
-        <label className="block text-xs font-bold text-cyan-300 uppercase tracking-wider">
-          🎮 Gambar Icon Game (Logo / Persegi)
-        </label>
-        <div className="flex gap-2 items-center">
-          <Input 
-            value={form.iconUrl} 
-            onChange={(e) => setForm({ ...form, iconUrl: e.target.value })} 
-            placeholder="https://... atau klik tombol Unggah Icon" 
+      {/* Upload & URL Icon Game */}
+      <div className="bg-black/20 border border-white/5 rounded-xl p-4 space-y-3">
+        <label className="text-sm font-medium text-white block">🎮 Foto Icon / Logo Game (Persegi)</label>
+        <div className="flex gap-2">
+          <Input
+            placeholder="https://... atau unggah gambar icon"
+            value={form.iconUrl}
+            onChange={(e) => setForm({ ...form, iconUrl: e.target.value })}
+            className="flex-1"
           />
-          <label className={`flex items-center justify-center gap-1.5 px-4 py-3 bg-cyan-600/20 border border-cyan-500/30 hover:bg-cyan-600/30 text-cyan-300 hover:text-white rounded-xl text-sm font-bold transition-all cursor-pointer flex-shrink-0 ${uploadingIcon ? "opacity-50 pointer-events-none" : ""}`}>
-            <Upload className="w-4 h-4" />
+          <label className="flex items-center gap-1.5 bg-gradient-to-r from-cyan-600/30 to-blue-600/30 hover:from-cyan-600/50 hover:to-blue-600/50 text-white border border-white/10 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all self-end h-[42px]">
+            <Upload className="w-4 h-4 text-cyan-400" />
             {uploadingIcon ? "Mengunggah..." : "Unggah Icon"}
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleIconUpload} 
-              className="hidden" 
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleIconUpload}
+              disabled={uploadingIcon}
             />
           </label>
         </div>
@@ -307,7 +321,28 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
           </div>
         )}
       </div>
-      <Input label="Urutan Tampil" type="number" value={String(form.sortOrder)} onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} />
+
+      {/* Dual Sort Order Controls */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-purple-950/30 border border-purple-500/30 rounded-xl p-3.5 space-y-1">
+          <Input
+            label="🏠 Urutan di Tab Kategori Beranda"
+            type="number"
+            value={String(form.homeSortOrder ?? 0)}
+            onChange={(e) => setForm({ ...form, homeSortOrder: parseInt(e.target.value) || 0 })}
+          />
+          <p className="text-[11px] text-purple-300">Posisi di tab kategori Beranda (1 = Paling Depan/Kiri).</p>
+        </div>
+        <div className="bg-cyan-950/30 border border-cyan-500/30 rounded-xl p-3.5 space-y-1">
+          <Input
+            label="🎮 Urutan di Halaman /games"
+            type="number"
+            value={String(form.sortOrder ?? 0)}
+            onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })}
+          />
+          <p className="text-[11px] text-cyan-300">Posisi di Daftar Semua Game / Kategori Game (1 = Paling Depan/Kiri).</p>
+        </div>
+      </div>
       
       {/* Target Inputs */}
       <div className="bg-black/20 border border-white/5 rounded-xl p-4 space-y-4">
@@ -775,6 +810,22 @@ export default function AdminGamesPage() {
   const [productsByGame, setProductsByGame] = useState<Record<string, Product[]>>({});
   const [loadingProducts, setLoadingProducts] = useState<string | null>(null);
 
+  // Filters & Search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterMode, setFilterMode] = useState<"all" | "home" | "game">("all");
+  const [selectedHomeCat, setSelectedHomeCat] = useState<string>("all");
+  const [selectedGameCat, setSelectedGameCat] = useState<string>("all");
+
+  const HOME_STATUS_CATEGORIES = [
+    "Lagi Populer",
+    "Baru Rilis",
+    "Voucher",
+    "Top Up Langsung",
+    "Top Up Login",
+    "Pulsa",
+    "Entertainment",
+  ];
+
   // Modals
   const [editGame, setEditGame] = useState<Game | null>(null);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
@@ -791,11 +842,71 @@ export default function AdminGamesPage() {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
-    if (data.success) setGames(data.data);
+    if (data.success) {
+      const sorted = [...data.data].sort((a: Game, b: Game) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0));
+      setGames(sorted);
+    }
     setLoading(false);
   };
 
   useEffect(() => { fetchGames(); }, [refreshKey]);
+
+  const updateGameSortOrder = async (gameId: string, newSort: number) => {
+    setGames((prev) =>
+      [...prev]
+        .map((g) => (g._id === gameId ? { ...g, sortOrder: newSort } : g))
+    );
+    const token = localStorage.getItem("token");
+    try {
+      await fetch(`/api/admin/games/${gameId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ sortOrder: newSort }),
+      });
+      toast.success("Urutan game (/games) disimpan!");
+    } catch {
+      toast.error("Gagal menyimpan urutan game");
+    }
+  };
+
+  const updateGameHomeSortOrder = async (gameId: string, newHomeSort: number) => {
+    setGames((prev) =>
+      [...prev]
+        .map((g) => (g._id === gameId ? { ...g, homeSortOrder: newHomeSort } : g))
+    );
+    const token = localStorage.getItem("token");
+    try {
+      await fetch(`/api/admin/games/${gameId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ homeSortOrder: newHomeSort }),
+      });
+      toast.success("Urutan beranda disimpan!");
+    } catch {
+      toast.error("Gagal menyimpan urutan beranda");
+    }
+  };
+
+  const updateProductSortOrder = async (productId: string, gameId: string, newSort: number) => {
+    setProductsByGame((prev) => {
+      const currentList = prev[gameId] || [];
+      const updated = currentList
+        .map((p) => (p._id === productId ? { ...p, sortOrder: newSort } : p))
+        .sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) || a.sellingPrice - b.sellingPrice);
+      return { ...prev, [gameId]: updated };
+    });
+    const token = localStorage.getItem("token");
+    try {
+      await fetch(`/api/admin/products/${productId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ sortOrder: newSort }),
+      });
+      toast.success("Urutan produk disimpan!");
+    } catch {
+      toast.error("Gagal menyimpan urutan produk");
+    }
+  };
 
   const loadProducts = async (gameId: string) => {
     if (productsByGame[gameId]) return; // already loaded
@@ -806,7 +917,8 @@ export default function AdminGamesPage() {
     });
     const data = await res.json();
     if (data.success) {
-      setProductsByGame((prev) => ({ ...prev, [gameId]: data.data }));
+      const sorted = [...data.data].sort((a: Product, b: Product) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) || a.sellingPrice - b.sellingPrice);
+      setProductsByGame((prev) => ({ ...prev, [gameId]: sorted }));
     }
     setLoadingProducts(null);
   };
@@ -827,7 +939,8 @@ export default function AdminGamesPage() {
     });
     const data = await res.json();
     if (data.success) {
-      setProductsByGame((prev) => ({ ...prev, [gameId]: data.data }));
+      const sorted = [...data.data].sort((a: Product, b: Product) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) || a.sellingPrice - b.sellingPrice);
+      setProductsByGame((prev) => ({ ...prev, [gameId]: sorted }));
     }
   };
 
@@ -857,7 +970,7 @@ export default function AdminGamesPage() {
 
   const handleDelete = async () => {
     if (!deleteConfirm) return;
-        const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
     const url = deleteConfirm.type === "game"
       ? `/api/admin/games/${deleteConfirm.id}`
       : `/api/admin/products/${deleteConfirm.id}`;
@@ -874,14 +987,44 @@ export default function AdminGamesPage() {
     setDeleteConfirm(null);
   };
 
+  // Filter & Sort games based on Search and Selected Category Mode
+  const filteredGames = games
+    .filter((game) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = game.name.toLowerCase().includes(q);
+        const matchSlug = game.slug.toLowerCase().includes(q);
+        if (!matchName && !matchSlug) return false;
+      }
+
+      if (filterMode === "home") {
+        if (selectedHomeCat !== "all" && game.statusCategory !== selectedHomeCat) {
+          return false;
+        }
+      } else if (filterMode === "game") {
+        if (selectedGameCat !== "all" && game.category !== selectedGameCat) {
+          return false;
+        }
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (filterMode === "home") {
+        const orderA = (a.homeSortOrder !== undefined && a.homeSortOrder !== 0) ? Number(a.homeSortOrder) : (Number(a.sortOrder) || 0);
+        const orderB = (b.homeSortOrder !== undefined && b.homeSortOrder !== 0) ? Number(b.homeSortOrder) : (Number(b.sortOrder) || 0);
+        return orderA - orderB;
+      }
+      return (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0);
+    });
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/[0.02] backdrop-blur-md border border-white/5 p-6 rounded-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 blur-[80px] rounded-full pointer-events-none" />
         <div className="relative z-10">
-          <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">Data Game</h1>
-          <p className="text-gray-400 text-sm mt-1">Kelola {games.length} game yang tersedia di website Anda.</p>
+          <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">Data Game & Urutan Tampil</h1>
+          <p className="text-gray-400 text-sm mt-1">Kelola {games.length} game dan atur posisi urutan tampil di Beranda atau Daftar Semua Game.</p>
         </div>
         <div className="relative z-10 flex gap-3">
           <button
@@ -901,6 +1044,127 @@ export default function AdminGamesPage() {
         </div>
       </div>
 
+      {/* Category Mode & Filter Toolbar */}
+      <div className="bg-gaming-card border border-white/5 p-4 rounded-2xl space-y-4">
+        {/* Top Controls: Search and Main Filter Mode */}
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+          {/* Search Box */}
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Cari game berdasarkan nama atau slug..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-all"
+            />
+          </div>
+
+          {/* Mode Switcher */}
+          <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/10 self-start md:self-auto overflow-x-auto">
+            <button
+              onClick={() => { setFilterMode("all"); setSelectedHomeCat("all"); setSelectedGameCat("all"); }}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                filterMode === "all" ? "bg-purple-600 text-white shadow" : "text-gray-400 hover:text-white"
+              }`}
+            >
+              🌐 Semua Game ({games.length})
+            </button>
+            <button
+              onClick={() => setFilterMode("home")}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                filterMode === "home" ? "bg-purple-600 text-white shadow" : "text-gray-400 hover:text-white"
+              }`}
+            >
+              🏠 Urut Kategori Beranda
+            </button>
+            <button
+              onClick={() => setFilterMode("game")}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                filterMode === "game" ? "bg-purple-600 text-white shadow" : "text-gray-400 hover:text-white"
+              }`}
+            >
+              🎮 Urut Kategori /games
+            </button>
+          </div>
+        </div>
+
+        {/* Sub Category Pills for Beranda / Home */}
+        {filterMode === "home" && (
+          <div className="pt-2 border-t border-white/5 space-y-2">
+            <div className="text-xs text-purple-300 font-semibold flex items-center gap-1">
+              <span>🏠 Pilih Tab Kategori Beranda untuk Mengatur Urutan:</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedHomeCat("all")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                  selectedHomeCat === "all"
+                    ? "bg-purple-500/30 text-purple-200 border-purple-500/50 shadow-sm"
+                    : "bg-white/5 text-gray-400 border-white/5 hover:text-white"
+                }`}
+              >
+                Semua Kategori Beranda
+              </button>
+              {HOME_STATUS_CATEGORIES.map((cat) => {
+                const count = games.filter((g) => g.statusCategory === cat).length;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedHomeCat(cat)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
+                      selectedHomeCat === cat
+                        ? "bg-cyan-500/30 text-cyan-200 border-cyan-500/50 shadow-sm"
+                        : "bg-white/5 text-gray-400 border-white/5 hover:text-white"
+                    }`}
+                  >
+                    <span>{cat}</span>
+                    <span className="text-[10px] opacity-70 bg-black/40 px-1.5 py-0.2 rounded-full">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Sub Category Pills for /games page */}
+        {filterMode === "game" && (
+          <div className="pt-2 border-t border-white/5 space-y-2">
+            <div className="text-xs text-cyan-300 font-semibold flex items-center gap-1">
+              <span>🎮 Pilih Kategori Game untuk Mengatur Urutan di Halaman /games:</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedGameCat("all")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                  selectedGameCat === "all"
+                    ? "bg-cyan-500/30 text-cyan-200 border-cyan-500/50 shadow-sm"
+                    : "bg-white/5 text-gray-400 border-white/5 hover:text-white"
+                }`}
+              >
+                Semua Kategori Game
+              </button>
+              {CATEGORIES.map((cat) => {
+                const count = games.filter((g) => g.category === cat).length;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedGameCat(cat)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
+                      selectedGameCat === cat
+                        ? "bg-purple-500/30 text-purple-200 border-purple-500/50 shadow-sm"
+                        : "bg-white/5 text-gray-400 border-white/5 hover:text-white"
+                    }`}
+                  >
+                    <span>{cat}</span>
+                    <span className="text-[10px] opacity-70 bg-black/40 px-1.5 py-0.2 rounded-full">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Game List */}
       {loading ? (
         <div className="space-y-3">
@@ -908,97 +1172,143 @@ export default function AdminGamesPage() {
             <div key={i} className="bg-gaming-card rounded-xl border border-white/5 p-4 animate-pulse h-16" />
           ))}
         </div>
-      ) : games.length === 0 ? (
+      ) : filteredGames.length === 0 ? (
         <div className="bg-gaming-card rounded-xl border border-white/5 p-12 text-center text-gray-500">
-          Belum ada game. Tambahkan game pertama!
+          Tidak ada game yang sesuai dengan filter.
         </div>
       ) : (
         <div className="space-y-3">
-          {games.map((game) => {
+          {filteredGames.map((game, index) => {
             const isExpanded = expandedId === game._id;
             const products = productsByGame[game._id] || [];
 
             return (
-              <div key={game._id} className="bg-gaming-card rounded-xl border border-white/5 overflow-hidden">
+              <div key={game._id} className="bg-gaming-card rounded-xl border border-white/5 overflow-hidden transition-all hover:border-white/10">
                 {/* Game Row */}
-                <div className="flex items-center gap-4 px-4 py-3">
-                  {/* Avatar / Icon */}
-                  <div className="w-11 h-11 rounded-xl overflow-hidden bg-gradient-to-br from-purple-500/30 to-blue-500/30 border border-white/10 flex items-center justify-center flex-shrink-0 relative shadow-sm">
-                    {(game.iconUrl || game.imageUrl) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={game.iconUrl || game.imageUrl} alt={game.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-white font-bold text-sm">{game.name.charAt(0)}</span>
-                    )}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 py-3">
+                  {/* Left Side: Avatar + Info */}
+                  <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                    {/* Visual Rank Indicator */}
+                    <div className="w-7 h-7 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center font-mono font-bold text-xs text-gray-400 flex-shrink-0">
+                      #{index + 1}
+                    </div>
+
+                    {/* Avatar / Icon */}
+                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-purple-500/30 to-blue-500/30 border border-white/10 flex items-center justify-center flex-shrink-0 relative shadow-sm">
+                      {(game.iconUrl || game.imageUrl) ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={game.iconUrl || game.imageUrl} alt={game.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-white font-bold text-sm">{game.name.charAt(0)}</span>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-white font-bold text-sm sm:text-base">{game.name}</span>
+                        <Badge variant={game.isActive ? "success" : "default"} className="text-[11px] py-0">
+                          {game.isActive ? "Aktif" : "Nonaktif"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="text-cyan-300 text-xs px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20 font-medium">
+                          🎮 {game.category}
+                        </span>
+                        {game.statusCategory && (
+                          <span className="text-purple-300 text-xs px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 font-medium">
+                            🏠 {game.statusCategory}
+                          </span>
+                        )}
+                        <span className="text-gray-400 text-xs font-mono bg-black/30 px-2 py-0.5 rounded-md">/{game.slug}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-medium text-sm">{game.name}</span>
-                      <Badge variant={game.isActive ? "success" : "default"} className="text-xs">
-                        {game.isActive ? "Aktif" : "Nonaktif"}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-gray-500 text-xs px-2 py-0.5 rounded-md bg-white/5 border border-white/5">{game.category}</span>
-                      <span className="text-gray-700 text-xs">•</span>
-                      <span className="text-gray-400 text-xs font-mono bg-black/20 px-2 py-0.5 rounded-md">/{game.slug}</span>
-                    </div>
-                  </div>
+                  {/* Right Side: Quick Sort Order Input & Actions */}
+                  <div className="flex items-center gap-3 flex-wrap md:flex-nowrap justify-between md:justify-end pt-2 md:pt-0 border-t md:border-t-0 border-white/5">
+                    {/* Inline Dual Sort Order Box */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 bg-purple-950/40 border border-purple-500/40 px-2.5 py-1 rounded-xl shadow-inner" title="Nomor Urutan Tampil di Tab Status Beranda (Angka 1 = Paling Depan/Kiri)">
+                        <span className="text-[11px] text-purple-300 font-bold whitespace-nowrap">🏠 Beranda:</span>
+                        <input
+                          type="number"
+                          value={game.homeSortOrder ?? (game.sortOrder ?? 0)}
+                          onChange={(e) => updateGameHomeSortOrder(game._id, parseInt(e.target.value) || 0)}
+                          className="w-12 bg-white/10 hover:bg-white/20 focus:bg-purple-900 text-white font-mono font-bold text-xs text-center rounded-lg py-0.5 border border-white/10 focus:border-purple-500 focus:outline-none transition-all"
+                        />
+                      </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => setEditGame(game)} title="Edit game" className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all">
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => toggleGameActive(game)}
-                      title={game.isActive ? "Nonaktifkan" : "Aktifkan"}
-                      className={`p-2 rounded-lg transition-all ${game.isActive ? "text-yellow-400 hover:bg-yellow-500/10" : "text-green-400 hover:bg-green-500/10"}`}
-                    >
-                      {game.isActive ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm({ type: "game", id: game._id, name: game.name })}
-                      className="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all"
-                      title="Hapus game"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    
-                    {/* Divider */}
-                    <div className="w-px h-6 bg-white/10 mx-1"></div>
+                      <div className="flex items-center gap-1.5 bg-cyan-950/40 border border-cyan-500/40 px-2.5 py-1 rounded-xl shadow-inner" title="Nomor Urutan Tampil di Halaman /games (Angka 1 = Paling Depan/Kiri)">
+                        <span className="text-[11px] text-cyan-300 font-bold whitespace-nowrap">🎮 /games:</span>
+                        <input
+                          type="number"
+                          value={game.sortOrder ?? 0}
+                          onChange={(e) => updateGameSortOrder(game._id, parseInt(e.target.value) || 0)}
+                          className="w-12 bg-white/10 hover:bg-white/20 focus:bg-cyan-900 text-white font-mono font-bold text-xs text-center rounded-lg py-0.5 border border-white/10 focus:border-cyan-500 focus:outline-none transition-all"
+                        />
+                      </div>
+                    </div>
 
-                    {/* Expand toggle */}
-                    <button
-                      onClick={() => toggleExpand(game._id)}
-                      className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all border border-white/5"
-                    >
-                      <Package className="w-4 h-4" />
-                      Produk
-                      {isExpanded ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
-                    </button>
-                    {/* Import dari Digiflazz */}
-                    <button
-                      onClick={() => setImportGame(game)}
-                      className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600/20 to-cyan-600/20 hover:from-purple-600/40 hover:to-cyan-600/40 text-white border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
-                    >
-                      <Download className="w-4 h-4 text-cyan-400" />
-                      Import
-                    </button>
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => setEditGame(game)} title="Edit game" className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => toggleGameActive(game)}
+                        title={game.isActive ? "Nonaktifkan" : "Aktifkan"}
+                        className={`p-2 rounded-lg transition-all ${game.isActive ? "text-yellow-400 hover:bg-yellow-500/10" : "text-green-400 hover:bg-green-500/10"}`}
+                      >
+                        {game.isActive ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm({ type: "game", id: game._id, name: game.name })}
+                        className="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all"
+                        title="Hapus game"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      
+                      {/* Divider */}
+                      <div className="w-px h-6 bg-white/10 mx-1"></div>
+
+                      {/* Expand toggle */}
+                      <button
+                        onClick={() => toggleExpand(game._id)}
+                        className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all border border-white/5"
+                      >
+                        <Package className="w-4 h-4" />
+                        Produk
+                        {isExpanded ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
+                      </button>
+
+                      {/* Import dari Digiflazz */}
+                      <button
+                        onClick={() => setImportGame(game)}
+                        className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600/20 to-cyan-600/20 hover:from-purple-600/40 hover:to-cyan-600/40 text-white border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                      >
+                        <Download className="w-4 h-4 text-cyan-400" />
+                        Import
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {/* Products Panel */}
                 {isExpanded && (
-                  <div className="border-t border-white/5 bg-black/40 backdrop-blur-sm p-2 rounded-b-2xl">
+                  <div className="border-t border-white/5 bg-black/40 backdrop-blur-sm p-3 rounded-b-2xl">
                     {/* Products header */}
-                    <div className="flex items-center justify-between px-4 py-3 bg-white/5 rounded-xl border border-white/5 mb-2">
-                      <span className="text-gray-300 text-sm font-bold">
-                        {loadingProducts === game._id ? "Memuat produk..." : `${products.length} Produk Tersedia`}
-                      </span>
-                      <button onClick={() => setAddProductGameId(game._id)} className="flex items-center gap-1.5 bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-purple-500/20">
+                    <div className="flex items-center justify-between px-4 py-3 bg-white/5 rounded-xl border border-white/5 mb-3">
+                      <div>
+                        <span className="text-gray-200 text-sm font-bold block">
+                          {loadingProducts === game._id ? "Memuat produk..." : `${products.length} Produk Tersedia`}
+                        </span>
+                        <span className="text-gray-400 text-xs mt-0.5 block">
+                          Atur angka kolom <b className="text-purple-300">Urutan</b> untuk memindahkan posisi nominal produk di halaman top up.
+                        </span>
+                      </div>
+                      <button onClick={() => setAddProductGameId(game._id)} className="flex items-center gap-1.5 bg-purple-500 hover:bg-purple-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-purple-500/20">
                         <Plus className="w-3.5 h-3.5" /> Tambah Produk
                       </button>
                     </div>
@@ -1012,45 +1322,65 @@ export default function AdminGamesPage() {
                         Belum ada produk untuk game ini
                       </div>
                     ) : (
-                      <div className="space-y-1.5">
-                        {products.map((product) => {
+                      <div className="space-y-2">
+                        {products.map((product, pIndex) => {
                           const margin = product.sellingPrice - product.price;
                           return (
-                            <div key={product._id} className="flex items-center gap-4 px-4 py-3 bg-white/[0.02] hover:bg-white/[0.06] rounded-xl border border-white/5 transition-all group">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-white text-sm font-bold group-hover:text-cyan-400 transition-colors">{product.name}</span>
-                                  <Badge variant={product.isActive ? "success" : "default"} className="text-[10px] uppercase tracking-wider px-2 py-0.5">
-                                    {product.isActive ? "Aktif" : "Off"}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-3 mt-1.5">
-                                  <span className="text-gray-400 text-xs font-mono bg-black/20 px-2 py-0.5 rounded-md border border-white/5">{product.digiflazzSku}</span>
-                                  <span className="text-gray-500 text-xs">{product.category}</span>
+                            <div key={product._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-2.5 bg-white/[0.02] hover:bg-white/[0.06] rounded-xl border border-white/5 transition-all group">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <span className="text-gray-500 font-mono text-xs w-6 text-center font-bold">
+                                  #{pIndex + 1}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-white text-sm font-bold group-hover:text-cyan-400 transition-colors">{product.name}</span>
+                                    <Badge variant={product.isActive ? "success" : "default"} className="text-[10px] uppercase tracking-wider px-2 py-0.5">
+                                      {product.isActive ? "Aktif" : "Off"}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-gray-400 text-xs font-mono bg-black/20 px-2 py-0.5 rounded-md border border-white/5">{product.digiflazzSku}</span>
+                                    <span className="text-gray-400 text-xs px-2 py-0.5 rounded-md bg-white/5">{product.category}</span>
+                                  </div>
                                 </div>
                               </div>
-                              <div className="text-right flex-shrink-0 bg-black/20 px-3 py-1.5 rounded-xl border border-white/5">
-                                <div className="text-white text-sm font-black">{formatCurrency(product.sellingPrice)}</div>
-                                <div className="text-green-400 text-xs font-medium">Margin: +{formatCurrency(margin)}</div>
-                              </div>
-                              <div className="flex items-center gap-1 flex-shrink-0 pl-2 border-l border-white/5">
-                                <button onClick={() => setEditProduct(product)} title="Edit produk" className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all">
-                                  <Pencil className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => toggleProductActive(product, game._id)}
-                                  className={product.isActive ? "text-yellow-400 hover:text-yellow-300" : "text-green-400 hover:text-green-300"}
-                                >
-                                  {product.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
-                                </button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setDeleteConfirm({ type: "product", id: product._id, name: product.name })}
-                                  className="text-red-400 hover:text-red-300"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
+
+                              <div className="flex items-center gap-3 justify-between sm:justify-end">
+                                {/* Inline Sort Order for Product */}
+                                <div className="flex items-center gap-1.5 bg-black/30 border border-white/10 px-2.5 py-1 rounded-lg" title="Nomor Urutan Tampil Nominal (1 = Paling Depan)">
+                                  <span className="text-[11px] text-gray-400 font-medium">Urut:</span>
+                                  <input
+                                    type="number"
+                                    value={product.sortOrder ?? 0}
+                                    onChange={(e) => updateProductSortOrder(product._id, game._id, parseInt(e.target.value) || 0)}
+                                    className="w-12 bg-white/10 text-white font-mono font-bold text-xs text-center rounded py-0.5 border border-white/10 focus:border-purple-500 focus:outline-none"
+                                  />
+                                </div>
+
+                                <div className="text-right flex-shrink-0 bg-black/20 px-3 py-1 rounded-xl border border-white/5">
+                                  <div className="text-white text-xs sm:text-sm font-black">{formatCurrency(product.sellingPrice)}</div>
+                                  <div className="text-green-400 text-[11px] font-medium">Margin: +{formatCurrency(margin)}</div>
+                                </div>
+
+                                <div className="flex items-center gap-1 flex-shrink-0 pl-2 border-l border-white/5">
+                                  <button onClick={() => setEditProduct(product)} title="Edit produk" className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => toggleProductActive(product, game._id)}
+                                    className={product.isActive ? "text-yellow-400 hover:text-yellow-300 p-1.5" : "text-green-400 hover:text-green-300 p-1.5"}
+                                  >
+                                    {product.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                                  </button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setDeleteConfirm({ type: "product", id: product._id, name: product.name })}
+                                    className="text-red-400 hover:text-red-300 p-1.5 h-auto"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           );

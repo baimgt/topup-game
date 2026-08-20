@@ -4,6 +4,9 @@ import Game from "@/models/Game";
 import Product from "@/models/Product";
 import GameCard from "@/components/games/GameCard";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 interface GamesPageProps {
   searchParams: Promise<{ category?: string; search?: string }>;
 }
@@ -15,15 +18,17 @@ async function getGames(category?: string, search?: string) {
     if (category) filter.category = category;
     if (search) filter.name = { $regex: search, $options: "i" };
 
-    const games = await Game.find(filter).sort({ sortOrder: 1 }).lean();
-    return await Promise.all(
+    const games = await Game.find(filter).sort({ sortOrder: 1, createdAt: 1 }).lean();
+    const formatted = await Promise.all(
       games.map(async (game) => {
         const products = await Product.find({ gameId: game._id, isActive: true })
-          .sort({ sortOrder: 1 })
+          .sort({ sortOrder: 1, sellingPrice: 1 })
           .lean();
         return JSON.parse(JSON.stringify({ ...game, id: game._id.toString(), products }));
       })
     );
+    // Sort by sortOrder (untuk halaman /games)
+    return formatted.sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0));
   } catch {
     return [];
   }
