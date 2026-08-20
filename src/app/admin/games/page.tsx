@@ -14,7 +14,7 @@ import ImportGameModal from "@/components/admin/ImportGameModal";
 const CATEGORIES = ["Mobile", "PC", "Console", "RPG", "Lainnya"];
 const STATUS_CATEGORIES = ["Lagi Populer", "Baru Rilis", "Voucher", "Top Up Langsung", "Top Up Login", "Pulsa", "Entertainment"];
 
-interface Game { _id: string; name: string; slug: string; description?: string; imageUrl?: string; category: string; statusCategory?: string; isActive: boolean; sortOrder: number; isCheckAccountSupported: boolean; targetFormat?: string; targetInputs?: any[]; products?: Product[]; categoryOrder?: string[]; }
+interface Game { _id: string; name: string; slug: string; description?: string; imageUrl?: string; bannerUrl?: string; iconUrl?: string; category: string; statusCategory?: string; isActive: boolean; sortOrder: number; isCheckAccountSupported: boolean; targetFormat?: string; targetInputs?: any[]; products?: Product[]; categoryOrder?: string[]; }
 interface Product { _id: string; name: string; description?: string; price: number; sellingPrice: number; digiflazzSku: string; category: string; isActive: boolean; sortOrder: number; }
 
 function formatSamplePreview(inputs: any[], format?: string) {
@@ -75,6 +75,8 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
     slug: game.slug || "", 
     description: game.description || "", 
     imageUrl: game.imageUrl || "", 
+    bannerUrl: game.bannerUrl || game.imageUrl || "",
+    iconUrl: game.iconUrl || "",
     category: game.category || CATEGORIES[0], 
     statusCategory: game.statusCategory || "",
     sortOrder: game.sortOrder || 0,
@@ -84,7 +86,8 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
     targetInputs: game.targetInputs || [],
   });
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
   const [categoriesList, setCategoriesList] = useState<string[]>(game.categoryOrder && game.categoryOrder.length > 0 ? game.categoryOrder : []);
 
   useEffect(() => {
@@ -122,11 +125,11 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
     setForm((prev) => ({ ...prev, categoryOrder: newList }));
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
+    setUploadingBanner(true);
     const formData = new FormData();
     formData.append("file", file);
 
@@ -135,24 +138,54 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
     try {
       const res = await fetch("/api/admin/upload", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
       const data = await res.json();
       if (data.success && data.url) {
-        setForm((prev) => ({ ...prev, imageUrl: data.url }));
-        toast.success("Gambar berhasil diunggah!");
+        setForm((prev) => ({ ...prev, bannerUrl: data.url, imageUrl: data.url }));
+        toast.success("Gambar banner berhasil diunggah!");
       } else {
-        toast.error(data.error || "Gagal mengunggah gambar");
+        toast.error(data.error || "Gagal mengunggah banner");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Terjadi kesalahan saat mengunggah gambar");
+      toast.error("Terjadi kesalahan saat mengunggah banner");
     } finally {
-      setUploading(false);
+      setUploadingBanner(false);
+    }
+  };
+
+  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingIcon(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.success && data.url) {
+        setForm((prev) => ({ ...prev, iconUrl: data.url }));
+        toast.success("Gambar icon berhasil diunggah!");
+      } else {
+        toast.error(data.error || "Gagal mengunggah icon");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Terjadi kesalahan saat mengunggah icon");
+    } finally {
+      setUploadingIcon(false);
     }
   };
 
@@ -215,25 +248,64 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
         <label className="block text-sm font-medium text-gray-300 mb-1.5">Deskripsi</label>
         <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full bg-gaming-accent border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none text-sm" />
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1.5">URL Gambar</label>
+      {/* URL Gambar Banner / Cover */}
+      <div className="bg-black/20 border border-white/5 rounded-xl p-3.5 space-y-2">
+        <label className="block text-xs font-bold text-purple-300 uppercase tracking-wider">
+          🖼️ Gambar Banner / Cover Game (Landscape)
+        </label>
         <div className="flex gap-2 items-center">
           <Input 
-            value={form.imageUrl} 
-            onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} 
-            placeholder="https://... atau jalur lokal" 
+            value={form.bannerUrl || form.imageUrl} 
+            onChange={(e) => setForm({ ...form, bannerUrl: e.target.value, imageUrl: e.target.value })} 
+            placeholder="https://... atau klik tombol Unggah Banner" 
           />
-          <label className={`flex items-center justify-center gap-1.5 px-4 py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 hover:text-white rounded-xl text-sm font-bold transition-all cursor-pointer flex-shrink-0 ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+          <label className={`flex items-center justify-center gap-1.5 px-4 py-3 bg-purple-600/20 border border-purple-500/30 hover:bg-purple-600/30 text-purple-300 hover:text-white rounded-xl text-sm font-bold transition-all cursor-pointer flex-shrink-0 ${uploadingBanner ? "opacity-50 pointer-events-none" : ""}`}>
             <Upload className="w-4 h-4" />
-            {uploading ? "Unggah..." : "Unggah"}
+            {uploadingBanner ? "Mengunggah..." : "Unggah Banner"}
             <input 
               type="file" 
               accept="image/*" 
-              onChange={handleFileUpload} 
+              onChange={handleBannerUpload} 
               className="hidden" 
             />
           </label>
         </div>
+        {(form.bannerUrl || form.imageUrl) && (
+          <div className="mt-2 relative h-20 w-full rounded-lg overflow-hidden border border-white/10 bg-black/40">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={form.bannerUrl || form.imageUrl} alt="Banner Preview" className="w-full h-full object-cover" />
+          </div>
+        )}
+      </div>
+
+      {/* URL Gambar Icon Game (Persegi) */}
+      <div className="bg-black/20 border border-white/5 rounded-xl p-3.5 space-y-2">
+        <label className="block text-xs font-bold text-cyan-300 uppercase tracking-wider">
+          🎮 Gambar Icon Game (Logo / Persegi)
+        </label>
+        <div className="flex gap-2 items-center">
+          <Input 
+            value={form.iconUrl} 
+            onChange={(e) => setForm({ ...form, iconUrl: e.target.value })} 
+            placeholder="https://... atau klik tombol Unggah Icon" 
+          />
+          <label className={`flex items-center justify-center gap-1.5 px-4 py-3 bg-cyan-600/20 border border-cyan-500/30 hover:bg-cyan-600/30 text-cyan-300 hover:text-white rounded-xl text-sm font-bold transition-all cursor-pointer flex-shrink-0 ${uploadingIcon ? "opacity-50 pointer-events-none" : ""}`}>
+            <Upload className="w-4 h-4" />
+            {uploadingIcon ? "Mengunggah..." : "Unggah Icon"}
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleIconUpload} 
+              className="hidden" 
+            />
+          </label>
+        </div>
+        {form.iconUrl && (
+          <div className="mt-2 relative w-16 h-16 rounded-xl overflow-hidden border border-cyan-500/30 bg-black/40 shadow-lg">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={form.iconUrl} alt="Icon Preview" className="w-full h-full object-cover" />
+          </div>
+        )}
       </div>
       <Input label="Urutan Tampil" type="number" value={String(form.sortOrder)} onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} />
       
@@ -850,9 +922,14 @@ export default function AdminGamesPage() {
               <div key={game._id} className="bg-gaming-card rounded-xl border border-white/5 overflow-hidden">
                 {/* Game Row */}
                 <div className="flex items-center gap-4 px-4 py-3">
-                  {/* Avatar */}
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500/30 to-blue-500/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-bold text-sm">{game.name.charAt(0)}</span>
+                  {/* Avatar / Icon */}
+                  <div className="w-11 h-11 rounded-xl overflow-hidden bg-gradient-to-br from-purple-500/30 to-blue-500/30 border border-white/10 flex items-center justify-center flex-shrink-0 relative shadow-sm">
+                    {(game.iconUrl || game.imageUrl) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={game.iconUrl || game.imageUrl} alt={game.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-white font-bold text-sm">{game.name.charAt(0)}</span>
+                    )}
                   </div>
 
                   {/* Info */}

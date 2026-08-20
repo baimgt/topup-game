@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.DATABASE_URL || "mongodb://localhost:27017/game_topup";
+const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL || "mongodb://localhost:27017/game_topup";
 
 interface MongooseCache {
   conn: typeof mongoose | null;

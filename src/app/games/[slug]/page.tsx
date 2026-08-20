@@ -69,32 +69,62 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
           Kembali ke Daftar Game
         </Link>
 
-        <div className="bg-gaming-card rounded-2xl border border-white/5 overflow-hidden mb-8">
-          <div className="relative h-48 bg-gradient-to-br from-purple-900/50 to-blue-900/50">
-            {game.imageUrl ? (
-              <Image src={game.imageUrl} alt={game.name} fill className="object-cover opacity-60" />
+        <div className="bg-gaming-card rounded-2xl border border-white/5 overflow-hidden mb-8 shadow-xl">
+          {/* Top Banner Backdrop */}
+          <div className="relative h-52 sm:h-60 bg-gradient-to-br from-purple-900/60 via-slate-900/80 to-blue-900/60">
+            {(game.bannerUrl || game.imageUrl) ? (
+              <Image 
+                src={game.bannerUrl || game.imageUrl} 
+                alt={`${game.name} Banner`} 
+                fill 
+                priority
+                className="object-cover opacity-60" 
+              />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
                   <Gamepad2 className="w-10 h-10 text-white" />
                 </div>
               </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-gaming-card to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-gaming-card via-gaming-card/40 to-transparent" />
           </div>
 
-          <div className="p-6 -mt-8 relative">
-            <div className="flex items-end gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0 border-2 border-gaming-card">
-                <span className="text-2xl font-bold text-white">{game.name.charAt(0)}</span>
+          {/* Game Icon & Info */}
+          <div className="p-6 -mt-12 sm:-mt-14 relative z-10">
+            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 text-center sm:text-left">
+              <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl p-1 bg-gradient-to-b from-white/30 via-purple-500/40 to-black/60 shadow-2xl flex-shrink-0">
+                <div className="w-full h-full rounded-2xl overflow-hidden bg-gaming-card border-2 border-gaming-card relative flex items-center justify-center">
+                  {(game.iconUrl || game.imageUrl) ? (
+                    <Image
+                      src={game.iconUrl || game.imageUrl}
+                      alt={`${game.name} Icon`}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                      <span className="text-3xl font-black text-white">{game.name.charAt(0)}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">{game.name}</h1>
-                <p className="text-gray-400 text-sm">{game.category}</p>
+              <div className="flex-1">
+                <h1 className="text-2xl sm:text-3xl font-black text-white">{game.name}</h1>
+                <div className="flex items-center justify-center sm:justify-start gap-2 mt-1.5">
+                  <span className="bg-white/10 text-gray-300 text-xs px-3 py-1 rounded-full font-semibold border border-white/5">
+                    {game.category}
+                  </span>
+                  {game.isCheckAccountSupported && (
+                    <span className="bg-emerald-500/10 text-emerald-400 text-xs px-3 py-1 rounded-full font-semibold border border-emerald-500/20">
+                      ✓ Cek ID Aktif
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             {game.description && (
-              <p className="text-gray-400 text-sm mt-4 leading-relaxed">{game.description}</p>
+              <p className="text-gray-400 text-sm mt-4 leading-relaxed border-t border-white/5 pt-4">{game.description}</p>
             )}
           </div>
         </div>

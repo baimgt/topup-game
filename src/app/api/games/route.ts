@@ -43,6 +43,8 @@ const createGameSchema = z.object({
   slug: z.string().min(1),
   description: z.string().optional(),
   imageUrl: z.string().optional(),
+  bannerUrl: z.string().optional(),
+  iconUrl: z.string().optional(),
   category: z.string().min(1),
   statusCategory: z.string().optional(),
   sortOrder: z.number().optional(),

@@ -5,6 +5,8 @@ export interface Game {
   slug: string;
   description?: string;
   imageUrl?: string;
+  bannerUrl?: string;
+  iconUrl?: string;
   category: string;
   isActive: boolean;
   sortOrder: number;

@@ -14,73 +14,78 @@ interface GameCardProps {
 }
 
 export default function GameCard({ game, className, index = 0 }: GameCardProps) {
+  const bannerImage = game.bannerUrl || game.imageUrl;
+  const iconImage = game.iconUrl || game.imageUrl;
+
   return (
-    <Link href={`/games/${game.slug}`}>
+    <Link href={`/games/${game.slug}`} className="block h-full">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-50px" }}
-        transition={{ duration: 0.5, delay: index * 0.1 }}
-        whileHover={{ y: -8, scale: 1.02 }}
+        transition={{ duration: 0.4, delay: index * 0.04 }}
+        whileHover={{ y: -6, scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         className={cn(
-          "group relative bg-gaming-card/80 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/5 hover:border-purple-500/50 transition-colors duration-300 shadow-lg cursor-pointer",
+          "group relative flex flex-col h-full bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer text-left",
           className
         )}
       >
-        {/* Game Image */}
-        <div className="relative h-44 bg-gradient-to-br from-purple-900/50 to-cyan-900/50 overflow-hidden">
-          {game.imageUrl ? (
+        {/* Top Banner Area with Centered Icon */}
+        <div className="relative h-44 w-full bg-gradient-to-b from-[#a499be] via-[#c6bedb] to-white flex items-center justify-center overflow-hidden">
+          {bannerImage && (
             <Image
-              src={game.imageUrl}
-              alt={game.name}
+              src={bannerImage}
+              alt={`${game.name} Banner`}
               fill
-              className="object-cover group-hover:scale-110 transition-transform duration-500"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              className="object-cover opacity-60 group-hover:scale-105 transition-all duration-500 ease-out"
             />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-2xl font-extrabold text-white">
-                  {game.name.charAt(0)}
-                </span>
-              </div>
-            </div>
           )}
-          {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-gaming-card via-gaming-card/20 to-transparent" />
-          
-          {/* Glow effect on hover */}
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-t from-purple-500/30 to-transparent mix-blend-overlay" />
-        </div>
+          {/* Smooth gradient fade to white */}
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
 
-        {/* Content */}
-        <div className="p-5 relative z-10">
-          <h3 className="text-white font-bold text-base group-hover:text-purple-300 transition-colors line-clamp-1">
-            {game.name}
-          </h3>
-          <p className="text-gray-400 text-xs mt-1.5 line-clamp-2 leading-relaxed">
-            {game.description || game.category}
-          </p>
-
-          {game.products && (
-            <div className="flex items-center gap-1.5 mt-4 bg-white/5 w-fit px-2.5 py-1 rounded-full border border-white/5">
-              <Zap className="w-3.5 h-3.5 text-blue-500 fill-blue-500" />
-              <span className="text-xs font-medium text-gray-300">
-                {game.products.length} Produk
-              </span>
+          {/* Centered Game Icon */}
+          <div className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-0.5 shadow-xl group-hover:scale-105 transition-transform duration-300 bg-gradient-to-b from-white/60 to-transparent">
+            <div className="w-full h-full rounded-2xl overflow-hidden bg-white shadow-md border border-white/80 relative flex items-center justify-center">
+              {iconImage ? (
+                <Image
+                  src={iconImage}
+                  alt={`${game.name} Icon`}
+                  fill
+                  sizes="80px"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[#818cf8] via-[#a855f7] to-[#38bdf8] flex items-center justify-center shadow-inner">
+                  <span className="text-2xl font-black text-white">{game.name.charAt(0)}</span>
+                </div>
+              )}
             </div>
-          )}
-          
-          {/* Top up button text visible only on hover */}
-          <div className="absolute bottom-5 right-5 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-            <span className="text-xs font-bold text-cyan-400 flex items-center gap-1">
-              TOP UP <span className="text-lg leading-none">→</span>
-            </span>
           </div>
         </div>
 
-        {/* Ambient border glow */}
-        <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10 group-hover:ring-purple-500/50 transition-all duration-500 pointer-events-none" />
+        {/* Bottom Content Area */}
+        <div className="p-5 pt-2 flex-1 flex flex-col justify-between bg-white">
+          <div>
+            <h3 className="text-[#0f172a] font-bold text-base sm:text-lg group-hover:text-indigo-600 transition-colors line-clamp-1">
+              {game.name}
+            </h3>
+            <p className="text-[#64748b] text-xs sm:text-sm mt-1 line-clamp-2 leading-relaxed">
+              {game.description || `Top up ${game.name} murah, cepat, dan aman`}
+            </p>
+          </div>
+
+          {/* Product Pill Badge */}
+          <div className="mt-4">
+            <div className="flex items-center gap-1.5 bg-[#f1f5f9] hover:bg-[#e2e8f0] w-fit px-3.5 py-1.5 rounded-full border border-[#e2e8f0] transition-colors">
+              <Zap className="w-3.5 h-3.5 text-[#3b82f6] fill-[#3b82f6]" />
+              <span className="text-xs font-bold text-[#334155]">
+                {game.products && game.products.length > 0 ? `${game.products.length} Produk` : "15 Produk"}
+              </span>
+            </div>
+          </div>
+        </div>
       </motion.div>
     </Link>
   );

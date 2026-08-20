@@ -6,6 +6,8 @@ export interface IGame extends Document {
   slug: string;
   description?: string;
   imageUrl?: string;
+  bannerUrl?: string;
+  iconUrl?: string;
   category: string;
   statusCategory?: string;
   isActive: boolean;
@@ -26,6 +28,8 @@ const GameSchema = new Schema<IGame>(
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
     description: { type: String },
     imageUrl: { type: String },
+    bannerUrl: { type: String },
+    iconUrl: { type: String },
     category: { type: String, required: true },
     statusCategory: { type: String, default: "" },
     isActive: { type: Boolean, default: true },
