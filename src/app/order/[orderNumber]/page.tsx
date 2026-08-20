@@ -40,6 +40,44 @@ export default function OrderDetailPage() {
     return () => clearInterval(interval);
   }, [orderNumber, order?.paymentStatus, order?.orderStatus]);
 
+  useEffect(() => {
+    if (order?.paymentStatus === "UNPAID" && (order as any)?.paymentToken && (order as any)?.midtransClientKey) {
+      const clientKey = (order as any).midtransClientKey;
+      const isProd = (order as any).midtransIsProduction;
+      const snapUrl = isProd
+        ? "https://app.midtrans.com/snap/snap.js"
+        : "https://app.sandbox.midtrans.com/snap/snap.js";
+
+      if (!document.querySelector(`script[src="${snapUrl}"]`)) {
+        const script = document.createElement("script");
+        script.src = snapUrl;
+        script.setAttribute("data-client-key", clientKey);
+        document.body.appendChild(script);
+      }
+    }
+  }, [order]);
+
+  const handlePayNow = () => {
+    if ((order as any)?.paymentToken && typeof window !== "undefined" && (window as any).snap) {
+      (window as any).snap.pay((order as any).paymentToken, {
+        onSuccess: function () {
+          fetchOrder();
+        },
+        onPending: function () {
+          fetchOrder();
+        },
+        onError: function () {
+          fetchOrder();
+        },
+        onClose: function () {
+          fetchOrder();
+        },
+      });
+    } else if (order?.paymentUrl) {
+      window.location.href = order.paymentUrl;
+    }
+  };
+
   const handleRefresh = () => {
     setRefreshing(true);
     fetchOrder();
@@ -236,24 +274,87 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Payment Instructions / Details */}
-        {order.paymentStatus === "UNPAID" && (order.vaNumber || order.qrString) && (
-          <div className="bg-gaming-card rounded-2xl border border-white/5 p-6 mb-6">
-            <h2 className="text-white font-semibold mb-4 text-center">Instruksi Pembayaran</h2>
-            {order.vaNumber && (
-              <div className="text-center">
-                <p className="text-gray-400 text-sm mb-2">Nomor Virtual Account:</p>
-                <div className="bg-black/50 border border-white/10 rounded-xl p-4 flex items-center justify-center gap-3">
-                  <span className="text-2xl font-mono text-purple-400 font-bold tracking-wider">{order.vaNumber}</span>
+        {order.paymentStatus === "UNPAID" && (
+          <div className="bg-gaming-card rounded-2xl border border-orange-500/20 bg-gradient-to-b from-orange-500/5 to-transparent p-6 mb-6">
+            {order.paymentMethod?.toLowerCase().includes("shopee") ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-orange-500/20 border border-orange-500/30 rounded-xl flex items-center justify-center text-xl">
+                      🛍️
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-base">Pembayaran ShopeePay</h3>
+                      <p className="text-orange-400 text-xs font-semibold">Midtrans Automatic E-Wallet</p>
+                    </div>
+                  </div>
+                  <span className="text-xs bg-orange-500/20 text-orange-300 border border-orange-500/30 px-2.5 py-1 rounded-full font-bold">
+                    ShopeePay
+                  </span>
                 </div>
-                <p className="text-gray-500 text-xs mt-3">Silakan transfer sesuai total tagihan ke nomor Virtual Account di atas.</p>
+
+                <div className="bg-black/40 border border-white/10 rounded-xl p-4 space-y-2 text-xs text-gray-300">
+                  <p className="font-bold text-white text-sm flex items-center gap-1.5">
+                    📱 Petunjuk Pembayaran ShopeePay:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1.5 text-gray-300 leading-relaxed">
+                    <li>
+                      <span className="text-white font-medium">Di Smartphone / HP:</span> Klik tombol <strong>"Bayar via ShopeePay"</strong> di bawah untuk langsung membuka aplikasi Shopee & mengonfirmasi pembayaran.
+                    </li>
+                    <li>
+                      <span className="text-white font-medium">Di PC / Laptop:</span> Klik tombol <strong>"Bayar via ShopeePay"</strong> untuk menampilkan Kode QR ShopeePay, lalu scan dari aplikasi Shopee di HP Anda.
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={handlePayNow}
+                    className="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-bold py-3"
+                  >
+                    Bayar via ShopeePay
+                  </Button>
+                  {order.paymentUrl && (
+                    <a href={order.paymentUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+                      <Button variant="secondary" size="md" className="w-full py-3">
+                        Buka Shopee App
+                      </Button>
+                    </a>
+                  )}
+                </div>
               </div>
-            )}
-            {order.qrString && (
-              <div className="flex flex-col items-center">
-                <p className="text-gray-400 text-sm mb-4">Scan QRIS ini menggunakan aplikasi E-Wallet/M-Banking Anda:</p>
-                <div className="bg-white p-4 rounded-xl">
-                  <QRCodeSVG value={order.qrString} size={200} />
-                </div>
+            ) : order.vaNumber || order.qrString ? (
+              <div className="space-y-4">
+                <h2 className="text-white font-semibold text-center">Instruksi Pembayaran</h2>
+                {order.vaNumber && (
+                  <div className="text-center">
+                    <p className="text-gray-400 text-sm mb-2">Nomor Virtual Account:</p>
+                    <div className="bg-black/50 border border-white/10 rounded-xl p-4 flex items-center justify-center gap-3">
+                      <span className="text-2xl font-mono text-purple-400 font-bold tracking-wider">{order.vaNumber}</span>
+                    </div>
+                    <p className="text-gray-500 text-xs mt-3">Silakan transfer sesuai total tagihan ke nomor Virtual Account di atas.</p>
+                  </div>
+                )}
+                {order.qrString && (
+                  <div className="flex flex-col items-center">
+                    <p className="text-gray-400 text-sm mb-4">Scan QRIS ini menggunakan aplikasi E-Wallet/M-Banking Anda:</p>
+                    <div className="bg-white p-4 rounded-xl">
+                      <QRCodeSVG value={order.qrString} size={200} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center space-y-3">
+                <h3 className="text-white font-bold">Selesaikan Pembayaran</h3>
+                <p className="text-gray-400 text-xs">
+                  Metode: <span className="text-purple-400 font-bold">{order.paymentMethod}</span>
+                </p>
+                <Button variant="primary" size="md" onClick={handlePayNow} className="w-full sm:w-auto px-8">
+                  Bayar Sekarang
+                </Button>
               </div>
             )}
           </div>
@@ -289,6 +390,12 @@ export default function OrderDetailPage() {
                 <span className="text-white">{item.product?.name}</span>
               </div>
             ))}
+            {order.discountAmount && order.discountAmount > 0 ? (
+              <div className="flex justify-between text-emerald-400">
+                <span>Diskon Promo ({order.voucherCode})</span>
+                <span className="font-bold">- {formatCurrency(order.discountAmount)}</span>
+              </div>
+            ) : null}
             {order.ppn && order.ppn > 0 ? (
               <div className="flex justify-between">
                 <span className="text-gray-400">PPN (11%)</span>

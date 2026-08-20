@@ -47,8 +47,12 @@ const createGameSchema = z.object({
   statusCategory: z.string().optional(),
   sortOrder: z.number().optional(),
   isCheckAccountSupported: z.boolean().optional(),
+  targetFormat: z.string().optional(),
+  categoryOrder: z.array(z.string()).optional(),
   targetInputs: z.array(z.object({
     name: z.string().min(1),
+    label: z.string().optional(),
+    placeholder: z.string().optional(),
     type: z.string().min(1),
   })).optional(),
 });

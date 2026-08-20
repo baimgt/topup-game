@@ -52,12 +52,14 @@ export interface MidtransTransactionParams {
   serverKey: string;
   clientKey: string;
   isProduction: boolean;
+  appUrl?: string;
 }
 
 export async function createSnapTransaction(
   params: MidtransTransactionParams
 ): Promise<{ token: string; redirect_url: string }> {
   const snap = getSnapClient(params.serverKey, params.clientKey, params.isProduction);
+  const baseUrl = params.appUrl || process.env.NEXT_PUBLIC_APP_URL || "";
 
   // Konversi method IDs kita ke format Midtrans
   let enabledPayments: string[] | undefined;
@@ -80,9 +82,16 @@ export async function createSnapTransaction(
     },
     item_details: params.items,
     callbacks: {
-      finish:  `${process.env.NEXT_PUBLIC_APP_URL}/order/success`,
-      error:   `${process.env.NEXT_PUBLIC_APP_URL}/order/failed`,
-      pending: `${process.env.NEXT_PUBLIC_APP_URL}/order/pending`,
+      finish: `${baseUrl}/order/${params.orderId}`,
+      error: `${baseUrl}/order/${params.orderId}`,
+      pending: `${baseUrl}/order/${params.orderId}`,
+    },
+    shopeepay: {
+      callback_url: `${baseUrl}/order/${params.orderId}`,
+    },
+    gopay: {
+      enable_callback: true,
+      callback_url: `${baseUrl}/order/${params.orderId}`,
     },
   };
 

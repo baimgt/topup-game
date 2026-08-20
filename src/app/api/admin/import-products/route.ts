@@ -9,6 +9,7 @@ const importSchema = z.object({
   gameId: z.string().min(1, "Game wajib dipilih"),
   marginType: z.enum(["flat", "percent"]),
   marginValue: z.number().min(0),
+  overrideCategory: z.string().optional(),
   products: z.array(z.object({
     buyer_sku_code: z.string(),
     product_name: z.string(),
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { gameId, marginType, marginValue, products } = parsed.data;
+    const { gameId, marginType, marginValue, overrideCategory, products } = parsed.data;
 
     // Validasi game exists
     const game = await Game.findById(gameId);
@@ -63,6 +64,10 @@ export async function POST(req: NextRequest) {
           ? Math.ceil(p.price * (1 + marginValue / 100))
           : p.price + marginValue;
 
+        const isMembership = /welkin|pass|membership|starlight|weekly|bulanan|vip|club|blessing|subscribe/i.test(p.product_name);
+        const defaultCategory = isMembership ? "Membership / Pass Bulanan" : (p.category || "Top Up");
+        const finalCategory = overrideCategory && overrideCategory.trim() ? overrideCategory.trim() : defaultCategory;
+
         await Product.create({
           gameId,
           name: p.product_name,
@@ -70,7 +75,7 @@ export async function POST(req: NextRequest) {
           price: p.price,
           sellingPrice,
           digiflazzSku: p.buyer_sku_code,
-          category: p.category,
+          category: finalCategory,
           isActive: true,
           sortOrder: i,
         });

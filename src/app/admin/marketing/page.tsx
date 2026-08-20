@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Edit, ToggleLeft, ToggleRight, Sparkles, Image as ImageIcon, Percent, Clock, Upload } from "lucide-react";
+import { Plus, Trash2, Edit, ToggleLeft, ToggleRight, Sparkles, Image as ImageIcon, Percent, Clock, Upload, Tag } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
 import Button from "@/components/ui/Button";
@@ -25,17 +25,21 @@ const TEXT_COLOR_PRESETS = [
 ];
 
 export default function MarketingAdminPage() {
-  const [activeTab, setActiveTab] = useState<"banners" | "flashSales">("banners");
+  const [activeTab, setActiveTab] = useState<"banners" | "flashSales" | "vouchers">("banners");
   const [banners, setBanners] = useState<any[]>([]);
   const [flashSales, setFlashSales] = useState<any[]>([]);
+  const [vouchers, setVouchers] = useState<any[]>([]);
   const [games, setGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modals state
   const [bannerModalOpen, setBannerModalOpen] = useState(false);
   const [flashSaleModalOpen, setFlashSaleModalOpen] = useState(false);
+  const [voucherModalOpen, setVoucherModalOpen] = useState(false);
+  
   const [editingBanner, setEditingBanner] = useState<any | null>(null);
   const [editingFlashSale, setEditingFlashSale] = useState<any | null>(null);
+  const [editingVoucher, setEditingVoucher] = useState<any | null>(null);
 
   // Forms state
   const [bannerForm, setBannerForm] = useState({
@@ -63,6 +67,19 @@ export default function MarketingAdminPage() {
     isActive: true,
   });
 
+  const [voucherForm, setVoucherForm] = useState({
+    code: "",
+    title: "",
+    discountType: "flat" as "flat" | "percent",
+    discountValue: 10000,
+    minPurchase: 0,
+    maxDiscount: 0,
+    usageLimit: 1000,
+    expiryDate: "",
+    gameId: "",
+    isActive: true,
+  });
+
   const [bannerUploading, setBannerUploading] = useState(false);
 
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,12 +87,11 @@ export default function MarketingAdminPage() {
     if (!file) return;
 
     setBannerUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const token = localStorage.getItem("token");
-
     try {
+      const token = localStorage.getItem("token");
+      const formData = new FormData();
+      formData.append("file", file);
+
       const res = await fetch("/api/admin/upload", {
         method: "POST",
         headers: {
@@ -121,6 +137,17 @@ export default function MarketingAdminPage() {
     setLoading(false);
   };
 
+  const fetchVouchers = async () => {
+    setLoading(true);
+    const token = localStorage.getItem("token");
+    const res = await fetch("/api/admin/vouchers", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (data.success) setVouchers(data.data);
+    setLoading(false);
+  };
+
   const fetchGames = async () => {
     const res = await fetch("/api/games");
     const data = await res.json();
@@ -130,7 +157,8 @@ export default function MarketingAdminPage() {
   useEffect(() => {
     fetchGames();
     if (activeTab === "banners") fetchBanners();
-    else fetchFlashSales();
+    else if (activeTab === "flashSales") fetchFlashSales();
+    else fetchVouchers();
   }, [activeTab]);
 
   // ── BANNER CRUD ──────────────────────────────────────────────────────────
@@ -311,6 +339,104 @@ export default function MarketingAdminPage() {
     }
   };
 
+  // ── VOUCHER / KODE PROMO CRUD ─────────────────────────────────────────────
+  const openVoucherModal = (voucher: any = null) => {
+    if (voucher) {
+      setEditingVoucher(voucher);
+      setVoucherForm({
+        code: voucher.code,
+        title: voucher.title,
+        discountType: voucher.discountType || "flat",
+        discountValue: voucher.discountValue || 0,
+        minPurchase: voucher.minPurchase || 0,
+        maxDiscount: voucher.maxDiscount || 0,
+        usageLimit: voucher.usageLimit || 1000,
+        expiryDate: voucher.expiryDate ? new Date(voucher.expiryDate).toISOString().slice(0, 16) : "",
+        gameId: voucher.gameId ? (voucher.gameId._id || voucher.gameId) : "",
+        isActive: voucher.isActive !== undefined ? voucher.isActive : true,
+      });
+    } else {
+      setEditingVoucher(null);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 30);
+      setVoucherForm({
+        code: "",
+        title: "",
+        discountType: "flat",
+        discountValue: 10000,
+        minPurchase: 0,
+        maxDiscount: 0,
+        usageLimit: 1000,
+        expiryDate: tomorrow.toISOString().slice(0, 16),
+        gameId: "",
+        isActive: true,
+      });
+    }
+    setVoucherModalOpen(true);
+  };
+
+  const saveVoucher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem("token");
+      const url = editingVoucher ? `/api/admin/vouchers/${editingVoucher._id}` : "/api/admin/vouchers";
+      const method = editingVoucher ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(voucherForm),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message);
+        setVoucherModalOpen(false);
+        fetchVouchers();
+      } else {
+        toast.error(data.error || "Gagal menyimpan voucher");
+      }
+    } catch {
+      toast.error("Gagal terhubung ke server");
+    }
+  };
+
+  const toggleVoucherActive = async (v: any) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/admin/vouchers/${v._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ isActive: !v.isActive }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Kode Promo ${!v.isActive ? "diaktifkan" : "dinonaktifkan"}`);
+        fetchVouchers();
+      }
+    } catch {
+      toast.error("Gagal mengubah status");
+    }
+  };
+
+  const deleteVoucher = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus kode promo ini?")) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/admin/vouchers/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Kode promo berhasil dihapus");
+        fetchVouchers();
+      } else {
+        toast.error(data.error || "Gagal menghapus");
+      }
+    } catch {
+      toast.error("Gagal menghapus voucher");
+    }
+  };
+
   // Find products of selected game in FlashSale form
   const selectedGame = games.find(g => (g._id || g.id) === flashSaleForm.selectedGameId);
   const productsList = selectedGame?.products || [];
@@ -322,15 +448,19 @@ export default function MarketingAdminPage() {
         <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-[80px] rounded-full pointer-events-none" />
         <div className="relative z-10">
           <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">Pemasaran & Promosi</h1>
-          <p className="text-gray-400 text-sm mt-1">Konfigurasi dynamic banner sliders dan flash sale kilat.</p>
+          <p className="text-gray-400 text-sm mt-1">Konfigurasi dynamic banner sliders, flash sale kilat, dan kode promo voucher.</p>
         </div>
         
         <button
-          onClick={() => activeTab === "banners" ? openBannerModal() : openFlashSaleModal()}
+          onClick={() => {
+            if (activeTab === "banners") openBannerModal();
+            else if (activeTab === "flashSales") openFlashSaleModal();
+            else openVoucherModal();
+          }}
           className="relative z-10 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/20 hover:scale-105"
         >
           <Plus className="w-4 h-4" />
-          {activeTab === "banners" ? "Tambah Banner" : "Tambah Flash Sale"}
+          {activeTab === "banners" ? "Tambah Banner" : activeTab === "flashSales" ? "Tambah Flash Sale" : "Tambah Voucher Promo"}
         </button>
       </div>
 
@@ -353,6 +483,15 @@ export default function MarketingAdminPage() {
         >
           <Percent className="w-4 h-4" />
           Flash Sale
+        </button>
+        <button
+          onClick={() => setActiveTab("vouchers")}
+          className={`pb-3 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2 px-1 ${
+            activeTab === "vouchers" ? "border-blue-500 text-white" : "border-transparent text-gray-500 hover:text-gray-300"
+          }`}
+        >
+          <Tag className="w-4 h-4" />
+          Kode Promo & Voucher
         </button>
       </div>
 
@@ -450,7 +589,7 @@ export default function MarketingAdminPage() {
               </tbody>
             </table>
           </div>
-        ) : (
+        ) : activeTab === "flashSales" ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -523,6 +662,94 @@ export default function MarketingAdminPage() {
                               <Edit className="w-4 h-4" />
                             </button>
                             <button onClick={() => deleteFlashSale(s.id)} className="p-2 border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-400 rounded-lg transition-colors" title="Hapus">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* ── VOUCHERS TABLE ── */
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-black/20 border-b border-white/5">
+                  {["Kode Promo", "Judul & Game", "Diskon", "Syarat Min. Belanja", "Kuota Terpakai", "Berakhir Pada", "Status", "Aksi"].map((h) => (
+                    <th key={h} className="text-gray-400 text-xs font-bold uppercase tracking-wider px-6 py-4">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-16 text-center">
+                      <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" />
+                    </td>
+                  </tr>
+                ) : vouchers.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-16 text-center text-gray-500 text-sm">Tidak ada kode promo voucher saat ini</td>
+                  </tr>
+                ) : (
+                  vouchers.map((v) => {
+                    const isExpired = new Date() > new Date(v.expiryDate);
+                    return (
+                      <tr key={v._id} className="hover:bg-white/[0.03] transition-colors group">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="font-mono font-black text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-md border border-cyan-500/20">{v.code}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-white text-sm font-bold">{v.title}</div>
+                          <div className="text-xs text-purple-400 mt-0.5">{v.gameId?.name || "Semua Game"}</div>
+                        </td>
+                        <td className="px-6 py-4 text-white text-sm font-black">
+                          {v.discountType === "percent" ? `${v.discountValue}%` : formatCurrency(v.discountValue)}
+                          {v.maxDiscount > 0 && <span className="block text-[10px] text-gray-400 font-normal">Maks {formatCurrency(v.maxDiscount)}</span>}
+                        </td>
+                        <td className="px-6 py-4 text-gray-300 text-sm">
+                          {v.minPurchase > 0 ? formatCurrency(v.minPurchase) : "Tanpa Minimal"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                          <span className="font-bold text-white">{v.usedCount || 0}</span> / {v.usageLimit || "∞"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1 text-xs text-gray-400">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span className={isExpired ? "text-red-400" : ""}>{new Date(v.expiryDate).toLocaleString("id-ID")}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {isExpired ? (
+                            <Badge variant="danger">Expired</Badge>
+                          ) : (
+                            <Badge variant={v.isActive ? "success" : "default"}>
+                              {v.isActive ? "Aktif" : "Nonaktif"}
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => toggleVoucherActive(v)}
+                              disabled={isExpired}
+                              className={`p-2 rounded-lg border transition-all ${
+                                v.isActive 
+                                  ? "border-yellow-500/20 text-yellow-400 bg-yellow-500/5 hover:bg-yellow-500/10" 
+                                  : "border-green-500/20 text-green-400 bg-green-500/5 hover:bg-green-500/10"
+                              } disabled:opacity-30 disabled:cursor-not-allowed`}
+                              title={v.isActive ? "Nonaktifkan" : "Aktifkan"}
+                            >
+                              {v.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                            </button>
+                            <button onClick={() => openVoucherModal(v)} className="p-2 border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 text-blue-400 rounded-lg transition-colors" title="Edit">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => deleteVoucher(v._id)} className="p-2 border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-400 rounded-lg transition-colors" title="Hapus">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -728,6 +955,116 @@ export default function MarketingAdminPage() {
 
           <div className="pt-2">
             <Button type="submit" className="w-full">Simpan Promo Flash Sale</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── VOUCHER MODAL DIALOG ── */}
+      <Modal open={voucherModalOpen} onClose={() => setVoucherModalOpen(false)} title={editingVoucher ? "Edit Kode Promo / Voucher" : "Tambah Kode Promo / Voucher"} size="md">
+        <form onSubmit={saveVoucher} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Kode Promo *"
+              placeholder="Contoh: PROMO10K"
+              value={voucherForm.code}
+              onChange={(e) => setVoucherForm({ ...voucherForm, code: e.target.value.toUpperCase() })}
+              required
+            />
+            <Input
+              label="Judul Promo *"
+              placeholder="Contoh: Diskon Kemerdekaan"
+              value={voucherForm.title}
+              onChange={(e) => setVoucherForm({ ...voucherForm, title: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Tipe Diskon</label>
+              <select
+                value={voucherForm.discountType}
+                onChange={(e) => setVoucherForm({ ...voucherForm, discountType: e.target.value as "flat" | "percent" })}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="flat">Potongan Harga Tetap (Rp)</option>
+                <option value="percent">Potongan Persen (%)</option>
+              </select>
+            </div>
+
+            <Input
+              label={voucherForm.discountType === "percent" ? "Besar Diskon (%)" : "Besar Diskon (Rp)"}
+              type="number"
+              value={voucherForm.discountValue}
+              onChange={(e) => setVoucherForm({ ...voucherForm, discountValue: parseInt(e.target.value) || 0 })}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              label="Minimal Belanja (Rp)"
+              type="number"
+              value={voucherForm.minPurchase}
+              onChange={(e) => setVoucherForm({ ...voucherForm, minPurchase: parseInt(e.target.value) || 0 })}
+            />
+            <Input
+              label="Maksimal Potongan Diskon (Rp)"
+              type="number"
+              placeholder="0 = Tanpa batas"
+              value={voucherForm.maxDiscount}
+              onChange={(e) => setVoucherForm({ ...voucherForm, maxDiscount: parseInt(e.target.value) || 0 })}
+            />
+            <Input
+              label="Batas Kuota Pemakaian"
+              type="number"
+              value={voucherForm.usageLimit}
+              onChange={(e) => setVoucherForm({ ...voucherForm, usageLimit: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Berlaku Khusus Game</label>
+              <select
+                value={voucherForm.gameId}
+                onChange={(e) => setVoucherForm({ ...voucherForm, gameId: e.target.value })}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">-- Semua Game --</option>
+                {games.map((g) => (
+                  <option key={g._id || g.id} value={g._id || g.id}>{g.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Tanggal Kedaluwarsa *</label>
+              <input
+                type="datetime-local"
+                value={voucherForm.expiryDate}
+                onChange={(e) => setVoucherForm({ ...voucherForm, expiryDate: e.target.value })}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-2">
+            <input
+              type="checkbox"
+              id="voucherActive"
+              checked={voucherForm.isActive}
+              onChange={(e) => setVoucherForm({ ...voucherForm, isActive: e.target.checked })}
+              className="rounded bg-black/30 border-white/10 text-blue-500 focus:ring-blue-500"
+            />
+            <label htmlFor="voucherActive" className="text-sm text-gray-300 font-medium cursor-pointer select-none">
+              Aktifkan Kode Promo Langsung
+            </label>
+          </div>
+
+          <div className="pt-2">
+            <Button type="submit" className="w-full">Simpan Kode Promo</Button>
           </div>
         </form>
       </Modal>

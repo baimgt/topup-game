@@ -44,7 +44,7 @@ interface DigiProduct {
   buyer_product_status: boolean;
 }
 
-const GAME_CATEGORIES = ["Mobile", "PC", "Console", "Battle Royale", "MOBA", "RPG", "Lainnya"];
+const GAME_CATEGORIES = ["Mobile", "PC", "Console", "RPG", "Lainnya"];
 
 interface Props {
   open: boolean;

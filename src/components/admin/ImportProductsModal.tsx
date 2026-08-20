@@ -35,6 +35,21 @@ interface Props {
   preselectedGame?: Game; // jika ada, langsung ke step pilih produk
 }
 
+function extractCleanBrandName(name: string): string {
+  if (!name) return "";
+  let clean = name.split(/[:\-\(]/)[0].trim();
+  const lower = clean.toLowerCase();
+  if (lower.includes("mobile legend")) return "Mobile Legends";
+  if (lower.includes("genshin")) return "Genshin Impact";
+  if (lower.includes("free fire")) return "Free Fire";
+  if (lower.includes("pubg")) return "PUBG Mobile";
+  if (lower.includes("valorant")) return "Valorant";
+  if (lower.includes("call of duty") || lower.includes("codm")) return "Call of Duty";
+  if (lower.includes("honkai") && lower.includes("star rail")) return "Honkai Star Rail";
+  if (lower.includes("arena of valor") || lower.includes("aov")) return "Arena of Valor";
+  return clean;
+}
+
 export default function ImportProductsModal({ open, onClose, onImported, preselectedGame }: Props) {
   // ── State ──────────────────────────────────────────────────────────────────
   const [games, setGames] = useState<Game[]>([]);
@@ -53,6 +68,7 @@ export default function ImportProductsModal({ open, onClose, onImported, presele
 
   const [marginType, setMarginType] = useState<"flat" | "percent">("flat");
   const [marginValue, setMarginValue] = useState(2000);
+  const [overrideCategory, setOverrideCategory] = useState("");
   const [importing, setImporting] = useState(false);
 
   const token = () => localStorage.getItem("token") || "";
@@ -69,6 +85,7 @@ export default function ImportProductsModal({ open, onClose, onImported, presele
     // Reset pilihan produk
     setSelected(new Set());
     setProductSearch("");
+    setOverrideCategory("");
     setSelectedCategory("ALL");
 
     if (preselectedGame) {
@@ -88,6 +105,7 @@ export default function ImportProductsModal({ open, onClose, onImported, presele
   // Load produk Digiflazz dari DB saat game dipilih
   useEffect(() => {
     if (!selectedGame) return;
+    setProductSearch(extractCleanBrandName(selectedGame.name));
     loadProducts();
   }, [selectedGame]);
 
@@ -185,6 +203,7 @@ export default function ImportProductsModal({ open, onClose, onImported, presele
           gameId: selectedGame._id,
           marginType,
           marginValue,
+          overrideCategory: overrideCategory.trim() || undefined,
           products: selectedProducts,
         }),
       });
@@ -440,41 +459,42 @@ export default function ImportProductsModal({ open, onClose, onImported, presele
                               <button
                                 key={p.buyer_sku_code}
                                 onClick={() => toggleProduct(p.buyer_sku_code)}
-                                className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                                  isSelected ? "bg-purple-500/10" : "hover:bg-white/3"
-                                } ${!p.buyer_product_status ? "opacity-40" : ""}`}
+                                className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors border-b border-white/5 ${
+                                  isSelected ? "bg-purple-500/15" : "hover:bg-white/[0.04]"
+                                } ${!p.buyer_product_status ? "opacity-50" : ""}`}
                               >
-                                {/* Checkbox */}
-                                <div
-                                  className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
-                                    isSelected ? "bg-purple-600 border-purple-600" : "border-white/20"
-                                  }`}
-                                >
-                                  {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
-                                </div>
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                  {/* Checkbox */}
+                                  <div
+                                    className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
+                                      isSelected ? "bg-purple-600 border-purple-600" : "border-white/20"
+                                    }`}
+                                  >
+                                    {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
+                                  </div>
 
-                                {/* Name + SKU */}
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-white text-xs font-medium truncate">
-                                    {p.product_name}
-                                  </p>
-                                  <div className="flex items-center gap-2 mt-0.5">
-                                    <code className="text-purple-300 text-xs">{p.buyer_sku_code}</code>
+                                  {/* Nama Produk Saja (Tanpa deskripsi) */}
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-white text-xs font-bold truncate">
+                                      {p.product_name}
+                                    </p>
                                     {!p.buyer_product_status && (
-                                      <span className="text-red-400 text-xs">nonaktif</span>
+                                      <span className="text-[10px] text-red-400 font-semibold bg-red-500/10 px-1.5 py-0.5 rounded">
+                                        Nonaktif di Digiflazz
+                                      </span>
                                     )}
                                   </div>
                                 </div>
 
-                                {/* Harga */}
+                                {/* Harga Modal & Harga Jual */}
                                 <div className="text-right flex-shrink-0">
-                                  <p className="text-white text-xs font-semibold">
+                                  <div className="text-cyan-300 text-xs font-extrabold">
                                     {formatCurrency(sellPrice)}
-                                  </p>
-                                  <p className="text-gray-500 text-xs">
-                                    {formatCurrency(p.price)}{" "}
-                                    <span className="text-green-400">+{formatCurrency(margin)}</span>
-                                  </p>
+                                  </div>
+                                  <div className="text-[10px] text-gray-400">
+                                    Modal: {formatCurrency(p.price)}{" "}
+                                    <span className="text-green-400 font-medium">(+{formatCurrency(margin)})</span>
+                                  </div>
                                 </div>
                               </button>
                             );
@@ -525,6 +545,48 @@ export default function ImportProductsModal({ open, onClose, onImported, presele
                   <Zap className="w-4 h-4" />
                   Import {selected.size}
                 </Button>
+              </div>
+
+              {/* Mass Category Assignment during Import */}
+              <div className="mt-3 pt-3 border-t border-purple-500/20 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="text-xs font-bold text-purple-300 flex items-center gap-1">
+                    🏷️ Set Kategori Sekaligus untuk {selected.size} Produk Ini:
+                  </label>
+                  <input
+                    type="text"
+                    value={overrideCategory}
+                    onChange={(e) => setOverrideCategory(e.target.value)}
+                    placeholder="Kategori Otomatis (atau ketik kustom)..."
+                    className="bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 w-full sm:w-64"
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] text-gray-400 font-medium">Pilih Cepat Kategori:</span>
+                  {["Bulanan", "Pass", "Membership", "Top Up", "Voucher", "Starlight", "Welkin"].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setOverrideCategory(cat)}
+                      className={`text-[10px] px-2.5 py-0.5 rounded-full border transition-all font-semibold ${
+                        overrideCategory.toLowerCase() === cat.toLowerCase()
+                          ? "bg-purple-500 text-white border-purple-400 shadow-sm"
+                          : "bg-white/5 text-gray-300 border-white/10 hover:bg-white/10"
+                      }`}
+                    >
+                      🏷️ {cat}
+                    </button>
+                  ))}
+                  {overrideCategory && (
+                    <button
+                      type="button"
+                      onClick={() => setOverrideCategory("")}
+                      className="text-[10px] text-red-400 hover:underline ml-1 font-semibold"
+                    >
+                      ✕ Reset (Otomatis)
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}

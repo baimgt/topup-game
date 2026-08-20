@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import DigiflazzProduct from "@/models/DigiflazzProduct";
+import Product from "@/models/Product";
 import PaymentConfig from "@/models/PaymentConfig";
 import { getUserFromRequest } from "@/lib/auth";
 import axios from "axios";
 import crypto from "crypto";
+
 
 // ── GET: Baca dari DB (cepat, tidak hit Digiflazz) ──────────────────────────
 export async function GET(req: NextRequest) {
@@ -145,7 +147,7 @@ export async function POST(req: NextRequest) {
       throw err;
     }
 
-    // Upsert ke MongoDB — update yang sudah ada, insert yang baru
+    // 1. Upsert ke DigiflazzProduct MongoDB — update yang sudah ada, insert yang baru
     const syncedAt = new Date();
     let upserted = 0;
 
@@ -184,15 +186,83 @@ export async function POST(req: NextRequest) {
       upserted = (result.upsertedCount || 0) + (result.modifiedCount || 0);
     }
 
+    // 2. Hapus/bersihkan produk di DigiflazzProduct MongoDB yang sudah dihapus dari Digiflazz API
+    const apiSkus = apiProducts.map((p: any) => p.buyer_sku_code).filter(Boolean);
+    const deleteStaleResult = await DigiflazzProduct.deleteMany({
+      type,
+      buyer_sku_code: { $nin: apiSkus },
+    });
+    const deletedDigiCount = deleteStaleResult.deletedCount || 0;
+
+    // 3. Sinkronisasi otomatis ke koleksi Product toko (produk yang dijual di website)
+    const digiMap = new Map<string, any>();
+    for (const p of apiProducts) {
+      if (p.buyer_sku_code) {
+        digiMap.set(p.buyer_sku_code, p);
+      }
+    }
+
+    const websiteProducts = await Product.find({});
+    let updatedWebsiteCount = 0;
+    let disabledWebsiteCount = 0;
+
+    for (const wp of websiteProducts) {
+      const digiItem = digiMap.get(wp.digiflazzSku);
+
+      if (!digiItem) {
+        // Jika SKU sudah TIDAK ADA di Digiflazz API (Digiflazz telah menghapus produk ini):
+        // Otomatis nonaktifkan produk agar user tidak bisa membeli SKU yang sudah hilang
+        if (wp.isActive) {
+          wp.isActive = false;
+          await wp.save();
+          disabledWebsiteCount++;
+        }
+      } else {
+        // Jika SKU ADA di Digiflazz API:
+        const isDigiActive =
+          digiItem.buyer_product_status &&
+          digiItem.seller_product_status &&
+          (digiItem.unlimited_stock || (digiItem.stock ?? 0) > 0);
+
+        let changed = false;
+
+        // Update harga modal (price) jika ada perubahan harga dari Digiflazz
+        if (wp.price !== digiItem.price) {
+          wp.price = digiItem.price ?? 0;
+          changed = true;
+
+          // Jika harga modal naik melebihi harga jual, otomatis naikkan harga jual (margin 5%) agar toko tidak rugi
+          if (wp.sellingPrice < wp.price) {
+            wp.sellingPrice = Math.ceil(wp.price * 1.05);
+          }
+        }
+
+        // Jika status di Digiflazz nonaktif atau stok habis, otomatis nonaktifkan produk di website
+        if (!isDigiActive && wp.isActive) {
+          wp.isActive = false;
+          changed = true;
+          disabledWebsiteCount++;
+        }
+
+        if (changed) {
+          await wp.save();
+          updatedWebsiteCount++;
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         synced: apiProducts.length,
         upserted,
+        deletedFromDigiflazz: deletedDigiCount,
+        updatedWebsiteCount,
+        disabledWebsiteCount,
         syncedAt: syncedAt.toISOString(),
         type,
       },
-      message: `Sync berhasil — ${apiProducts.length} produk diperbarui`,
+      message: `Sync berhasil — ${apiProducts.length} produk Digiflazz diperbarui (${updatedWebsiteCount} produk website diupdate, ${disabledWebsiteCount} produk nonaktif/dihapus)`,
     });
   } catch (error) {
     console.error("Sync digiflazz products error:", error);

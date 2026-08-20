@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, ShoppingBag, Users, Gamepad2, Package,
-  Settings, Menu, X, Gamepad, LogOut, ChevronRight, Bell, CreditCard, ArrowUpRight, Sparkles
+  Settings, Menu, X, Gamepad, LogOut, ChevronRight, Bell, CreditCard, ArrowUpRight, Sparkles, Sun, Moon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,19 +23,31 @@ const navItems = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) setUser(JSON.parse(stored));
+
+    const savedTheme = (localStorage.getItem("admin_theme") as "dark" | "light") || "dark";
+    setTheme(savedTheme);
   }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    localStorage.setItem("admin_theme", nextTheme);
+  };
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    window.dispatchEvent(new Event("auth_changed"));
     router.push("/");
+    router.refresh();
   };
 
   const isActive = (item: typeof navItems[0]) => {
@@ -44,7 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className="flex h-screen bg-[#0a0a0f] overflow-hidden relative selection:bg-purple-500/30">
+    <div className={cn("flex h-screen overflow-hidden relative selection:bg-purple-500/30 transition-colors duration-300", theme === "light" ? "bg-slate-100 text-slate-900 gaming-light-theme" : "bg-[#0a0a0f] text-white")}>
       {/* Background Effects */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/10 blur-[100px]" />
@@ -134,7 +146,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Mode Gelap & Terang (Dark / Light Theme Switch) */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm border cursor-pointer",
+                theme === "light"
+                  ? "bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200"
+                  : "bg-purple-950/80 text-purple-300 border-purple-500/30 hover:bg-purple-900/50"
+              )}
+              title={theme === "light" ? "Ganti ke Mode Gelap" : "Ganti ke Mode Terang"}
+            >
+              {theme === "light" ? (
+                <>
+                  <Sun className="w-4 h-4 text-amber-600" />
+                  <span>Mode Terang</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4 text-purple-400" />
+                  <span>Mode Gelap</span>
+                </>
+              )}
+            </button>
+
             <Link href="/" target="_blank" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 text-xs font-medium transition-colors border border-purple-500/20">
               Lihat Website <ArrowUpRight className="w-3 h-3" />
             </Link>

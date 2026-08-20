@@ -1,5 +1,6 @@
 export interface Game {
   id: string;
+  _id?: string;
   name: string;
   slug: string;
   description?: string;
@@ -8,13 +9,16 @@ export interface Game {
   isActive: boolean;
   sortOrder: number;
   isCheckAccountSupported: boolean;
-  targetInputs?: { name: string; type: string }[];
+  targetInputs?: { name: string; label?: string; placeholder?: string; type: string }[];
+  targetFormat?: string;
+  categoryOrder?: string[];
   products?: Product[];
   statusCategory?: string;
 }
 
 export interface Product {
   id: string;
+  _id?: string;
   gameId: string;
   name: string;
   description?: string;
@@ -52,6 +56,9 @@ export interface Order {
   isFlashSale?: boolean;
   flashSaleDecremented?: boolean;
   ppn?: number;
+  voucherCode?: string;
+  discountAmount?: number;
+  subtotalAmount?: number;
   createdAt: string;
   updatedAt: string;
   orderItems?: OrderItem[];

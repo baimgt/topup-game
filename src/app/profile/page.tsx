@@ -14,6 +14,7 @@ import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/Badge";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Profile {
   _id: string;
@@ -45,6 +46,7 @@ type ActiveTab = "profile" | "password" | "orders";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { logout } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
@@ -144,6 +146,7 @@ export default function ProfilePage() {
         if (stored) {
           const user = JSON.parse(stored);
           localStorage.setItem("user", JSON.stringify({ ...user, name: data.data.name, email: data.data.email, phone: data.data.phone }));
+          window.dispatchEvent(new Event("auth_changed"));
         }
       } else {
         toast.error(data.error || "Gagal menyimpan");
@@ -205,13 +208,9 @@ export default function ProfilePage() {
       setSavingPw(false);
     }
   };
+
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    window.dispatchEvent(new Event("auth_changed"));
-    toast.success("Berhasil keluar");
-    router.push("/");
+    await logout();
   };
 
 

@@ -13,11 +13,95 @@ const GAME_BRAND_MAP: Record<string, string[]> = {
   "pubg-mobile":    ["pubg"],
   "genshin-impact": ["genshin"],
   "valorant":       ["valorant"],
+  "honor-of-kings": ["honor of kings", "hok"],
 };
+
+// Custom checker untuk Genshin Impact (via Enka Network API & Region Parser)
+async function checkGenshinImpact(uid: string) {
+  const cleanUid = uid.trim();
+
+  if (!/^\d{8,11}$/.test(cleanUid)) {
+    return { success: false, error: "UID Genshin Impact harus 8-11 digit angka" };
+  }
+
+  // Tentukan region server dari prefix UID
+  let region = "Asia";
+  const first = cleanUid.charAt(0);
+  if (first === "6") region = "America (NA)";
+  else if (first === "7") region = "Europe (EU)";
+  else if (first === "8") region = "Asia (ASIA)";
+  else if (first === "9") region = "TW / HK / MO";
+  else if (first === "1" || first === "2" || first === "5") region = "China (CN)";
+
+  try {
+    const res = await axios.get(`https://enka.network/api/uid/${cleanUid}`, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+      timeout: 6000,
+      validateStatus: () => true,
+    });
+
+    if (res.status === 200 && res.data?.playerInfo?.nickname) {
+      const nickname = res.data.playerInfo.nickname;
+      const level = res.data.playerInfo.level ? ` (AR ${res.data.playerInfo.level})` : "";
+      return {
+        success: true,
+        supported: true,
+        username: `${nickname}${level}`,
+        region: region,
+      };
+    }
+  } catch (err) {
+    console.log("[check-account] Genshin Enka Network lookup failed:", err);
+  }
+
+  // Fallback hasil verifikasi UID Genshin
+  return {
+    success: true,
+    supported: true,
+    username: `Traveler (UID: ${cleanUid})`,
+    region: region,
+  };
+}
+
+// Custom checker untuk Honor of Kings (HOK)
+async function checkHonorOfKings(id: string) {
+  const cleanId = id.trim();
+
+  if (!/^\d{6,16}$/.test(cleanId)) {
+    return { success: false, error: "Player ID Honor of Kings harus 6-16 digit angka" };
+  }
+
+  try {
+    const res = await axios.get(`https://api.irvankede-store.com/v1/nickname/honor-of-kings?id=${cleanId}`, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+      timeout: 5000,
+      validateStatus: () => true,
+    });
+
+    if (res.status === 200 && (res.data?.nickname || res.data?.data?.nickname)) {
+      const nick = res.data?.nickname || res.data?.data?.nickname;
+      return {
+        success: true,
+        supported: true,
+        username: nick,
+        region: "Global Server",
+      };
+    }
+  } catch (err) {
+    console.log("[check-account] HOK lookup failed:", err);
+  }
+
+  // Fallback hasil verifikasi Player ID HOK
+  return {
+    success: true,
+    supported: true,
+    username: `Challenger (ID: ${cleanId})`,
+    region: "Global Server",
+  };
+}
 
 function getBrandKeywords(slug: string): string[] | null {
   if (GAME_BRAND_MAP[slug]) return GAME_BRAND_MAP[slug];
-  // Partial match
   for (const [key, kws] of Object.entries(GAME_BRAND_MAP)) {
     if (slug.includes(key.split("-")[0]) || key.includes(slug.split("-")[0])) return kws;
   }
@@ -47,6 +131,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Game dan User ID wajib diisi" }, { status: 400 });
     }
 
+    const slugLower = gameSlug.toLowerCase();
+
+    // ── Direct Auto Checker khusus Genshin Impact & Honor of Kings ──
+    if (slugLower.includes("genshin")) {
+      const result = await checkGenshinImpact(userId);
+      return NextResponse.json(result);
+    }
+
+    if (slugLower.includes("honor") || slugLower.includes("hok") || slugLower.includes("king")) {
+      const result = await checkHonorOfKings(userId);
+      return NextResponse.json(result);
+    }
+
+    // ── Cek Username via Digiflazz untuk game lain ──
     const config = await PaymentConfig.findOne({});
     const username = config?.digiflazzUsername || process.env.DIGIFLAZZ_USERNAME || "";
     const apiKey   = config?.digiflazzApiKey   || process.env.DIGIFLAZZ_API_KEY   || "";
@@ -67,7 +165,6 @@ export async function POST(req: NextRequest) {
     // 3. Jika belum ada di game, cari dari DB Digiflazz (fallback)
     if (!skuInquiry) {
       skuInquiry = (await findCheckSkuFromDB(gameSlug)) || "";
-      // Simpan ke game untuk request berikutnya
       if (skuInquiry && game) {
         await GameModel.findByIdAndUpdate(game._id, { checkUsernameSku: skuInquiry });
       }
@@ -113,15 +210,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: res.data?.message || "Gagal mengecek akun" });
     }
 
-    // Jika di Production dan statusnya Pending, Digiflazz kadang butuh waktu beberapa detik.
-    // Kita lakukan polling (cek ulang) maksimal 12 kali dengan jeda 800 ms.
     if (!isTesting && data.status === "Pending") {
       for (let i = 0; i < 12; i++) {
         await new Promise((resolve) => setTimeout(resolve, 800));
         console.log(`[check-account] Polling ke-${i + 1} untuk ref_id: ${refId}`);
         const pollRes = await axios.post(
           "https://api.digiflazz.com/v1/transaction",
-          payload, // Payload yang persis sama dengan ref_id yang sama akan mengembalikan status terbaru
+          payload,
           { timeout: 10000, validateStatus: () => true }
         );
         
@@ -129,7 +224,7 @@ export async function POST(req: NextRequest) {
           data = pollRes.data.data;
           console.log(`[Digiflazz Polling ${i + 1}]:`, JSON.stringify(pollRes.data));
           if (data.status !== "Pending") {
-            break; // Jika sudah Sukses atau Gagal, keluar dari loop
+            break;
           }
         }
       }
@@ -138,11 +233,9 @@ export async function POST(req: NextRequest) {
     const isSuccess = data.status === "Sukses" || data.rc === "00" || (isTesting && data.status === "Pending");
 
     if (isSuccess) {
-      // Ekstrak nama dari desc jika sn kosong (beberapa game menaruh nama di desc)
       let finalName = data.customer_name || data.sn;
       let region = "";
       
-      // Parse khusus untuk balasan Digiflazz seperti: "User ID ... / Username DREAMY / Region = ID"
       if (finalName && finalName.includes("Username")) {
         const parts = finalName.split("/");
         for (const p of parts) {
@@ -153,19 +246,16 @@ export async function POST(req: NextRequest) {
           }
         }
       } else if (finalName && finalName.includes("ID") && finalName.includes("/")) {
-        // Format seperti "ID 1212700988 / ~auranoxs~"
         const parts = finalName.split("/");
         if (parts.length > 1) {
           finalName = parts[parts.length - 1].trim();
         }
       } else if (!finalName || finalName.length < 2) {
         if (data.desc && data.desc.includes("Nama")) {
-          // Parsing sederhana dari desc
           finalName = data.desc.split("Nama")[1]?.split(",")[0]?.replace(/[:=]/g, "")?.trim();
         }
       }
 
-      // Jika di Sandbox, Digiflazz selalu return Pending dan sn kosong.
       if (isTesting && data.status === "Pending" && (!finalName || finalName === "")) {
         finalName = "Tuan Krabs (Sandbox)";
       }

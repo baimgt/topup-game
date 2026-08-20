@@ -29,7 +29,7 @@ async function getGames(category?: string, search?: string) {
   }
 }
 
-const categories = ["Semua", "Mobile", "PC", "Console", "Battle Royale", "MOBA", "RPG"];
+const categories = ["Semua", "Mobile", "PC", "Console", "RPG"];
 
 export default async function GamesPage({ searchParams }: GamesPageProps) {
   const { category, search } = await searchParams;

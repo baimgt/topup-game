@@ -82,7 +82,7 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <>
+    <div className="gaming-light-theme min-h-screen flex flex-col">
       <AnimatePresence>
         {isAnnouncement && showPopup && (announcementImage || announcementText) && (
           <motion.div
@@ -133,11 +133,11 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="pt-16 min-h-screen flex flex-col"
+        className="pt-16 flex-1 flex flex-col"
       >
         {children}
       </motion.main>
       <Footer />
-    </>
+    </div>
   );
 }

@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           async
         />
       </head>
-      <body className="gaming-light-theme min-h-screen">
+      <body className="min-h-screen bg-[#09090b] text-white">
         <ConditionalLayout>{children}</ConditionalLayout>
         <Toaster
           position="top-right"

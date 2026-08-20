@@ -37,6 +37,9 @@ export interface IOrder extends Document {
   isFlashSale?: boolean;
   flashSaleDecremented?: boolean;
   ppn?: number;
+  voucherCode?: string;
+  discountAmount?: number;
+  subtotalAmount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -87,6 +90,9 @@ const OrderSchema = new Schema<IOrder>(
     isFlashSale: { type: Boolean, default: false },
     flashSaleDecremented: { type: Boolean, default: false },
     ppn: { type: Number, default: 0 },
+    voucherCode: { type: String },
+    discountAmount: { type: Number, default: 0 },
+    subtotalAmount: { type: Number },
   },
   { timestamps: true }
 );

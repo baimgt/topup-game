@@ -24,11 +24,17 @@ export async function GET(
       }
     }
 
-    if (!order) {
-      return NextResponse.json({ success: false, error: "Pesanan tidak ditemukan" }, { status: 404 });
-    }
+    const PaymentConfig = (await import("@/models/PaymentConfig")).default;
+    const paymentConfig = await PaymentConfig.findOne().lean();
 
-    return NextResponse.json({ success: true, data: order });
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...order,
+        midtransClientKey: paymentConfig?.midtransClientKey || "",
+        midtransIsProduction: paymentConfig?.midtransIsProduction || false,
+      },
+    });
   } catch (error) {
     console.error("Get order error:", error);
     return NextResponse.json({ success: false, error: "Gagal mengambil data pesanan" }, { status: 500 });

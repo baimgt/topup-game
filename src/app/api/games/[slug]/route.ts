@@ -20,9 +20,21 @@ export async function GET(
       .sort({ sortOrder: 1 })
       .lean();
 
+    const slugLower = (slug || "").toLowerCase();
+    const isAutoCheckSupported =
+      slugLower.includes("genshin") ||
+      slugLower.includes("honor") ||
+      slugLower.includes("hok") ||
+      slugLower.includes("king");
+
     return NextResponse.json({
       success: true,
-      data: { ...game, id: game._id.toString(), products },
+      data: {
+        ...game,
+        id: game._id.toString(),
+        isCheckAccountSupported: Boolean(game.isCheckAccountSupported || isAutoCheckSupported),
+        products,
+      },
     });
   } catch (error) {
     console.error("Get game error:", error);

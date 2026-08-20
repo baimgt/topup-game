@@ -58,7 +58,7 @@ export default function NewGamePage() {
     }
   };
 
-  const categories = ["Mobile", "PC", "Console", "Battle Royale", "MOBA", "RPG", "Lainnya"];
+  const categories = ["Mobile", "PC", "Console", "RPG", "Lainnya"];
   const statusCategories = ["Lagi Populer", "Baru Rilis", "Voucher", "Top Up Langsung", "Top Up Login", "Pulsa", "Entertainment"];
 
   return (

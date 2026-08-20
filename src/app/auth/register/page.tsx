@@ -64,6 +64,7 @@ function RegisterForm() {
         // Auto-login after registration
         localStorage.setItem("user", JSON.stringify(data.data.user));
         localStorage.setItem("token", data.data.token);
+        window.dispatchEvent(new Event("auth_changed"));
         
         toast.success("Registrasi Google berhasil!");
         window.location.href = "/";
@@ -128,6 +129,7 @@ function RegisterForm() {
       // Auto-login
       localStorage.setItem("user", JSON.stringify(data.data.user));
       localStorage.setItem("token", data.data.token);
+      window.dispatchEvent(new Event("auth_changed"));
 
       toast.success("Verifikasi berhasil! Akun Anda aktif.");
       setShowOtpModal(false);

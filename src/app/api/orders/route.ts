@@ -22,6 +22,7 @@ const createOrderSchema = z.object({
   customerEmail: z.string().email("Email tidak valid"),
   customerPhone: z.string().min(9, "Nomor telepon minimal 9 karakter").optional(),
   paymentMethodId: z.string().min(1, "Metode pembayaran wajib dipilih"),
+  voucherCode: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { productId, gameUserId, gameServerId, gameUsername, customerName, customerEmail, customerPhone, paymentMethodId } = parsed.data;
+    const { productId, gameUserId, gameServerId, gameUsername, customerName, customerEmail, customerPhone, paymentMethodId, voucherCode } = parsed.data;
 
     const product = await Product.findOne({ _id: productId, isActive: true });
     if (!product) {
@@ -69,7 +70,43 @@ export async function POST(req: NextRequest) {
       stockLeft: { $gt: 0 }
     });
 
-    const finalSellingPrice = activeFlashSale ? activeFlashSale.discountPrice : product.sellingPrice;
+    const basePrice = activeFlashSale ? activeFlashSale.discountPrice : product.sellingPrice;
+
+    // Check voucher discount
+    let discountAmount = 0;
+    let appliedVoucherCode: string | undefined = undefined;
+
+    if (voucherCode && voucherCode.trim()) {
+      const Voucher = (await import("@/models/Voucher")).default;
+      const cleanCode = voucherCode.trim().toUpperCase();
+      const voucher = await Voucher.findOne({ code: cleanCode });
+
+      if (voucher && voucher.isActive && new Date() <= new Date(voucher.expiryDate)) {
+        if (!voucher.usageLimit || voucher.usedCount < voucher.usageLimit) {
+          if (!voucher.gameId || voucher.gameId.toString() === game._id.toString()) {
+            if (!voucher.minPurchase || basePrice >= voucher.minPurchase) {
+              if (voucher.discountType === "flat") {
+                discountAmount = voucher.discountValue;
+              } else {
+                discountAmount = Math.round((basePrice * voucher.discountValue) / 100);
+                if (voucher.maxDiscount > 0 && discountAmount > voucher.maxDiscount) {
+                  discountAmount = voucher.maxDiscount;
+                }
+              }
+              if (discountAmount > basePrice) discountAmount = basePrice;
+
+              appliedVoucherCode = voucher.code;
+
+              // Increment usedCount
+              voucher.usedCount = (voucher.usedCount || 0) + 1;
+              await voucher.save();
+            }
+          }
+        }
+      }
+    }
+
+    const priceAfterDiscount = Math.max(0, basePrice - discountAmount);
 
     // Ambil metode pembayaran aktif dari DB berdasarkan gateway yang aktif
     const paymentConfig = await PaymentConfig.findOne({});
@@ -92,20 +129,20 @@ export async function POST(req: NextRequest) {
 
     // Hitung biaya layanan
     const feeAmount = selectedMethod.feeType === "percent"
-      ? Math.round(finalSellingPrice * (selectedMethod.fee / 100))
+      ? Math.round(priceAfterDiscount * (selectedMethod.fee / 100))
       : selectedMethod.fee;
       
     // Hitung PPN 11%
-    const ppnAmount = Math.round(finalSellingPrice * 0.11);
-    const totalAmount = finalSellingPrice + feeAmount + ppnAmount;
+    const ppnAmount = Math.round(priceAfterDiscount * 0.11);
+    const totalAmount = priceAfterDiscount + feeAmount + ppnAmount;
 
     const orderItems = [
       {
         productId: product._id,
         productName: product.name,
         quantity: 1,
-        price: finalSellingPrice,
-        subtotal: finalSellingPrice,
+        price: basePrice,
+        subtotal: basePrice,
       }
     ];
 
@@ -113,10 +150,19 @@ export async function POST(req: NextRequest) {
       {
         id: product._id.toString(),
         name: `${game.name} - ${product.name}`,
-        price: finalSellingPrice,
+        price: basePrice,
         quantity: 1,
       }
     ];
+
+    if (discountAmount > 0) {
+      midtransItems.push({
+        id: `DISCOUNT-${appliedVoucherCode}`,
+        name: `Diskon Promo (${appliedVoucherCode})`,
+        price: -discountAmount,
+        quantity: 1,
+      });
+    }
 
     if (ppnAmount > 0) {
       midtransItems.push({
@@ -147,6 +193,9 @@ export async function POST(req: NextRequest) {
       gameServerId: gameServerId || undefined,
       gameUsername: gameUsername || undefined,
       totalAmount: totalAmount,
+      subtotalAmount: basePrice,
+      voucherCode: appliedVoucherCode,
+      discountAmount,
       ppn: ppnAmount,
       customerPhone: customerPhone || undefined,
       paymentStatus: "UNPAID",
@@ -175,7 +224,13 @@ export async function POST(req: NextRequest) {
         serverKey: paymentConfig?.midtransServerKey || "",
         clientKey: paymentConfig?.midtransClientKey || "",
         isProduction: paymentConfig?.midtransIsProduction || false,
+        appUrl,
       });
+
+      order.paymentToken = midtrans.token;
+      order.paymentUrl = midtrans.redirect_url;
+      await order.save();
+
       paymentToken = midtrans.token;
       paymentUrl = midtrans.redirect_url;
     } else if (activeGateway === "duitku") {

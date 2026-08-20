@@ -11,11 +11,62 @@ import { formatCurrency } from "@/lib/utils";
 import ImportProductsModal from "@/components/admin/ImportProductsModal";
 import ImportGameModal from "@/components/admin/ImportGameModal";
 
-const CATEGORIES = ["Mobile", "PC", "Console", "Battle Royale", "MOBA", "RPG", "Lainnya"];
+const CATEGORIES = ["Mobile", "PC", "Console", "RPG", "Lainnya"];
 const STATUS_CATEGORIES = ["Lagi Populer", "Baru Rilis", "Voucher", "Top Up Langsung", "Top Up Login", "Pulsa", "Entertainment"];
 
-interface Game { _id: string; name: string; slug: string; description?: string; imageUrl?: string; category: string; statusCategory?: string; isActive: boolean; sortOrder: number; isCheckAccountSupported: boolean; targetInputs?: any[]; products?: Product[]; }
+interface Game { _id: string; name: string; slug: string; description?: string; imageUrl?: string; category: string; statusCategory?: string; isActive: boolean; sortOrder: number; isCheckAccountSupported: boolean; targetFormat?: string; targetInputs?: any[]; products?: Product[]; categoryOrder?: string[]; }
 interface Product { _id: string; name: string; description?: string; price: number; sellingPrice: number; digiflazzSku: string; category: string; isActive: boolean; sortOrder: number; }
+
+function formatSamplePreview(inputs: any[], format?: string) {
+  if (!inputs || inputs.length === 0) return "84201379912337";
+
+  const sampleValuesList: string[] = inputs.map((input, idx) => {
+    let val = "";
+    if (input.placeholder && input.placeholder.replace(/[^0-9a-zA-Z]/g, "").length > 0) {
+      const cleaned = input.placeholder.replace(/Contoh:\s*/i, "").trim();
+      if (cleaned) val = cleaned;
+    }
+    if (!val) {
+      if (idx === 0) val = "842013799";
+      else if (idx === 1) val = "12337";
+      else val = `VAL${idx + 1}`;
+    }
+    return val;
+  });
+
+  const fmt = (format || "concat").trim();
+
+  if (fmt === "concat") return sampleValuesList.join("");
+  if (fmt === "space") return sampleValuesList.join(" ");
+  if (fmt === "pipe") return sampleValuesList.join(" | ");
+
+  // Custom template pattern (e.g. "{1}{2}", "{User ID}-{Zone ID}", "{1} | {2}", etc.)
+  let result = fmt;
+  inputs.forEach((input, idx) => {
+    const val = sampleValuesList[idx];
+    result = result.replace(new RegExp(`\\{${idx + 1}\\}`, "gi"), val);
+    if (input.name) {
+      result = result.replace(new RegExp(`\\{${escapeRegExp(input.name)}\\}`, "gi"), val);
+    }
+    if (input.label) {
+      result = result.replace(new RegExp(`\\{${escapeRegExp(input.label)}\\}`, "gi"), val);
+    }
+  });
+
+  return result;
+}
+
+function escapeRegExp(string: string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function getSeparatorLabel(fmt?: string) {
+  if (!fmt || fmt === "concat") return "Tanpa Spasi (Direct)";
+  if (fmt === "space" || fmt === " ") return "Spasi";
+  if (fmt === "pipe" || fmt === " | " || fmt === "|") return "Garis Tegak ( | )";
+  if (fmt === "-" || fmt === " - ") return "Strip ( - )";
+  return `"${fmt}"`;
+}
 
 // ── Edit Game Modal ──────────────────────────────────────────────────────────
 function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => void; onSaved: () => void }) {
@@ -28,10 +79,48 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
     statusCategory: game.statusCategory || "",
     sortOrder: game.sortOrder || 0,
     isCheckAccountSupported: game.isCheckAccountSupported || false,
+    targetFormat: (game as any).targetFormat || "concat",
+    categoryOrder: (game as any).categoryOrder || [],
     targetInputs: game.targetInputs || [],
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [categoriesList, setCategoriesList] = useState<string[]>(game.categoryOrder && game.categoryOrder.length > 0 ? game.categoryOrder : []);
+
+  useEffect(() => {
+    if (game._id) {
+      const token = localStorage.getItem("token");
+      fetch(`/api/admin/products?gameId=${game._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.success && Array.isArray(d.data)) {
+            const set = new Set<string>();
+            if (game.categoryOrder && Array.isArray(game.categoryOrder)) {
+              game.categoryOrder.forEach((c: string) => set.add(c));
+            }
+            d.data.forEach((p: any) => {
+              if (p.category && p.category.trim()) set.add(p.category.trim());
+            });
+            const list = Array.from(set);
+            setCategoriesList(list);
+            setForm((prev) => ({ ...prev, categoryOrder: list }));
+          }
+        });
+    }
+  }, [game._id]);
+
+  const moveCategory = (index: number, direction: "up" | "down") => {
+    const newList = [...categoriesList];
+    const targetIdx = direction === "up" ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= newList.length) return;
+    const temp = newList[index];
+    newList[index] = newList[targetIdx];
+    newList[targetIdx] = temp;
+    setCategoriesList(newList);
+    setForm((prev) => ({ ...prev, categoryOrder: newList }));
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -83,7 +172,14 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
   };
 
   const addTargetInput = () => {
-    setForm({ ...form, targetInputs: [...form.targetInputs, { name: "", type: "text" }] });
+    const idx = form.targetInputs.length + 1;
+    setForm({ 
+      ...form, 
+      targetInputs: [
+        ...form.targetInputs, 
+        { name: `Input ${idx}`, label: "", placeholder: "", type: "text" }
+      ] 
+    });
   };
 
   const removeTargetInput = (index: number) => {
@@ -142,43 +238,255 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
       <Input label="Urutan Tampil" type="number" value={String(form.sortOrder)} onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} />
       
       {/* Target Inputs */}
-      <div className="bg-black/20 border border-white/5 rounded-xl p-4 space-y-3">
+      <div className="bg-black/20 border border-white/5 rounded-xl p-4 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <label className="text-sm font-medium text-white block">Custom Data Target (Opsional)</label>
+            <label className="text-sm font-medium text-white block">Custom Data Target / Kolom Input ID (Opsional)</label>
             <p className="text-xs text-gray-400 mt-0.5">Biarkan kosong untuk menggunakan standar User ID & Server ID.</p>
           </div>
           <Button variant="secondary" size="sm" onClick={addTargetInput}>
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 mr-1" /> Tambah Kolom
           </Button>
         </div>
         
-        {form.targetInputs.map((input, idx) => (
-          <div key={idx} className="flex items-center gap-2">
-            <Input 
-              placeholder="Contoh: Email Joki" 
-              value={input.name} 
-              onChange={(e) => updateTargetInput(idx, "name", e.target.value)} 
-            />
-            <select 
-              value={input.type} 
-              onChange={(e) => updateTargetInput(idx, "type", e.target.value)} 
-              className="bg-gaming-accent border border-white/10 rounded-xl px-3 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm w-32"
-            >
-              <option value="text">Text</option>
-              <option value="email">Email</option>
-              <option value="password">Password</option>
-              <option value="number">Number</option>
-            </select>
-            <button 
-              onClick={() => removeTargetInput(idx)} 
-              className="p-3 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl border border-red-500/20 transition-all"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+        {form.targetInputs.length > 0 && (
+          <div className="space-y-3">
+            {form.targetInputs.map((input: any, idx: number) => (
+              <div key={idx} className="bg-white/5 border border-white/10 p-3.5 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">
+                    Kolom Input #{idx + 1}
+                  </span>
+                  <button 
+                    type="button"
+                    onClick={() => removeTargetInput(idx)} 
+                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Hapus
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-400 mb-1">Nama System (Key)</label>
+                    <Input 
+                      placeholder="Contoh: User ID" 
+                      value={input.name} 
+                      onChange={(e) => updateTargetInput(idx, "name", e.target.value)} 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-400 mb-1">Label Teks Kolom (Custom)</label>
+                    <Input 
+                      placeholder="Contoh: User ID Mobile Legends" 
+                      value={input.label || ""} 
+                      onChange={(e) => updateTargetInput(idx, "label", e.target.value)} 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-400 mb-1">Teks Contoh / Placeholder</label>
+                    <Input 
+                      placeholder="Contoh: 842013799" 
+                      value={input.placeholder || ""} 
+                      onChange={(e) => updateTargetInput(idx, "placeholder", e.target.value)} 
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-400 mb-1">Tipe Input</label>
+                  <select 
+                    value={input.type || "text"} 
+                    onChange={(e) => updateTargetInput(idx, "type", e.target.value)} 
+                    className="bg-gaming-accent border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm w-full"
+                  >
+                    <option value="text">Teks Bebas (Text)</option>
+                    <option value="number">Angka Saja (Number)</option>
+                    <option value="email">Email</option>
+                    <option value="password">Password (Tersembunyi)</option>
+                  </select>
+                </div>
+              </div>
+            ))}
+
+            {/* Target Format Selector & Visual Connector */}
+            <div className="bg-purple-950/40 border border-purple-500/30 rounded-xl p-4 space-y-4 mt-4">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-purple-300 uppercase tracking-wider">
+                    Pemisah Antar Kolom ID Target ke Digiflazz
+                  </label>
+                  <span className="text-[10px] text-purple-400 font-mono">Format Gabungan</span>
+                </div>
+                <p className="text-xs text-gray-400 mb-3">
+                  Tentukan tanda pemisah antara {form.targetInputs.length > 1 ? (
+                    <>
+                      <span className="text-purple-300 font-semibold">{form.targetInputs[0]?.label || form.targetInputs[0]?.name || "Input 1"}</span> dan <span className="text-purple-300 font-semibold">{form.targetInputs[1]?.label || form.targetInputs[1]?.name || "Input 2"}</span>
+                    </>
+                  ) : "kolom-kolom input"} saat dikirim ke sistem.
+                </p>
+
+                {/* Visual Connector Diagram */}
+                {form.targetInputs.length > 1 && (
+                  <div className="bg-black/40 border border-white/10 rounded-xl p-3 flex flex-wrap items-center justify-center gap-2 text-xs mb-3">
+                    <span className="px-2.5 py-1 bg-purple-900/60 border border-purple-500/40 text-purple-200 font-bold rounded-lg truncate max-w-[140px]">
+                      {form.targetInputs[0]?.label || form.targetInputs[0]?.name || "Input 1"}
+                    </span>
+
+                    <span className="text-gray-400 font-bold">➔</span>
+
+                    <div className="flex items-center gap-1.5 bg-black/60 border border-purple-400/50 px-3 py-1 rounded-lg">
+                      <span className="text-[10px] text-gray-400 font-semibold uppercase">Pemisah:</span>
+                      <span className="text-cyan-300 font-mono font-black text-xs">
+                        {getSeparatorLabel(form.targetFormat)}
+                      </span>
+                    </div>
+
+                    <span className="text-gray-400 font-bold">➔</span>
+
+                    <span className="px-2.5 py-1 bg-purple-900/60 border border-purple-500/40 text-purple-200 font-bold rounded-lg truncate max-w-[140px]">
+                      {form.targetInputs[1]?.label || form.targetInputs[1]?.name || "Input 2"}
+                    </span>
+                  </div>
+                )}
+
+                {/* Preset Options Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, targetFormat: "concat" })}
+                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                      form.targetFormat === "concat" || form.targetFormat === ""
+                        ? "bg-purple-600 border-purple-400 text-white shadow-lg ring-2 ring-purple-400/30"
+                        : "bg-black/30 border-white/10 text-gray-300 hover:bg-white/10"
+                    }`}
+                  >
+                    <span className="block text-xs font-bold">Tanpa Spasi</span>
+                    <span className="block text-[10px] text-purple-200/80 font-mono mt-0.5">84201379912337</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, targetFormat: "space" })}
+                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                      form.targetFormat === "space" || form.targetFormat === " "
+                        ? "bg-purple-600 border-purple-400 text-white shadow-lg ring-2 ring-purple-400/30"
+                        : "bg-black/30 border-white/10 text-gray-300 hover:bg-white/10"
+                    }`}
+                  >
+                    <span className="block text-xs font-bold">Spasi</span>
+                    <span className="block text-[10px] text-purple-200/80 font-mono mt-0.5">842013799 12337</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, targetFormat: "pipe" })}
+                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                      form.targetFormat === "pipe" || form.targetFormat === " | " || form.targetFormat === "|"
+                        ? "bg-purple-600 border-purple-400 text-white shadow-lg ring-2 ring-purple-400/30"
+                        : "bg-black/30 border-white/10 text-gray-300 hover:bg-white/10"
+                    }`}
+                  >
+                    <span className="block text-xs font-bold">Garis Tegak ( | )</span>
+                    <span className="block text-[10px] text-purple-200/80 font-mono mt-0.5">842013799 | 12337</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, targetFormat: "-" })}
+                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                      form.targetFormat === "-" || form.targetFormat === " - "
+                        ? "bg-purple-600 border-purple-400 text-white shadow-lg ring-2 ring-purple-400/30"
+                        : "bg-black/30 border-white/10 text-gray-300 hover:bg-white/10"
+                    }`}
+                  >
+                    <span className="block text-xs font-bold">Strip ( - )</span>
+                    <span className="block text-[10px] text-purple-200/80 font-mono mt-0.5">842013799-12337</span>
+                  </button>
+                </div>
+
+                {/* Custom Character Input Box */}
+                <div className="mt-3 bg-black/30 border border-white/10 rounded-xl p-3 space-y-1.5">
+                  <label className="block text-[11px] font-medium text-gray-300">
+                    Atau Ketik Karakter Pemisah Kustom Sendiri (Misal: <code className="text-cyan-300 font-mono">#</code>, <code className="text-cyan-300 font-mono">/</code>, <code className="text-cyan-300 font-mono">_</code>, <code className="text-cyan-300 font-mono">@</code>, dll):
+                  </label>
+                  <Input
+                    placeholder="Contoh: # atau / atau -"
+                    value={
+                      form.targetFormat === "concat" ? "" :
+                      form.targetFormat === "space" ? " " :
+                      form.targetFormat === "pipe" ? " | " :
+                      form.targetFormat
+                    }
+                    onChange={(e) => setForm({ ...form, targetFormat: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Live Preview Box */}
+              <div className="bg-black/50 border border-purple-500/20 rounded-lg p-3 space-y-1.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-gray-400 font-medium">Contoh Tampilan Hasil yang Terkirim ke Sistem:</span>
+                  <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Live Preview</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400">Hasil Format:</span>
+                  <span className="text-cyan-300 font-mono font-bold text-sm bg-cyan-950/60 px-3 py-1 rounded border border-cyan-500/40 tracking-wide">
+                    {formatSamplePreview(form.targetInputs, form.targetFormat)}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-        ))}
+        )}
       </div>
+
+      {/* Urutan Tampil Kategori Produk (Pilih Kategori Paling Atas) */}
+      {categoriesList.length > 0 && (
+        <div className="bg-black/30 border border-purple-500/20 rounded-xl p-4 space-y-3">
+          <div>
+            <label className="text-sm font-bold text-white block">Urutan Tampil Kategori Produk (Pilih Kategori Paling Atas)</label>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Gunakan tombol <span className="text-purple-300 font-bold">⬆️ Naik</span> atau <span className="text-purple-300 font-bold">⬇️ Turun</span> untuk menempatkan kategori (seperti <span className="text-emerald-400 font-bold">Bulanan / Membership</span>) di posisi paling atas tampilan user.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {categoriesList.map((cat, idx) => (
+              <div key={cat} className="flex items-center justify-between bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-xs font-semibold">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-purple-600/40 text-purple-300 font-mono text-[10px] flex items-center justify-center font-bold">
+                    {idx + 1}
+                  </span>
+                  <span className="text-white text-sm">{cat}</span>
+                  {idx === 0 && (
+                    <span className="bg-emerald-500/20 text-emerald-300 text-[10px] px-2 py-0.5 rounded border border-emerald-500/30 font-bold">
+                      ⭐ Paling Atas
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => moveCategory(idx, "up")}
+                    className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-purple-300 disabled:opacity-30 disabled:pointer-events-none rounded-lg border border-white/10 transition-all text-xs font-bold"
+                  >
+                    ⬆️ Naik
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === categoriesList.length - 1}
+                    onClick={() => moveCategory(idx, "down")}
+                    className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-purple-300 disabled:opacity-30 disabled:pointer-events-none rounded-lg border border-white/10 transition-all text-xs font-bold"
+                  >
+                    ⬇️ Turun
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center justify-between bg-gaming-accent/50 border border-white/10 p-4 rounded-xl">
         <div>
@@ -203,7 +511,17 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
 }
 
 // ── Edit Product Modal ───────────────────────────────────────────────────────
-function EditProductModal({ product, onClose, onSaved }: { product: Product; onClose: () => void; onSaved: () => void }) {
+function EditProductModal({
+  product,
+  existingCategories = [],
+  onClose,
+  onSaved,
+}: {
+  product: Product;
+  existingCategories?: string[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const [form, setForm] = useState({ name: product.name, description: product.description || "", price: product.price, sellingPrice: product.sellingPrice, digiflazzSku: product.digiflazzSku, category: product.category, sortOrder: product.sortOrder });
   const [saving, setSaving] = useState(false);
 
@@ -236,7 +554,34 @@ function EditProductModal({ product, onClose, onSaved }: { product: Product; onC
         Margin: {formatCurrency(margin)} ({marginPct}%)
       </div>
       <Input label="SKU Digiflazz" value={form.digiflazzSku} onChange={(e) => setForm({ ...form, digiflazzSku: e.target.value })} />
-      <Input label="Kategori" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Diamond, UC, VP, dll" />
+      <div>
+        <Input label="Kategori Produk" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Top Up, Bulanan, Pass, Voucher, dll" />
+        {existingCategories && existingCategories.length > 0 && (
+          <div className="mt-2 space-y-1.5">
+            <span className="text-[11px] text-gray-400 font-medium">Kategori yang Sudah Ada di Game Ini:</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {existingCategories.map((cat) => {
+                const isSelected = form.category?.trim().toLowerCase() === cat.toLowerCase();
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setForm({ ...form, category: cat })}
+                    className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all font-semibold flex items-center gap-1 ${
+                      isSelected
+                        ? "bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-sm"
+                        : "bg-white/5 hover:bg-white/10 text-gray-300 border-white/10"
+                    }`}
+                  >
+                    <span>🏷️</span>
+                    <span>{cat}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-1.5">Deskripsi (opsional)</label>
         <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full bg-gaming-accent border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none text-sm" />
@@ -251,8 +596,18 @@ function EditProductModal({ product, onClose, onSaved }: { product: Product; onC
 }
 
 // ── Add Product Modal ────────────────────────────────────────────────────────
-function AddProductModal({ gameId, onClose, onSaved }: { gameId: string; onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState({ name: "", description: "", price: "", sellingPrice: "", digiflazzSku: "", category: "", sortOrder: "0" });
+function AddProductModal({
+  gameId,
+  existingCategories = [],
+  onClose,
+  onSaved,
+}: {
+  gameId: string;
+  existingCategories?: string[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState({ name: "", description: "", price: "", sellingPrice: "", digiflazzSku: "", category: existingCategories[0] || "Top Up", sortOrder: "0" });
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -287,9 +642,36 @@ function AddProductModal({ gameId, onClose, onSaved }: { gameId: string; onClose
         </div>
       )}
       <Input label="SKU Digiflazz *" value={form.digiflazzSku} onChange={(e) => setForm({ ...form, digiflazzSku: e.target.value })} placeholder="mlbb-86" />
-      <Input label="Kategori *" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Diamond" />
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1.5">Deskripsi</label>
+        <Input label="Kategori Produk *" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Top Up, Bulanan, Pass, Voucher, dll" />
+        {existingCategories && existingCategories.length > 0 && (
+          <div className="mt-2 space-y-1.5">
+            <span className="text-[11px] text-gray-400 font-medium">Kategori yang Sudah Ada di Game Ini:</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {existingCategories.map((cat) => {
+                const isSelected = form.category?.trim().toLowerCase() === cat.toLowerCase();
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setForm({ ...form, category: cat })}
+                    className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all font-semibold flex items-center gap-1 ${
+                      isSelected
+                        ? "bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-sm"
+                        : "bg-white/5 hover:bg-white/10 text-gray-300 border-white/10"
+                    }`}
+                  >
+                    <span>🏷️</span>
+                    <span>{cat}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-1.5">Deskripsi (opsional)</label>
         <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full bg-gaming-accent border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none text-sm" />
       </div>
       <Input label="Urutan Tampil" type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: e.target.value })} />
@@ -299,6 +681,17 @@ function AddProductModal({ gameId, onClose, onSaved }: { gameId: string; onClose
       </div>
     </div>
   );
+}
+
+function getGameCategories(products?: Product[]): string[] {
+  if (!products || products.length === 0) return [];
+  const set = new Set<string>();
+  products.forEach((p) => {
+    if (p.category && p.category.trim()) {
+      set.add(p.category.trim());
+    }
+  });
+  return Array.from(set);
 }
 
 // ── Main Page ────────────────────────────────────────────────────────────────
@@ -355,9 +748,15 @@ export default function AdminGamesPage() {
     }
   };
 
-  const refreshProducts = (gameId: string) => {
-    setProductsByGame((prev) => { const n = { ...prev }; delete n[gameId]; return n; });
-    loadProducts(gameId);
+  const refreshProducts = async (gameId: string) => {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`/api/admin/products?gameId=${gameId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (data.success) {
+      setProductsByGame((prev) => ({ ...prev, [gameId]: data.data }));
+    }
   };
 
   const toggleGameActive = async (game: Game) => {
@@ -596,10 +995,19 @@ export default function AdminGamesPage() {
 
       {/* Edit Product Modal */}
       <Modal open={!!editProduct} onClose={() => setEditProduct(null)} title="Edit Produk">
-        {editProduct && <EditProductModal product={editProduct} onClose={() => setEditProduct(null)} onSaved={() => {
-          const gameId = games.find((g) => productsByGame[g._id]?.some((p) => p._id === editProduct._id))?._id;
-          if (gameId) refreshProducts(gameId);
-        }} />}
+        {editProduct && (() => {
+          const gameId = games.find((g) => productsByGame[g._id]?.some((p) => p._id === editProduct._id))?._id || "";
+          return (
+            <EditProductModal
+              product={editProduct}
+              existingCategories={getGameCategories(productsByGame[gameId] || [])}
+              onClose={() => setEditProduct(null)}
+              onSaved={() => {
+                if (gameId) refreshProducts(gameId);
+              }}
+            />
+          );
+        })()}
       </Modal>
 
       {/* Add Product Modal */}
