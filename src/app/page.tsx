@@ -44,8 +44,8 @@ async function getRecentTransactions() {
     await connectDB();
     const orders = await Order.find({ orderStatus: "SUCCESS" })
       .sort({ createdAt: -1 })
-      .limit(12) // reduced from 15
-      .select("_id customerName gameName orderItems orderStatus createdAt gameId") // only fetch needed fields
+      .limit(12)
+      .select("_id customerName gameName orderItems orderStatus createdAt gameId")
       .populate("gameId", "imageUrl iconUrl bannerUrl")
       .lean();
 
@@ -58,7 +58,8 @@ async function getRecentTransactions() {
       timeElapsed: formatDistanceToNow(new Date(order.createdAt), { addSuffix: true, locale: id }),
       gameImage: order.gameId?.iconUrl || order.gameId?.imageUrl || "https://placehold.co/100x100",
     }));
-  } catch (err) {
+  } catch {
+    // Return empty array — component will fill with dummy data
     return [];
   }
 }
@@ -97,7 +98,27 @@ export default async function HomePage() {
         <RecentTransactions transactions={recentTransactions} />
       </section>
 
-      {/* Features */}
+      {/* Games */}
+      <section className="py-24 px-4 relative">
+        <div className="max-w-7xl mx-auto">
+          <AnimatedSection direction="left" className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Trophy className="w-5 h-5 text-yellow-400" />
+                <span className="text-yellow-400 font-bold tracking-wider uppercase text-sm">Game Terpopuler</span>
+              </div>
+              <h2 className="text-3xl md:text-5xl font-black text-white">Top Up Sekarang</h2>
+            </div>
+            <Link href="/games">
+              <Button variant="outline" className="rounded-full">Lihat Semua Game <ChevronRight className="w-4 h-4" /></Button>
+            </Link>
+          </AnimatedSection>
+
+          <HomeGamesList initialGames={games as any} />
+        </div>
+      </section>
+
+      {/* Features / Kenapa Memilih Kami */}
       <section className="py-24 px-4 relative z-10">
         <div className="absolute inset-0 bg-gaming-card/30 backdrop-blur-3xl -z-10" />
         <div className="max-w-7xl mx-auto">
@@ -119,26 +140,6 @@ export default async function HomePage() {
               </AnimatedSection>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Games */}
-      <section className="py-24 px-4 relative">
-        <div className="max-w-7xl mx-auto">
-          <AnimatedSection direction="left" className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Trophy className="w-5 h-5 text-yellow-400" />
-                <span className="text-yellow-400 font-bold tracking-wider uppercase text-sm">Game Terpopuler</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl font-black text-white">Top Up Sekarang</h2>
-            </div>
-            <Link href="/games">
-              <Button variant="outline" className="rounded-full">Lihat Semua Game <ChevronRight className="w-4 h-4" /></Button>
-            </Link>
-          </AnimatedSection>
-
-          <HomeGamesList initialGames={games as any} />
         </div>
       </section>
 
