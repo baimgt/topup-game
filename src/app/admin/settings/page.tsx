@@ -189,15 +189,28 @@ export default function AdminSettingsPage() {
                     try {
                       const formData = new FormData();
                       formData.append("file", file);
+                      const token = localStorage.getItem("token");
                       const res = await fetch("/api/admin/upload", {
                         method: "POST",
-                        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+                        headers: { Authorization: `Bearer ${token}` },
                         body: formData,
                       });
                       const data = await res.json();
                       if (data.success) {
+                        // Update local state
                         update("siteLogo", data.url);
-                        toast.success("Logo berhasil diunggah", { id: toastId });
+                        // Auto-save logo URL to DB immediately
+                        const saveRes = await fetch("/api/admin/settings", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                          body: JSON.stringify({ ...settings, siteLogo: data.url }),
+                        });
+                        const saveData = await saveRes.json();
+                        if (saveData.success) {
+                          toast.success("Logo berhasil diunggah & disimpan!", { id: toastId });
+                        } else {
+                          toast.success("Logo diunggah (klik Simpan untuk menyimpan)", { id: toastId });
+                        }
                       } else {
                         throw new Error(data.error);
                       }
