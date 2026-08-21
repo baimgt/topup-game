@@ -84,15 +84,19 @@ export async function POST(req: NextRequest) {
 
     const { type = "prepaid" } = await req.json().catch(() => ({}));
 
-    // Ambil credentials
+    // Ambil credentials — DB takes priority over placeholder .env values
     const config = await PaymentConfig.findOne({});
-    const username = config?.digiflazzUsername || process.env.DIGIFLAZZ_USERNAME || "";
-    const apiKey   = config?.digiflazzApiKey   || process.env.DIGIFLAZZ_API_KEY   || "";
+    const username = (config?.digiflazzUsername && config.digiflazzUsername !== "your-digiflazz-username")
+      ? config.digiflazzUsername
+      : (process.env.DIGIFLAZZ_USERNAME !== "your-digiflazz-username" ? process.env.DIGIFLAZZ_USERNAME || "" : "");
+    const apiKey = (config?.digiflazzApiKey && config.digiflazzApiKey !== "your-digiflazz-api-key")
+      ? config.digiflazzApiKey
+      : (process.env.DIGIFLAZZ_API_KEY !== "your-digiflazz-api-key" ? process.env.DIGIFLAZZ_API_KEY || "" : "");
 
-    if (!username || !apiKey || username === "your-digiflazz-username") {
+    if (!username || !apiKey) {
       return NextResponse.json({
         success: false,
-        error: "Konfigurasi Digiflazz belum diisi",
+        error: "Konfigurasi Digiflazz belum diisi di Admin → Pengaturan API",
       }, { status: 400 });
     }
 

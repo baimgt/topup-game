@@ -146,11 +146,18 @@ export async function POST(req: NextRequest) {
 
     // ── Cek Username via Digiflazz untuk game lain ──
     const config = await PaymentConfig.findOne({});
-    const username = config?.digiflazzUsername || process.env.DIGIFLAZZ_USERNAME || "";
-    const apiKey   = config?.digiflazzApiKey   || process.env.DIGIFLAZZ_API_KEY   || "";
+    
+    // DB credentials take priority over .env (env may still have placeholder values)
+    const username = (config?.digiflazzUsername && config.digiflazzUsername !== "your-digiflazz-username")
+      ? config.digiflazzUsername
+      : (process.env.DIGIFLAZZ_USERNAME !== "your-digiflazz-username" ? process.env.DIGIFLAZZ_USERNAME : "");
+    
+    const apiKey = (config?.digiflazzApiKey && config.digiflazzApiKey !== "your-digiflazz-api-key")
+      ? config.digiflazzApiKey
+      : (process.env.DIGIFLAZZ_API_KEY !== "your-digiflazz-api-key" ? process.env.DIGIFLAZZ_API_KEY : "");
 
-    if (!username || !apiKey || username === "your-digiflazz-username") {
-      return NextResponse.json({ success: false, error: "Konfigurasi Digiflazz belum diisi" }, { status: 400 });
+    if (!username || !apiKey) {
+      return NextResponse.json({ success: false, error: "Konfigurasi Digiflazz belum diisi di Admin → Pengaturan API" }, { status: 400 });
     }
 
     // 1. Cek apakah admin mengaktifkan fitur ini
