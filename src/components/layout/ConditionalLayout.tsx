@@ -6,10 +6,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, X } from "lucide-react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAdmin = pathname.startsWith("/admin");
+  const isAdminRoute = pathname.startsWith("/admin");
+  const { user, loading: authLoading } = useAuth();
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [maintenanceMsg, setMaintenanceMsg] = useState("Website sedang dalam perbaikan. Silakan kembali lagi nanti.");
   
@@ -20,10 +22,10 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
   const [announcementUrl, setAnnouncementUrl] = useState("");
   const [showPopup, setShowPopup] = useState(false);
 
-  const [loading, setLoading] = useState(!isAdmin); // Loading only if not admin
+  const [loading, setLoading] = useState(!isAdminRoute); // Loading only if not admin route
 
   useEffect(() => {
-    if (isAdmin) return;
+    if (isAdminRoute) return;
 
     fetch("/api/settings")
       .then((res) => res.json())
@@ -48,7 +50,7 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
       })
       .catch((err) => console.error("Failed to load settings", err))
       .finally(() => setLoading(false));
-  }, [isAdmin]);
+  }, [isAdminRoute]);
 
   const handleClosePopup = () => {
     setShowPopup(false);
@@ -61,15 +63,18 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
     }
   };
 
-  if (isAdmin) {
+  const isUserAdmin = user?.role === "ADMIN";
+  const shouldBypassMaintenance = isAdminRoute || isUserAdmin;
+
+  if (isAdminRoute) {
     return <>{children}</>;
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return <div className="min-h-screen bg-[#0B0B0F]" />;
   }
 
-  if (isMaintenance) {
+  if (isMaintenance && !shouldBypassMaintenance) {
     return (
       <div className="min-h-screen bg-[#0B0B0F] flex items-center justify-center p-4 relative overflow-hidden">
         {/* Animated background blobs */}
@@ -237,6 +242,14 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Admin Maintenance Bypass Warning Banner */}
+      {isMaintenance && shouldBypassMaintenance && (
+        <div className="bg-yellow-500 text-black px-4 py-2 text-center text-sm font-bold z-[100] relative flex items-center justify-center gap-2 shadow-md">
+          <AlertTriangle className="w-4 h-4" />
+          [MODE ADMIN] Website sedang dalam Maintenance Mode. Hanya Admin yang dapat melihat halaman ini.
+        </div>
+      )}
 
       <Navbar />
       <motion.main

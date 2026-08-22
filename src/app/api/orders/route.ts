@@ -87,15 +87,21 @@ export async function POST(req: NextRequest) {
           code: cleanCode,
           isActive: true,
           expiryDate: { $gt: new Date() },
-          $or: [
-            { usageLimit: { $lte: 0 } }, // unlimited
-            { $expr: { $lt: ["$usedCount", "$usageLimit"] } }, // masih ada sisa
-          ],
-          $or: [
-            { gameId: { $exists: false } },
-            { gameId: null },
-            { gameId: game._id },
-          ],
+          $and: [
+            {
+              $or: [
+                { usageLimit: { $lte: 0 } }, // unlimited
+                { $expr: { $lt: ["$usedCount", "$usageLimit"] } }, // masih ada sisa
+              ],
+            },
+            {
+              $or: [
+                { gameId: { $exists: false } },
+                { gameId: null },
+                { gameId: game._id },
+              ],
+            }
+          ]
         },
         { $inc: { usedCount: 1 } },
         { new: true }
