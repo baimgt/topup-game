@@ -60,7 +60,11 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch("/api/admin/settings", { headers: { Authorization: `Bearer ${token}` } })
+    const headers: Record<string, string> = {};
+    if (token && token !== "null" && token !== "undefined") {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    fetch("/api/admin/settings", { headers })
       .then((r) => r.json())
       .then((d) => {
         if (d.success && d.data && Object.keys(d.data).length > 0) {
@@ -73,9 +77,13 @@ export default function AdminSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     const token = localStorage.getItem("token");
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token && token !== "null" && token !== "undefined") {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
     const res = await fetch("/api/admin/settings", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers,
       body: JSON.stringify(settings),
     });
     const data = await res.json();

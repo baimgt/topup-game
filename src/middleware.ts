@@ -1,23 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Edge-compatible JWT decode (middleware runs in Edge Runtime, not full Node.js)
-// We decode the payload manually without verifying signature here —
-// The actual signature verification happens in route handlers via jsonwebtoken.
-// This is acceptable because:
-// 1. Middleware is a UX/access control gate (fast redirect)
-// 2. All actual data mutations require re-verification in route handlers
-// 3. A forged JWT with wrong signature will fail in route handlers anyway
+// Edge-compatible JWT decode with proper Base64 padding & UTF-8 decoding
 function decodeJwtPayload(token: string): { userId: string; email: string; role: string; exp: number } | null {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-    // Check expiry
+    let base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    while (base64.length % 4 !== 0) {
+      base64 += "=";
+    }
+    const jsonStr = decodeURIComponent(
+      Array.prototype.map
+        .call(atob(base64), (c: string) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    const payload = JSON.parse(jsonStr);
     if (payload.exp && Date.now() / 1000 > payload.exp) return null;
     return payload;
   } catch {
-    return null;
+    try {
+      const parts = token.split(".");
+      let base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      while (base64.length % 4 !== 0) {
+        base64 += "=";
+      }
+      const payload = JSON.parse(atob(base64));
+      if (payload.exp && Date.now() / 1000 > payload.exp) return null;
+      return payload;
+    } catch {
+      return null;
+    }
   }
+}
+
+function getValidToken(req: NextRequest): string | null {
+  const cookieToken = req.cookies.get("token")?.value;
+  if (cookieToken && cookieToken !== "null" && cookieToken !== "undefined") {
+    return cookieToken;
+  }
+  const authHeader = req.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const bearer = authHeader.substring(7).trim();
+    if (bearer && bearer !== "null" && bearer !== "undefined") {
+      return bearer;
+    }
+  }
+  return null;
 }
 
 export function middleware(req: NextRequest) {
@@ -25,9 +53,7 @@ export function middleware(req: NextRequest) {
 
   // ─── 1. Proteksi halaman Admin (/admin/*) ────────────────────────────────
   if (pathname.startsWith("/admin")) {
-    const token =
-      req.cookies.get("token")?.value ||
-      req.headers.get("authorization")?.replace("Bearer ", "");
+    const token = getValidToken(req);
 
     if (!token) {
       const loginUrl = new URL("/auth/login", req.url);
@@ -47,9 +73,7 @@ export function middleware(req: NextRequest) {
 
   // ─── 2. Double-guard API Admin (/api/admin/*) ────────────────────────────
   if (pathname.startsWith("/api/admin")) {
-    const token =
-      req.cookies.get("token")?.value ||
-      req.headers.get("authorization")?.replace("Bearer ", "");
+    const token = getValidToken(req);
 
     if (!token) {
       return NextResponse.json(
@@ -71,9 +95,7 @@ export function middleware(req: NextRequest) {
 
   // ─── 3. Proteksi API User (/api/user/*) ──────────────────────────────────
   if (pathname.startsWith("/api/user")) {
-    const token =
-      req.cookies.get("token")?.value ||
-      req.headers.get("authorization")?.replace("Bearer ", "");
+    const token = getValidToken(req);
 
     if (!token) {
       return NextResponse.json(

@@ -35,7 +35,11 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch("/api/admin/stats", { headers: { Authorization: `Bearer ${token}` } })
+    const headers: Record<string, string> = {};
+    if (token && token !== "null" && token !== "undefined") {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    fetch("/api/admin/stats", { headers })
       .then((r) => r.json())
       .then((d) => { if (d.success) setStats(d.data); })
       .finally(() => setLoading(false));

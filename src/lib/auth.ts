@@ -36,11 +36,18 @@ export async function comparePassword(
 export function getTokenFromRequest(req: NextRequest): string | null {
   const authHeader = req.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.substring(7);
+    const bearer = authHeader.substring(7).trim();
+    if (bearer && bearer !== "null" && bearer !== "undefined") {
+      return bearer;
+    }
   }
 
   const cookieToken = req.cookies.get("token")?.value;
-  return cookieToken || null;
+  if (cookieToken && cookieToken !== "null" && cookieToken !== "undefined") {
+    return cookieToken;
+  }
+
+  return null;
 }
 
 export function getUserFromRequest(req: NextRequest): JWTPayload | null {

@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 export default function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdminRoute = pathname.startsWith("/admin");
+  const isSystemStatusRoute = pathname.startsWith("/system-status");
   const { user, loading: authLoading } = useAuth();
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [maintenanceMsg, setMaintenanceMsg] = useState("Website sedang dalam perbaikan. Silakan kembali lagi nanti.");
@@ -22,10 +23,10 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
   const [announcementUrl, setAnnouncementUrl] = useState("");
   const [showPopup, setShowPopup] = useState(false);
 
-  const [loading, setLoading] = useState(!isAdminRoute); // Loading only if not admin route
+  const [loading, setLoading] = useState(!isAdminRoute && !isSystemStatusRoute);
 
   useEffect(() => {
-    if (isAdminRoute) return;
+    if (isAdminRoute || isSystemStatusRoute) return;
 
     fetch("/api/settings")
       .then((res) => res.json())
@@ -50,7 +51,7 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
       })
       .catch((err) => console.error("Failed to load settings", err))
       .finally(() => setLoading(false));
-  }, [isAdminRoute]);
+  }, [isAdminRoute, isSystemStatusRoute]);
 
   const handleClosePopup = () => {
     setShowPopup(false);
@@ -64,9 +65,9 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
   };
 
   const isUserAdmin = user?.role === "ADMIN";
-  const shouldBypassMaintenance = isAdminRoute || isUserAdmin;
+  const shouldBypassMaintenance = isAdminRoute || isSystemStatusRoute || isUserAdmin;
 
-  if (isAdminRoute) {
+  if (isAdminRoute || isSystemStatusRoute) {
     return <>{children}</>;
   }
 

@@ -113,7 +113,7 @@ export default function Navbar() {
                     className="flex items-center gap-2 text-sm text-white bg-white/5 hover:bg-white/10 transition-colors cursor-pointer pr-4 pl-1.5 py-1.5 rounded-full border border-white/5 shadow-inner"
                   >
                     <div className="w-7 h-7 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
-                      <span className="text-white text-xs font-bold">{user.name.charAt(0).toUpperCase()}</span>
+                      <span className="text-white text-xs font-bold">{user.name?.charAt(0).toUpperCase() || "U"}</span>
                     </div>
                     <span className="font-medium">{user.name}</span>
                   </motion.div>

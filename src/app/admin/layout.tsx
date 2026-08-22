@@ -28,33 +28,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
     const stored = localStorage.getItem("user");
-
-    // Jika tidak ada token → redirect ke login
-    if (!token) {
-      router.replace("/auth/login?redirect=" + encodeURIComponent(pathname));
-      return;
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setUser(parsed);
+      } catch {
+        // ignore
+      }
     }
-
-    // Verifikasi token ke server
-    fetch("/api/auth/verify", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (!data.success || data.data?.role !== "ADMIN") {
-          // Bukan admin → hapus token dan redirect ke beranda
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          router.replace("/?error=forbidden");
-        }
-      })
-      .catch(() => {
-        router.replace("/auth/login");
-      });
-
-    if (stored) setUser(JSON.parse(stored));
 
     const savedTheme = (localStorage.getItem("admin_theme") as "dark" | "light") || "dark";
     setTheme(savedTheme);
