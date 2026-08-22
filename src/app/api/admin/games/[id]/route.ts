@@ -34,7 +34,22 @@ export async function PATCH(
     }
     const { id } = await params;
     const body = await req.json();
-    const game = await Game.findByIdAndUpdate(id, { $set: body }, { returnDocument: 'after' });
+
+    // Whitelist field yang boleh diupdate — mencegah mass assignment
+    const ALLOWED_FIELDS = [
+      "name", "slug", "description", "imageUrl", "bannerUrl", "iconUrl",
+      "category", "statusCategory", "sortOrder", "homeSortOrder", "isActive",
+      "isCheckAccountSupported", "checkUsernameSku", "targetFormat",
+      "targetInputs", "categoryOrder",
+    ];
+    const safeBody = Object.fromEntries(
+      Object.entries(body).filter(([key]) => ALLOWED_FIELDS.includes(key))
+    );
+    if (Object.keys(safeBody).length === 0) {
+      return NextResponse.json({ success: false, error: "Tidak ada field yang valid" }, { status: 400 });
+    }
+
+    const game = await Game.findByIdAndUpdate(id, { $set: safeBody }, { returnDocument: "after" });
     if (!game) return NextResponse.json({ success: false, error: "Game tidak ditemukan" }, { status: 404 });
     return NextResponse.json({ success: true, data: game });
   } catch {

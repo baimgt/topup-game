@@ -103,7 +103,7 @@ export default function HomeGamesList({ initialGames }: HomeGamesListProps) {
                 <div className="flex justify-center pt-4">
                   <Button
                     variant="outline"
-                    className="rounded-full px-8 py-3 font-bold flex items-center gap-2 border-indigo-500/30 text-indigo-400 hover:border-indigo-400 hover:bg-indigo-500/10"
+                    className="rounded-full px-5 py-2.5 sm:px-8 sm:py-3 text-sm sm:text-base font-bold flex items-center gap-2 border-indigo-500/30 text-indigo-400 hover:border-indigo-400 hover:bg-indigo-500/10"
                     onClick={() => setShowAll(!showAll)}
                   >
                     {showAll ? (

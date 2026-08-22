@@ -107,10 +107,10 @@ export default async function HomePage() {
                 <Trophy className="w-5 h-5 text-yellow-400" />
                 <span className="text-yellow-400 font-bold tracking-wider uppercase text-sm">Game Terpopuler</span>
               </div>
-              <h2 className="text-3xl md:text-5xl font-black text-white">Top Up Sekarang</h2>
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-white">Top Up Sekarang</h2>
             </div>
             <Link href="/games">
-              <Button variant="outline" className="rounded-full">Lihat Semua Game <ChevronRight className="w-4 h-4" /></Button>
+              <Button variant="outline" className="rounded-full w-full sm:w-auto">Lihat Semua Game <ChevronRight className="w-4 h-4" /></Button>
             </Link>
           </AnimatedSection>
 
@@ -123,8 +123,8 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-gaming-card/30 backdrop-blur-3xl -z-10" />
         <div className="max-w-7xl mx-auto">
           <AnimatedSection className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Kenapa Memilih Kami?</h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">Pengalaman top up terbaik yang dirancang khusus untuk kenyamanan para gamer.</p>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">Kenapa Memilih Kami?</h2>
+            <p className="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto">Pengalaman top up terbaik yang dirancang khusus untuk kenyamanan para gamer.</p>
           </AnimatedSection>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -147,8 +147,8 @@ export default async function HomePage() {
       <section className="py-20 px-4 relative border-t border-white/5 bg-black/20">
         <div className="max-w-7xl mx-auto text-center">
           <AnimatedSection direction="up">
-            <h2 className="text-2xl font-bold text-white mb-4">Metode Pembayaran Lengkap</h2>
-            <p className="text-gray-400 text-sm mb-10 max-w-xl mx-auto">Kami mendukung berbagai metode pembayaran untuk memudahkan transaksi Anda di mana saja dan kapan saja.</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Metode Pembayaran Lengkap</h2>
+            <p className="text-gray-400 text-xs sm:text-sm mb-10 max-w-xl mx-auto">Kami mendukung berbagai metode pembayaran untuk memudahkan transaksi Anda di mana saja dan kapan saja.</p>
             
             <div className="flex flex-wrap justify-center gap-3 md:gap-4">
               {["QRIS", "GoPay", "OVO", "Dana", "ShopeePay", "LinkAja", "BCA", "Mandiri", "BNI", "BRI", "Alfamart", "Indomaret"].map((m, i) => (

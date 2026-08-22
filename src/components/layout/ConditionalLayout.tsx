@@ -71,15 +71,126 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
 
   if (isMaintenance) {
     return (
-      <div className="min-h-screen bg-[#0B0B0F] flex items-center justify-center p-4">
-        <div className="bg-white/5 border border-white/10 rounded-3xl p-8 max-w-md w-full text-center">
-          <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-6" />
-          <h1 className="text-3xl font-bold text-white mb-4">Under Maintenance</h1>
-          <p className="text-gray-400 leading-relaxed">{maintenanceMsg}</p>
+      <div className="min-h-screen bg-[#0B0B0F] flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Animated background blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: "1s" }} />
+          <div className="absolute top-[40%] left-[40%] w-[300px] h-[300px] bg-pink-600/10 rounded-full blur-[80px] animate-pulse" style={{ animationDelay: "2s" }} />
+          
+          {/* Floating particles */}
+          {[...Array(12)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-white/20 rounded-full animate-ping"
+              style={{
+                left: `${10 + (i * 8)}%`,
+                top: `${15 + (i % 4) * 20}%`,
+                animationDelay: `${i * 0.4}s`,
+                animationDuration: `${2 + (i % 3)}s`,
+              }}
+            />
+          ))}
+
+          {/* Grid pattern */}
+          <div
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+              backgroundSize: "60px 60px",
+            }}
+          />
         </div>
+
+        {/* Main card */}
+        <div className="relative z-10 max-w-lg w-full">
+          {/* Glowing border card */}
+          <div className="relative">
+            {/* Outer glow */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-3xl blur-lg opacity-40 animate-pulse" />
+            
+            <div className="relative bg-[#0f0f17]/90 backdrop-blur-2xl border border-white/10 rounded-3xl p-10 text-center overflow-hidden">
+              {/* Inner shine */}
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
+
+              {/* Gear icon animated */}
+              <div className="relative mx-auto mb-8 w-28 h-28">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 to-blue-500/30 rounded-full blur-xl animate-pulse" />
+                <div className="relative w-28 h-28 bg-gradient-to-br from-purple-600/20 to-blue-600/20 border border-purple-500/30 rounded-full flex items-center justify-center">
+                  {/* Rotating outer ring */}
+                  <div
+                    className="absolute inset-1 border-2 border-dashed border-purple-500/30 rounded-full"
+                    style={{ animation: "spin 8s linear infinite" }}
+                  />
+                  <div
+                    className="absolute inset-3 border border-dashed border-blue-500/20 rounded-full"
+                    style={{ animation: "spin 5s linear infinite reverse" }}
+                  />
+                  {/* Icon */}
+                  <svg viewBox="0 0 24 24" fill="none" className="w-12 h-12 text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.8)]" style={{ animation: "spin 12s linear infinite" }}>
+                    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-4 py-1.5 mb-6">
+                <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+                <span className="text-yellow-400 text-xs font-bold tracking-widest uppercase">Maintenance Mode</span>
+              </div>
+
+              {/* Title */}
+              <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-200 to-blue-200 mb-4 leading-tight">
+                Sedang Dalam<br />Perbaikan
+              </h1>
+
+              {/* Divider */}
+              <div className="flex items-center gap-3 my-6">
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent to-white/10" />
+                <div className="w-2 h-2 rounded-full bg-purple-500/50" />
+                <div className="flex-1 h-px bg-gradient-to-l from-transparent to-white/10" />
+              </div>
+
+              {/* Message */}
+              <p className="text-gray-300 leading-relaxed text-base mb-8 px-2">
+                {maintenanceMsg}
+              </p>
+
+              {/* Status indicators */}
+              <div className="grid grid-cols-3 gap-3 mb-8">
+                {[
+                  { label: "Server", status: "Online", color: "green" },
+                  { label: "Database", status: "Aktif", color: "green" },
+                  { label: "Layanan", status: "Update", color: "yellow" },
+                ].map((item) => (
+                  <div key={item.label} className="bg-white/[0.03] border border-white/5 rounded-xl p-3">
+                    <div className={`w-2 h-2 rounded-full mx-auto mb-1.5 animate-pulse ${item.color === "green" ? "bg-green-400" : "bg-yellow-400"}`} />
+                    <div className={`text-xs font-semibold ${item.color === "green" ? "text-green-400" : "text-yellow-400"}`}>{item.status}</div>
+                    <div className="text-gray-500 text-[10px] mt-0.5">{item.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer note */}
+              <p className="text-gray-600 text-xs">
+                Terima kasih atas kesabaran Anda 🙏
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
+
 
   return (
     <div className="gaming-light-theme min-h-screen flex flex-col">

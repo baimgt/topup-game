@@ -79,29 +79,44 @@ export async function POST(req: NextRequest) {
     if (voucherCode && voucherCode.trim()) {
       const Voucher = (await import("@/models/Voucher")).default;
       const cleanCode = voucherCode.trim().toUpperCase();
-      const voucher = await Voucher.findOne({ code: cleanCode });
 
-      if (voucher && voucher.isActive && new Date() <= new Date(voucher.expiryDate)) {
-        if (!voucher.usageLimit || voucher.usedCount < voucher.usageLimit) {
-          if (!voucher.gameId || voucher.gameId.toString() === game._id.toString()) {
-            if (!voucher.minPurchase || basePrice >= voucher.minPurchase) {
-              if (voucher.discountType === "flat") {
-                discountAmount = voucher.discountValue;
-              } else {
-                discountAmount = Math.round((basePrice * voucher.discountValue) / 100);
-                if (voucher.maxDiscount > 0 && discountAmount > voucher.maxDiscount) {
-                  discountAmount = voucher.maxDiscount;
-                }
-              }
-              if (discountAmount > basePrice) discountAmount = basePrice;
+      // Atomic update: hanya berhasil jika voucher valid DAN kuota masih ada
+      // Ini mencegah race condition (double spending) dari multiple request bersamaan
+      const voucher = await Voucher.findOneAndUpdate(
+        {
+          code: cleanCode,
+          isActive: true,
+          expiryDate: { $gt: new Date() },
+          $or: [
+            { usageLimit: { $lte: 0 } }, // unlimited
+            { $expr: { $lt: ["$usedCount", "$usageLimit"] } }, // masih ada sisa
+          ],
+          $or: [
+            { gameId: { $exists: false } },
+            { gameId: null },
+            { gameId: game._id },
+          ],
+        },
+        { $inc: { usedCount: 1 } },
+        { new: true }
+      );
 
-              appliedVoucherCode = voucher.code;
-
-              // Increment usedCount
-              voucher.usedCount = (voucher.usedCount || 0) + 1;
-              await voucher.save();
+      if (voucher) {
+        // Validasi minPurchase setelah atomic update berhasil
+        if (!voucher.minPurchase || basePrice >= voucher.minPurchase) {
+          if (voucher.discountType === "flat") {
+            discountAmount = voucher.discountValue;
+          } else {
+            discountAmount = Math.round((basePrice * voucher.discountValue) / 100);
+            if (voucher.maxDiscount > 0 && discountAmount > voucher.maxDiscount) {
+              discountAmount = voucher.maxDiscount;
             }
           }
+          if (discountAmount > basePrice) discountAmount = basePrice;
+          appliedVoucherCode = voucher.code;
+        } else {
+          // Rollback jika minPurchase tidak terpenuhi
+          await Voucher.findByIdAndUpdate(voucher._id, { $inc: { usedCount: -1 } });
         }
       }
     }
@@ -290,8 +305,8 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get("limit") || "10")), 100); // max 100
     const skip = (page - 1) * limit;
 
     const filter = authUser.role === "ADMIN" ? {} : { userId: authUser.userId };

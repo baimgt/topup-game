@@ -11,9 +11,16 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
     const search = searchParams.get("search");
-    const isAdmin = searchParams.get("admin") === "1";
+    const requestedAdmin = searchParams.get("admin") === "1";
 
-    // Admin bisa lihat semua game termasuk nonaktif
+    // Validasi: mode admin hanya untuk pengguna dengan role ADMIN yang sudah login
+    let isAdmin = false;
+    if (requestedAdmin) {
+      const user = getUserFromRequest(req);
+      isAdmin = !!(user && user.role === "ADMIN");
+    }
+
+    // Admin bisa lihat semua game termasuk nonaktif; publik hanya lihat yang aktif
     const filter: Record<string, unknown> = isAdmin ? {} : { isActive: true };
     if (category) filter.category = category;
     if (search) filter.name = { $regex: search, $options: "i" };
@@ -26,12 +33,30 @@ export async function GET(req: NextRequest) {
         const products = await Product.find({ gameId: game._id, isActive: true })
           .sort({ sortOrder: 1, sellingPrice: 1 })
           .lean();
-        const formattedProducts = products.map((p: any) => ({ ...p, id: p._id.toString() }));
-        return { ...game, id: game._id.toString(), products: formattedProducts };
+
+        const formattedProducts = products.map((p: any) => {
+          const base = { ...p, id: p._id.toString() };
+
+          // Sembunyikan field sensitif dari publik
+          if (!isAdmin) {
+            delete base.price;          // harga modal (HPP) — rahasia bisnis
+            delete base.digiflazzSku;   // SKU internal Digiflazz
+          }
+
+          return base;
+        });
+
+        const gameBase = { ...game, id: game._id.toString(), products: formattedProducts };
+
+        // Sembunyikan field sensitif game dari publik
+        if (!isAdmin) {
+          delete (gameBase as any).checkUsernameSku; // SKU internal Digiflazz
+        }
+
+        return gameBase;
       })
     );
 
-    // Keep sortOrder-based sort for /games page (default). homeSortOrder is available in data for Beranda.
     const sortedGames = gamesWithProducts.sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0));
 
     return NextResponse.json({ success: true, data: sortedGames });
@@ -40,6 +65,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Gagal mengambil data game" }, { status: 500 });
   }
 }
+
 
 const createGameSchema = z.object({
   name: z.string().min(1),

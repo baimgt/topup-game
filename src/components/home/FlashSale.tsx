@@ -120,13 +120,13 @@ export default function FlashSale({ games }: FlashSaleProps) {
       <div className="max-w-7xl mx-auto">
         
         {/* Flash Sale Header */}
-        <div className="flex items-center gap-3.5 mb-8">
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 uppercase">
+        <div className="flex items-center gap-2 md:gap-3.5 mb-6 md:mb-8">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-slate-900 uppercase">
             Flash Sale
           </h2>
           {timeLeft > 0 && (
-            <div className="bg-indigo-600 text-white font-mono font-bold text-sm md:text-base px-3 py-1 rounded-full shadow-[0_2px_10px_rgba(79,70,229,0.2)] flex items-center gap-1.5 animate-pulse">
-              <span className="text-[11px] font-sans tracking-wide uppercase opacity-90">Selesai Dalam</span>
+            <div className="bg-indigo-600 text-white font-mono font-bold text-xs sm:text-sm md:text-base px-2 py-1 md:px-3 rounded-full shadow-[0_2px_10px_rgba(79,70,229,0.2)] flex items-center gap-1.5 animate-pulse">
+              <span className="text-[9px] sm:text-[11px] font-sans tracking-wide uppercase opacity-90 hidden sm:inline-block">Selesai Dalam</span>
               {formatTime(timeLeft)}
             </div>
           )}

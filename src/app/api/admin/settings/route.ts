@@ -27,9 +27,23 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+
+    // Whitelist field yang boleh diupdate — mencegah mass assignment
+    const ALLOWED_FIELDS = [
+      "maintenanceMode", "maintenanceMessage",
+      "announcementEnabled", "announcementText", "announcementImage", "announcementUrl",
+      "siteName", "siteLogo", "siteDescription",
+      "companyAddress", "contactEmail", "contactPhone",
+      "whatsappNumber", "instagramUrl",
+      "smtpHost", "smtpPort", "smtpUser", "smtpPass", "smtpFrom",
+    ];
+    const safeBody = Object.fromEntries(
+      Object.entries(body).filter(([key]) => ALLOWED_FIELDS.includes(key))
+    );
+
     const settings = await Setting.findOneAndUpdate(
       {},
-      { $set: body },
+      { $set: safeBody },
       { upsert: true, new: true }
     );
 
