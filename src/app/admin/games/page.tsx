@@ -221,9 +221,75 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
     setForm({ ...form, targetInputs: next });
   };
 
-  const updateTargetInput = (index: number, field: string, value: string) => {
+  const updateTargetInput = (index: number, field: string, value: any) => {
     const next = [...form.targetInputs];
     next[index] = { ...next[index], [field]: value };
+    setForm({ ...form, targetInputs: next });
+  };
+
+  const addOption = (inputIdx: number) => {
+    const next = [...form.targetInputs];
+    const opts = Array.isArray(next[inputIdx].options) ? [...next[inputIdx].options] : [];
+    opts.push({ label: "", value: "" });
+    next[inputIdx] = { ...next[inputIdx], options: opts };
+    setForm({ ...form, targetInputs: next });
+  };
+
+  const updateOption = (inputIdx: number, optIdx: number, field: "label" | "value", val: string) => {
+    const next = [...form.targetInputs];
+    const opts = Array.isArray(next[inputIdx].options) ? [...next[inputIdx].options] : [];
+    const current = opts[optIdx] || { label: "", value: "" };
+
+    if (field === "label") {
+      const isAuto = !current.value || current.value === current.label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+      const autoVal = isAuto ? val.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") : current.value;
+      opts[optIdx] = { ...current, label: val, value: autoVal };
+    } else {
+      opts[optIdx] = { ...current, value: val };
+    }
+
+    next[inputIdx] = { ...next[inputIdx], options: opts };
+    setForm({ ...form, targetInputs: next });
+  };
+
+  const removeOption = (inputIdx: number, optIdx: number) => {
+    const next = [...form.targetInputs];
+    const opts = Array.isArray(next[inputIdx].options) ? [...next[inputIdx].options] : [];
+    opts.splice(optIdx, 1);
+    next[inputIdx] = { ...next[inputIdx], options: opts };
+    setForm({ ...form, targetInputs: next });
+  };
+
+  const applyPreset = (inputIdx: number, preset: "genshin" | "tof" | "regional" | "zone") => {
+    const presets: Record<string, { label: string; value: string }[]> = {
+      genshin: [
+        { label: "Asia", value: "asia" },
+        { label: "America", value: "america" },
+        { label: "Europe", value: "europe" },
+        { label: "TW, HK, MO", value: "tw_hk_mo" },
+      ],
+      tof: [
+        { label: "Asia-Pacific", value: "asia_pacific" },
+        { label: "North America", value: "north_america" },
+        { label: "Europe", value: "europe" },
+        { label: "South America", value: "south_america" },
+        { label: "Southeast Asia", value: "southeast_asia" },
+      ],
+      regional: [
+        { label: "Indonesia", value: "indonesia" },
+        { label: "Malaysia", value: "malaysia" },
+        { label: "Singapore", value: "singapore" },
+        { label: "Global", value: "global" },
+      ],
+      zone: [
+        { label: "Server 1", value: "server_1" },
+        { label: "Server 2", value: "server_2" },
+        { label: "Server 3", value: "server_3" },
+      ],
+    };
+
+    const next = [...form.targetInputs];
+    next[inputIdx] = { ...next[inputIdx], options: presets[preset] || [] };
     setForm({ ...form, targetInputs: next });
   };
 
@@ -415,41 +481,112 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
                   </select>
 
                   {input.type === "select" && (
-                    <div className="mt-2.5 bg-black/30 p-3 rounded-xl border border-purple-500/20 space-y-2">
-                      <label className="block text-[11px] font-medium text-purple-300">
-                        Daftar Pilihan / Server (Format: <code className="bg-purple-900/50 px-1 py-0.5 rounded text-purple-200">Label:value</code>, pisahkan dengan koma atau baris baru)
-                      </label>
-                      <textarea
-                        rows={3}
-                        placeholder="Contoh: Asia:asia, America:america, Europe:europe, TW / HK / MO:tw_hk_mo"
-                        value={
-                          Array.isArray(input.options)
-                            ? input.options.map((o: any) => typeof o === "string" ? o : `${o.label || o.value}:${o.value}`).join(", ")
-                            : (input.optionsText || "")
-                        }
-                        onChange={(e) => {
-                          const raw = e.target.value;
-                          const parsedOptions = raw
-                            .split(/[,\n]/)
-                            .map((item) => item.trim())
-                            .filter(Boolean)
-                            .map((item) => {
-                              if (item.includes(":")) {
-                                const [lbl, ...valParts] = item.split(":");
-                                return { label: lbl.trim(), value: valParts.join(":").trim() };
-                              }
-                              return { label: item, value: item.toLowerCase().replace(/\s+/g, "_") };
-                            });
-                          
-                          const next = [...form.targetInputs];
-                          next[idx] = { ...next[idx], options: parsedOptions, optionsText: raw };
-                          setForm({ ...form, targetInputs: next });
-                        }}
-                        className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-                      />
-                      <p className="text-[10px] text-gray-400">
-                        Pilihan di atas akan muncul sebagai dropdown saat pembeli melakukan pemesanan.
-                      </p>
+                    <div className="mt-3 bg-black/40 p-3.5 rounded-xl border border-purple-500/30 space-y-3 shadow-inner">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2.5">
+                        <div>
+                          <label className="block text-xs font-bold text-purple-300 uppercase tracking-wider">
+                            📋 Kelola Opsi Dropdown / Server
+                          </label>
+                          <p className="text-[11px] text-gray-400">
+                            Tentukan label tampilan dan nilai sistem yang dikirim.
+                          </p>
+                        </div>
+
+                        {/* Preset Quick Fill Buttons */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[10px] text-gray-400 font-semibold uppercase">Template:</span>
+                          <button
+                            type="button"
+                            onClick={() => applyPreset(idx, "genshin")}
+                            className="text-[10px] bg-purple-900/60 hover:bg-purple-800 text-purple-200 border border-purple-500/40 px-2 py-0.5 rounded-lg font-medium transition-colors cursor-pointer"
+                          >
+                            ⚡ Genshin
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyPreset(idx, "tof")}
+                            className="text-[10px] bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-500/40 px-2 py-0.5 rounded-lg font-medium transition-colors cursor-pointer"
+                          >
+                            ⚡ ToF / MMO
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyPreset(idx, "regional")}
+                            className="text-[10px] bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-500/40 px-2 py-0.5 rounded-lg font-medium transition-colors cursor-pointer"
+                          >
+                            ⚡ Wilayah
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Option Rows */}
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {(!input.options || input.options.length === 0) ? (
+                          <div className="text-center py-3 bg-white/[0.02] border border-dashed border-white/10 rounded-lg">
+                            <p className="text-xs text-gray-400 mb-0.5">Belum ada pilihan server/opsi.</p>
+                            <p className="text-[11px] text-purple-400">Klik &quot;Tambah Pilihan Baru&quot; atau klik Template di atas.</p>
+                          </div>
+                        ) : (
+                          input.options.map((opt: any, optIdx: number) => {
+                            const optLabel = typeof opt === "string" ? opt : (opt.label || opt.value || "");
+                            const optVal = typeof opt === "string" ? opt : (opt.value || "");
+                            return (
+                              <div key={optIdx} className="flex items-center gap-2 bg-white/[0.04] p-2 rounded-xl border border-white/5 hover:border-purple-500/30 transition-colors">
+                                <span className="text-[11px] font-bold text-gray-500 w-6 text-center">
+                                  #{optIdx + 1}
+                                </span>
+                                
+                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  <div>
+                                    <input
+                                      type="text"
+                                      placeholder="Label Tampilan (misal: Asia)"
+                                      value={optLabel}
+                                      onChange={(e) => updateOption(idx, optIdx, "label", e.target.value)}
+                                      className="w-full bg-black/40 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 font-medium"
+                                    />
+                                  </div>
+                                  <div>
+                                    <input
+                                      type="text"
+                                      placeholder="Nilai Sistem (misal: asia)"
+                                      value={optVal}
+                                      onChange={(e) => updateOption(idx, optIdx, "value", e.target.value)}
+                                      className="w-full bg-black/40 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-purple-300 placeholder-gray-500 focus:outline-none focus:border-purple-500 font-mono"
+                                    />
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => removeOption(idx, optIdx)}
+                                  className="text-gray-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"
+                                  title="Hapus opsi ini"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+
+                      {/* Add Option Button & Count */}
+                      <div className="flex items-center justify-between pt-1">
+                        <button
+                          type="button"
+                          onClick={() => addOption(idx)}
+                          className="text-xs bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/50 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Tambah Pilihan Baru
+                        </button>
+
+                        {input.options && input.options.length > 0 && (
+                          <span className="text-[11px] text-gray-400 font-medium">
+                            Total: <strong className="text-white">{input.options.length}</strong> pilihan
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
