@@ -21,17 +21,6 @@ interface CustomSelectProps {
   error?: string;
 }
 
-function getServerIcon(labelOrVal: string): string {
-  const lower = labelOrVal.toLowerCase();
-  if (lower.includes("asia")) return "🌏";
-  if (lower.includes("america") || lower.includes("na") || lower.includes("us")) return "🌎";
-  if (lower.includes("europe") || lower.includes("eu")) return "🌍";
-  if (lower.includes("tw") || lower.includes("hk") || lower.includes("mo") || lower.includes("china") || lower.includes("cn")) return "🗺️";
-  if (lower.includes("global")) return "🌐";
-  if (lower.includes("sea") || lower.includes("indonesia") || lower.includes("id")) return "🇮🇩";
-  return "⚡";
-}
-
 export default function CustomSelect({
   label,
   placeholder = "Pilih server / opsi",
@@ -78,16 +67,9 @@ export default function CustomSelect({
           error && "border-red-500 ring-red-500"
         )}
       >
-        <div className="flex items-center gap-2.5 truncate">
-          {selectedOption && (
-            <span className="text-base flex-shrink-0">
-              {selectedOption.icon || getServerIcon(selectedOption.label || selectedOption.value)}
-            </span>
-          )}
-          <span className={cn("text-sm font-semibold truncate", !selectedOption && "text-gray-500 font-normal")}>
-            {selectedOption ? (selectedOption.label || selectedOption.value) : placeholder}
-          </span>
-        </div>
+        <span className={cn("text-sm font-semibold truncate", !selectedOption && "text-gray-500 font-normal")}>
+          {selectedOption ? (selectedOption.label || selectedOption.value) : placeholder}
+        </span>
 
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
@@ -108,7 +90,7 @@ export default function CustomSelect({
         />
       )}
 
-      {/* Floating Glass Dropdown Panel with Clear Black Text Options */}
+      {/* Floating Glass Dropdown Panel with Clear Black Text Options (No Icons) */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -141,14 +123,9 @@ export default function CustomSelect({
                           : "text-gray-900 font-semibold hover:bg-purple-100 hover:text-purple-950"
                       )}
                     >
-                      <div className="flex items-center gap-2.5 truncate">
-                        <span className="text-base flex-shrink-0">
-                          {opt.icon || getServerIcon(opt.label || opt.value)}
-                        </span>
-                        <span className={cn("truncate", isSelected ? "text-white font-bold" : "text-black font-bold")}>
-                          {opt.label || opt.value}
-                        </span>
-                      </div>
+                      <span className={cn("truncate", isSelected ? "text-white font-bold" : "text-black font-bold")}>
+                        {opt.label || opt.value}
+                      </span>
 
                       {isSelected && (
                         <span className="w-5 h-5 rounded-full bg-white/25 flex items-center justify-center text-white text-xs flex-shrink-0 ml-2 shadow-sm">

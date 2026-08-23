@@ -181,10 +181,15 @@ export default function OrderForm({ game }: OrderFormProps) {
 
   // Tombol "Cek ID Akun" hanya muncul jika:
   // 1. Admin mengaktifkan isCheckAccountSupported di halaman admin, ATAU
-  // 2. Game adalah Genshin Impact / Honor of Kings (punya auto-checker tanpa Digiflazz)
+  // 2. Game adalah Genshin Impact / Wuthering Waves / Honor of Kings (punya auto-checker tanpa Digiflazz)
   const slugLower = (game.slug || "").toLowerCase();
-  const isGenshinOrHOK = slugLower.includes("genshin") || slugLower.includes("honor-of-kings") || slugLower.includes("honor_of_kings");
-  const isCheckSupported = Boolean(game.isCheckAccountSupported) || isGenshinOrHOK;
+  const isDedicatedChecker = 
+    slugLower.includes("genshin") || 
+    slugLower.includes("wuthering") || 
+    slugLower.includes("wuwa") || 
+    slugLower.includes("honor-of-kings") || 
+    slugLower.includes("honor_of_kings");
+  const isCheckSupported = Boolean(game.isCheckAccountSupported) || isDedicatedChecker;
 
   // Account check
   const [checkStatus, setCheckStatus] = useState<CheckStatus>(isCheckSupported ? "idle" : "unsupported");

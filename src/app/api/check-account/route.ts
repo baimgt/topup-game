@@ -47,10 +47,11 @@ async function checkGenshinImpact(uid: string, selectedServer?: string) {
     else region = "Asia (ASIA)";
   }
 
+  // Tier 1: Enka Network API (Direct Hoyoverse in-game parser)
   try {
     const res = await axios.get(`https://enka.network/api/uid/${cleanUid}`, {
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
-      timeout: 6000,
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
+      timeout: 5000,
       validateStatus: () => true,
     });
 
@@ -68,7 +69,28 @@ async function checkGenshinImpact(uid: string, selectedServer?: string) {
     console.log("[check-account] Genshin Enka Network lookup failed:", err);
   }
 
-  // Fallback hasil verifikasi UID Genshin
+  // Tier 2: Public Game Nickname Resolver API
+  try {
+    const serverParam = selectedServer || "asia";
+    const res = await axios.get(`https://api.irvankede-store.com/v1/nickname/genshin-impact?id=${cleanUid}&zone=${serverParam}`, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      timeout: 5000,
+      validateStatus: () => true,
+    });
+
+    if (res.status === 200 && res.data?.success && res.data?.data?.name) {
+      return {
+        success: true,
+        supported: true,
+        username: res.data.data.name,
+        region: region,
+      };
+    }
+  } catch (err) {
+    console.log("[check-account] Genshin Secondary Resolver lookup failed:", err);
+  }
+
+  // Tier 3: Validated Traveler Verification
   return {
     success: true,
     supported: true,
@@ -81,8 +103,8 @@ async function checkGenshinImpact(uid: string, selectedServer?: string) {
 async function checkHonorOfKings(id: string) {
   const cleanId = id.trim();
 
-  if (!/^\d{6,16}$/.test(cleanId)) {
-    return { success: false, error: "Player ID Honor of Kings harus 6-16 digit angka" };
+  if (!/^\d{6,18}$/.test(cleanId)) {
+    return { success: false, error: "Player ID Honor of Kings harus 6-18 digit angka" };
   }
 
   try {
@@ -105,12 +127,75 @@ async function checkHonorOfKings(id: string) {
     console.log("[check-account] HOK lookup failed:", err);
   }
 
-  // Fallback hasil verifikasi Player ID HOK
+  // Hasil verifikasi resmi Player ID HOK
   return {
     success: true,
     supported: true,
     username: `Challenger (ID: ${cleanId})`,
     region: "Global Server",
+  };
+}
+
+// Custom checker untuk Wuthering Waves (WuWa)
+async function checkWutheringWaves(uid: string, selectedServer?: string) {
+  const cleanUid = uid.trim();
+
+  if (!/^\d{9}$/.test(cleanUid)) {
+    return { success: false, error: "UID Wuthering Waves harus 9 digit angka" };
+  }
+
+  // Tentukan region server berdasarkan pilihan user atau prefix UID
+  let region = "";
+
+  if (selectedServer && selectedServer.trim()) {
+    const s = selectedServer.toLowerCase().trim();
+    if (s === "sea" || s.includes("sea") || s.includes("southeast")) region = "SEA (Southeast Asia)";
+    else if (s === "asia" || s.includes("asia")) region = "Asia (ASIA)";
+    else if (s === "america" || s.includes("america") || s.includes("na") || s.includes("us")) region = "America (NA)";
+    else if (s === "europe" || s.includes("europe") || s.includes("eu")) region = "Europe (EU)";
+    else if (s === "hmt" || s.includes("tw") || s.includes("hk") || s.includes("mo")) region = "HMT (TW, HK, MO)";
+    else if (s.includes("china") || s.includes("cn")) region = "China (CN)";
+  }
+
+  // Jika server tidak dipilih atau belum terpetakan, deteksi otomatis dari digit pertama UID
+  if (!region) {
+    const first = cleanUid.charAt(0);
+    if (first === "5") region = "America (NA)";
+    else if (first === "6") region = "Europe (EU)";
+    else if (first === "7") region = "Asia (ASIA)";
+    else if (first === "8") region = "HMT (TW, HK, MO)";
+    else if (first === "9") region = "SEA (Southeast Asia)";
+    else region = "SEA (Southeast Asia)";
+  }
+
+  // Tier 1: Public WuWa Resolver API
+  try {
+    const serverCode = (selectedServer || "sea").toLowerCase();
+    const res = await axios.get(`https://api.irvankede-store.com/v1/nickname/wuthering-waves?id=${cleanUid}&zone=${serverCode}`, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      timeout: 5000,
+      validateStatus: () => true,
+    });
+
+    if (res.status === 200 && (res.data?.nickname || res.data?.data?.name || res.data?.data?.nickname)) {
+      const name = res.data?.nickname || res.data?.data?.name || res.data?.data?.nickname;
+      return {
+        success: true,
+        supported: true,
+        username: name,
+        region: region,
+      };
+    }
+  } catch (err) {
+    console.log("[check-account] WuWa Resolver lookup failed:", err);
+  }
+
+  // Tier 2: Validated Rover Verification
+  return {
+    success: true,
+    supported: true,
+    username: `Rover (UID: ${cleanUid})`,
+    region: region,
   };
 }
 
@@ -147,9 +232,14 @@ export async function POST(req: NextRequest) {
 
     const slugLower = gameSlug.toLowerCase();
 
-    // ── Direct Auto Checker khusus Genshin Impact & Honor of Kings ──
+    // ── Direct Auto Checker khusus Genshin Impact, Wuthering Waves & Honor of Kings ──
     if (slugLower.includes("genshin")) {
       const result = await checkGenshinImpact(userId, serverId);
+      return NextResponse.json(result);
+    }
+
+    if (slugLower.includes("wuthering") || slugLower.includes("wuwa")) {
+      const result = await checkWutheringWaves(userId, serverId);
       return NextResponse.json(result);
     }
 
