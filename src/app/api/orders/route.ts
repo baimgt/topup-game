@@ -15,7 +15,7 @@ import { z } from "zod";
 
 const createOrderSchema = z.object({
   productId: z.string().min(1, "Produk wajib dipilih"),
-  gameUserId: z.string().min(1, "ID akun game wajib diisi"),
+  gameUserId: z.string().optional().default("VOUCHER"),
   gameServerId: z.string().optional(),
   gameUsername: z.string().optional(),
   customerName: z.string().optional().default("Guest"),
@@ -203,6 +203,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const isVoucher = Boolean(
+      game.isVoucher ||
+      game.category?.toLowerCase() === "voucher" ||
+      (Array.isArray(game.targetInputs) && game.targetInputs.length === 0 && game.category?.toLowerCase() === "voucher")
+    );
+
+    const finalGameUserId = (gameUserId && gameUserId.trim()) ? gameUserId.trim() : (isVoucher ? "VOUCHER" : "-");
+
     const order = await Order.create({
       orderNumber,
       userId: authUser?.userId || undefined,
@@ -210,9 +218,10 @@ export async function POST(req: NextRequest) {
       customerName: finalCustomerName,
       gameId: game._id,
       gameName: game.name,
-      gameUserId,
+      gameUserId: finalGameUserId,
       gameServerId: gameServerId || undefined,
-      gameUsername: gameUsername || undefined,
+      gameUsername: isVoucher ? "Voucher Digital" : (gameUsername || undefined),
+      isVoucher,
       totalAmount: totalAmount,
       subtotalAmount: basePrice,
       voucherCode: appliedVoucherCode,

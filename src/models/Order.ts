@@ -32,6 +32,9 @@ export interface IOrder extends Document {
   qrString?: string;
   paidAt?: Date;
   digiflazzRef?: string;
+  sn?: string; // Serial Number / Kode Voucher dari Digiflazz
+  isVoucher?: boolean;
+  snSentAt?: Date; // Waktu pengiriman email SN
   notes?: string;
   orderItems: IOrderItem[];
   isFlashSale?: boolean;
@@ -64,7 +67,7 @@ const OrderSchema = new Schema<IOrder>(
     customerName: { type: String, default: "Guest" },
     gameId: { type: Schema.Types.ObjectId, ref: "Game", required: true },
     gameName: { type: String, required: true },
-    gameUserId: { type: String, required: true },
+    gameUserId: { type: String, default: "VOUCHER" },
     gameServerId: { type: String },
     gameUsername: { type: String },
     totalAmount: { type: Number, required: true },
@@ -85,6 +88,9 @@ const OrderSchema = new Schema<IOrder>(
     qrString: { type: String },
     paidAt: { type: Date },
     digiflazzRef: { type: String },
+    sn: { type: String },
+    isVoucher: { type: Boolean, default: false },
+    snSentAt: { type: Date },
     notes: { type: String },
     orderItems: [OrderItemSchema],
     isFlashSale: { type: Boolean, default: false },

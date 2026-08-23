@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, XCircle, Clock, RefreshCw, Home, Search } from "lucide-react";
+import { CheckCircle, XCircle, Clock, RefreshCw, Home, Search, Copy, Check } from "lucide-react";
+import toast from "react-hot-toast";
 import { Order } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/Badge";
@@ -15,6 +16,16 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [copiedSn, setCopiedSn] = useState(false);
+
+  const handleCopySn = () => {
+    if (order?.sn) {
+      navigator.clipboard.writeText(order.sn);
+      setCopiedSn(true);
+      toast.success("Kode Voucher / SN berhasil disalin!");
+      setTimeout(() => setCopiedSn(false), 2000);
+    }
+  };
 
   const fetchOrder = async () => {
     try {
@@ -360,6 +371,43 @@ export default function OrderDetailPage() {
           </div>
         )}
 
+        {/* ── VOUCHER / SERIAL NUMBER (SN) DISPLAY BOX ─────────────────── */}
+        {order.sn && (
+          <div className="bg-gradient-to-r from-purple-950/60 via-indigo-950/60 to-cyan-950/60 rounded-2xl border-2 border-cyan-500/40 p-6 mb-6 shadow-2xl relative overflow-hidden">
+            <div className="flex items-center justify-between gap-3 mb-3 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">🎟️</span>
+                <div>
+                  <h3 className="text-white font-black text-base tracking-wide">SERIAL NUMBER / KODE VOUCHER DIGITAL</h3>
+                  <p className="text-cyan-300 text-xs font-semibold">Resmi &amp; Siap Digunakan</p>
+                </div>
+              </div>
+              <span className="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full font-bold uppercase flex-shrink-0">
+                Sukses Terbit
+              </span>
+            </div>
+
+            <div className="bg-black/70 border border-white/15 rounded-xl p-4 my-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="font-mono text-xl sm:text-2xl font-black text-yellow-400 tracking-wider break-all text-center sm:text-left select-all">
+                {order.sn}
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleCopySn}
+                className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold px-5 py-2.5 flex items-center justify-center gap-2 flex-shrink-0 shadow-lg shadow-cyan-500/20"
+              >
+                {copiedSn ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4 text-white" />}
+                {copiedSn ? "Tersalin!" : "Salin Kode"}
+              </Button>
+            </div>
+
+            <p className="text-gray-300 text-xs leading-relaxed flex items-center gap-1.5 mt-2">
+              <span className="text-cyan-400 font-bold">ℹ️ Info:</span> Kode voucher ini juga telah otomatis dikirimkan ke email Anda (<strong>{order.customerEmail}</strong>).
+            </p>
+          </div>
+        )}
+
         {/* Order Details */}
         <div className="bg-gaming-card rounded-2xl border border-white/5 p-6 mb-6">
           <h2 className="text-white font-semibold mb-4">Detail Pesanan</h2>
@@ -370,7 +418,15 @@ export default function OrderDetailPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">ID Akun</span>
-              <span className="text-white font-mono">{order.gameUserId}</span>
+              <span className="text-white font-mono">
+                {order.isVoucher || order.gameUserId === "VOUCHER" ? (
+                  <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20 text-xs font-semibold">
+                    🎟️ Voucher Digital (Tanpa Akun)
+                  </span>
+                ) : (
+                  order.gameUserId
+                )}
+              </span>
             </div>
             {order.gameServerId && (
               <div className="flex justify-between">

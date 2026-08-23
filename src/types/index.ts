@@ -25,6 +25,7 @@ export interface Game {
   sortOrder: number;
   homeSortOrder?: number;
   isCheckAccountSupported: boolean;
+  isVoucher?: boolean;
   targetInputs?: TargetInput[];
   targetFormat?: string;
   categoryOrder?: string[];
@@ -68,6 +69,8 @@ export interface Order {
   qrString?: string;
   paidAt?: string;
   digiflazzRef?: string;
+  sn?: string;
+  isVoucher?: boolean;
   notes?: string;
   isFlashSale?: boolean;
   flashSaleDecremented?: boolean;

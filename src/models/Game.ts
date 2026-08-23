@@ -27,8 +27,8 @@ export interface IGame extends Document {
   sortOrder: number;
   homeSortOrder: number;
   // SKU Digiflazz khusus untuk cek username — BUKAN produk jual
-  checkUsernameSku?: string;
   isCheckAccountSupported: boolean;
+  isVoucher?: boolean;
   targetInputs?: ITargetInput[];
   targetFormat?: string; // "concat" | "space" | "pipe"
   categoryOrder?: string[];
@@ -51,6 +51,7 @@ const GameSchema = new Schema<IGame>(
     homeSortOrder: { type: Number, default: 0 },
     checkUsernameSku: { type: String, default: "" },
     isCheckAccountSupported: { type: Boolean, default: false },
+    isVoucher: { type: Boolean, default: false },
     targetFormat: { type: String, default: "concat" },
     categoryOrder: { type: [String], default: [] },
     targetInputs: [

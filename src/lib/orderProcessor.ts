@@ -45,10 +45,16 @@ export async function processOrderPayment(order: any) {
         throw new Error("SKU Digiflazz tidak ditemukan pada produk ini");
       }
 
+      const isVoucherOrder = Boolean(
+        order.isVoucher ||
+        order.gameUserId === "VOUCHER" ||
+        !order.gameUserId
+      );
+
       const refId = generateRefId();
-      const customerNo = order.gameServerId
-        ? `${order.gameUserId}${order.gameServerId}`
-        : order.gameUserId;
+      const customerNo = isVoucherOrder
+        ? (order.customerPhone || "081234567890")
+        : (order.gameServerId ? `${order.gameUserId}${order.gameServerId}` : order.gameUserId);
 
       order.orderStatus = "PROCESSING";
       order.digiflazzRef = refId;
@@ -66,9 +72,25 @@ export async function processOrderPayment(order: any) {
         }
       );
 
+      if (digiResult.sn) {
+        order.sn = digiResult.sn;
+      }
       order.orderStatus = digiResult.status === "Sukses" ? "SUCCESS" : digiResult.status === "Gagal" ? "FAILED" : "PROCESSING";
       order.notes = digiResult.message;
       await order.save();
+
+      // Jika ada SN dan status SUCCESS, otomatis kirim Email Khusus Voucher / SN!
+      if (order.orderStatus === "SUCCESS" && order.sn && !order.snSentAt && order.customerEmail) {
+        const { sendVoucherSnEmail } = await import("@/lib/mail");
+        sendVoucherSnEmail(order)
+          .then(async (sent) => {
+            if (sent) {
+              order.snSentAt = new Date();
+              await order.save();
+            }
+          })
+          .catch((e) => console.error("Voucher SN email sending error:", e));
+      }
     }
   } catch (err: any) {
     console.error("Digiflazz error:", err.response?.data || err);
@@ -173,10 +195,25 @@ export async function syncOrderStatus(orderNumber: string) {
       });
 
       if (digiStatus && digiStatus.status) {
+        if (digiStatus.sn) {
+          order.sn = digiStatus.sn;
+        }
         if (digiStatus.status === "Sukses") {
           order.orderStatus = "SUCCESS";
           order.notes = digiStatus.message || order.notes;
           await order.save();
+
+          if (order.sn && !order.snSentAt && order.customerEmail) {
+            const { sendVoucherSnEmail } = await import("@/lib/mail");
+            sendVoucherSnEmail(order)
+              .then(async (sent) => {
+                if (sent) {
+                  order.snSentAt = new Date();
+                  await order.save();
+                }
+              })
+              .catch((e) => console.error("Voucher SN email sending error:", e));
+          }
         } else if (digiStatus.status === "Gagal") {
           order.orderStatus = "FAILED";
           order.notes = digiStatus.message || order.notes;

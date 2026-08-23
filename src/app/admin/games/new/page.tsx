@@ -22,6 +22,7 @@ export default function NewGamePage() {
     iconUrl: "",
     category: "",
     statusCategory: "",
+    isVoucher: false,
     sortOrder: 0,
     homeSortOrder: 0,
   });
@@ -36,6 +37,9 @@ export default function NewGamePage() {
       }),
     }));
   };
+
+  const categories = ["Mobile", "PC", "Console", "RPG", "Voucher", "Lainnya"];
+  const statusCategories = ["Lagi Populer", "Baru Rilis", "Voucher", "Top Up Langsung", "Top Up Login", "Pulsa", "Entertainment"];
 
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -127,9 +131,6 @@ export default function NewGamePage() {
     }
   };
 
-  const categories = ["Mobile", "PC", "Console", "RPG", "Lainnya"];
-  const statusCategories = ["Lagi Populer", "Baru Rilis", "Voucher", "Top Up Langsung", "Top Up Login", "Pulsa", "Entertainment"];
-
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-2xl mx-auto">
@@ -144,6 +145,53 @@ export default function NewGamePage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input label="Nama Game" name="name" placeholder="Contoh: Mobile Legends" value={form.name} onChange={handleChange} required />
             <Input label="Slug (URL)" name="slug" placeholder="mobile-legends" value={form.slug} onChange={handleChange} required />
+
+            {/* Tipe Produk / Game */}
+            <div className="bg-black/30 border border-white/10 rounded-xl p-4 space-y-3">
+              <label className="block text-sm font-bold text-white">⚙️ Tipe Produk</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, isVoucher: false })}
+                  className={`p-3.5 rounded-xl border text-left transition-all ${
+                    !form.isVoucher
+                      ? "bg-purple-600/20 border-purple-500 text-white shadow-lg shadow-purple-500/20"
+                      : "bg-black/20 border-white/5 text-gray-400 hover:bg-white/5"
+                  }`}
+                >
+                  <div className="font-bold text-sm text-white flex items-center gap-1.5">
+                    🎮 Top Up Game (Pakai ID Akun)
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    Pembeli wajib mengisi User ID &amp; Server ID game.
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, isVoucher: true, category: form.category || "Voucher", statusCategory: form.statusCategory || "Voucher" })}
+                  className={`p-3.5 rounded-xl border text-left transition-all ${
+                    form.isVoucher
+                      ? "bg-cyan-600/20 border-cyan-500 text-white shadow-lg shadow-cyan-500/20"
+                      : "bg-black/20 border-white/5 text-gray-400 hover:bg-white/5"
+                  }`}
+                >
+                  <div className="font-bold text-sm text-cyan-300 flex items-center gap-1.5">
+                    🎟️ Voucher / Kode Digital (Tanpa ID Akun)
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    Tanpa input ID. SN otomatis diterbitkan &amp; dikirim ke email.
+                  </div>
+                </button>
+              </div>
+
+              {form.isVoucher && (
+                <div className="bg-cyan-950/40 border border-cyan-500/30 rounded-lg p-3 text-xs text-cyan-200 flex items-center gap-2">
+                  <span>✨</span>
+                  <span><strong>Mode Voucher Aktif:</strong> Pelanggan tidak akan dimintai User ID saat checkout. Serial Number (SN) dari Digiflazz akan otomatis dikirimkan via email khusus SN.</span>
+                </div>
+              )}
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">Kategori</label>

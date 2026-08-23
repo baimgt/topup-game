@@ -197,3 +197,135 @@ export async function sendInvoiceEmail(order: any) {
     return false;
   }
 }
+
+/**
+ * Mengirimkan email KHUSUS Serial Number (SN) / Kode Voucher Digital kepada pembeli.
+ * Terpisah dari email invoice tagihan biasa.
+ */
+export async function sendVoucherSnEmail(order: any) {
+  if (!order.customerEmail || !order.sn) return false;
+
+  let host = process.env.SMTP_HOST;
+  let port = parseInt(process.env.SMTP_PORT || "587");
+  let user = process.env.SMTP_USER;
+  let pass = process.env.SMTP_PASS;
+  let from = process.env.SMTP_FROM || '"GamerStore Voucher" <voucher@gametopup.com>';
+
+  try {
+    await connectDB();
+    const settings = await Setting.findOne({});
+    if (settings) {
+      if (settings.smtpHost) host = settings.smtpHost;
+      if (settings.smtpPort) port = settings.smtpPort;
+      if (settings.smtpUser) user = settings.smtpUser;
+      if (settings.smtpPass) pass = settings.smtpPass;
+      if (settings.smtpFrom) from = settings.smtpFrom;
+    }
+  } catch (error) {
+    console.error("Failed to load SMTP settings from DB for voucher email:", error);
+  }
+
+  // Fallback console log for dev
+  if (!host || !user || !pass) {
+    console.log("=================================================");
+    console.log(`[DEV ONLY] VOUCHER SN EMAILED TO ${order.customerEmail}`);
+    console.log(`ORDER #${order.orderNumber} - SN: ${order.sn}`);
+    console.log("=================================================");
+    return true;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+  });
+
+  const appUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const orderUrl = `${appUrl}/order/${order.orderNumber}`;
+
+  const mailOptions = {
+    from,
+    to: order.customerEmail,
+    subject: `🎟️ Kode Voucher / Serial Number (SN) - Pesanan #${order.orderNumber}`,
+    html: `
+      <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #3b2064; border-radius: 16px; background-color: #0b071e; color: #ffffff;">
+        
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="display: inline-block; padding: 8px 16px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 20px; color: #c084fc; font-size: 12px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px;">
+            🎟️ Pengiriman Kode Voucher Digital
+          </div>
+          <h2 style="color: #ffffff; margin: 0 0 6px 0; font-weight: 900; font-size: 26px;">Game<span style="color: #06b6d4;">TopUp</span></h2>
+          <p style="color: #94a3b8; font-size: 13px; margin: 0;">Serial Number & Kode Voucher Resmi</p>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #231647; margin: 20px 0;">
+
+        <!-- Greeting -->
+        <p style="font-size: 15px; color: #e2e8f0; margin-bottom: 12px;">
+          Halo, <strong style="color: #ffffff;">${order.customerName || "Pelanggan"}</strong>!
+        </p>
+        <p style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin-top: 0;">
+          Pesanan voucher digital Anda untuk <strong>${order.gameName}</strong> telah berhasil diproses oleh sistem. Berikut adalah <strong>Serial Number (SN) / Kode Voucher</strong> resmi Anda:
+        </p>
+
+        <!-- Voucher Code Box (Ultra Prominent) -->
+        <div style="background: linear-gradient(135deg, #180a33 0%, #0c1833 100%); border: 2px dashed #06b6d4; border-radius: 14px; padding: 24px 20px; text-align: center; margin: 24px 0; box-shadow: 0 8px 24px rgba(6, 182, 212, 0.15);">
+          <div style="font-size: 11px; color: #38bdf8; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">
+            SERIAL NUMBER / KODE VOUCHER (SN)
+          </div>
+          <div style="font-size: 24px; font-family: 'Courier New', Courier, monospace; font-weight: 900; color: #facc15; letter-spacing: 2.5px; word-break: break-all; background: #030712; padding: 14px 18px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.12); margin-bottom: 10px; user-select: all;">
+            ${order.sn}
+          </div>
+          <p style="font-size: 12px; color: #94a3b8; margin: 0;">
+            🔒 Simpan kode ini baik-baik. Jangan bagikan kepada siapapun yang tidak berwenang.
+          </p>
+        </div>
+
+        <!-- Product Summary Table -->
+        <div style="background-color: #130a2a; border: 1px solid #231647; border-radius: 12px; padding: 16px; margin: 20px 0;">
+          <h4 style="margin: 0 0 12px 0; color: #06b6d4; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">Rincian Pesanan</h4>
+          <table style="width: 100%; font-size: 13px; color: #cbd5e1; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 6px 0; color: #94a3b8;">No. Pesanan</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: bold; color: #ffffff;">#${order.orderNumber}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #94a3b8;">Produk Voucher</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: bold; color: #ffffff;">${order.orderItems[0]?.productName || order.gameName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #94a3b8;">Status Pengiriman</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: bold; color: #4ade80;">✅ TERKIRIM SUKSES</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Action Button -->
+        <div style="text-align: center; margin: 28px 0;">
+          <a href="${orderUrl}" style="background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%); color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);">
+            Buka Detail Pesanan & Salin SN ➔
+          </a>
+        </div>
+
+        <p style="color: #64748b; font-size: 12px; line-height: 1.6; text-align: center; margin-top: 24px;">
+          Jika Anda mengalami kesulitan saat me-redeem kode voucher ini, silakan hubungi tim customer service kami dengan menyertakan Nomor Pesanan di atas.
+        </p>
+
+        <hr style="border: 0; border-top: 1px solid #231647; margin: 20px 0;">
+        <p style="font-size: 11px; color: #475569; text-align: center; margin: 0;">
+          &copy; ${new Date().getFullYear()} GamerStore. All rights reserved.
+        </p>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error("Failed to send voucher SN email:", error);
+    return false;
+  }
+}

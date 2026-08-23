@@ -16,7 +16,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const { paymentStatus, orderStatus } = body;
+    const { paymentStatus, orderStatus, sn } = body;
 
     await connectDB();
     const order = await Order.findById(id);
@@ -25,9 +25,11 @@ export async function PATCH(
     }
 
     const oldPaymentStatus = order.paymentStatus;
+    const oldOrderStatus = order.orderStatus;
 
     if (paymentStatus) order.paymentStatus = paymentStatus;
     if (orderStatus) order.orderStatus = orderStatus;
+    if (sn !== undefined) order.sn = sn;
 
     if (paymentStatus === "PAID" && !order.paidAt) {
       order.paidAt = new Date();
@@ -41,6 +43,19 @@ export async function PATCH(
 
     if (paymentStatus === "PAID" && oldPaymentStatus !== "PAID") {
       sendInvoiceEmail(order).catch(e => console.error("Receipt email error:", e));
+    }
+
+    // Jika status SUCCESS dan ada SN, kirim email Voucher / SN
+    if (order.orderStatus === "SUCCESS" && order.sn && !order.snSentAt && order.customerEmail) {
+      const { sendVoucherSnEmail } = await import("@/lib/mail");
+      sendVoucherSnEmail(order)
+        .then(async (sent) => {
+          if (sent) {
+            order.snSentAt = new Date();
+            await order.save();
+          }
+        })
+        .catch(e => console.error("Voucher SN email error:", e));
     }
 
     return NextResponse.json({ success: true, data: order });

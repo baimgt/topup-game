@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" width="100%" height="100%">
+  <defs>
+    <!-- Fire Background Gradients -->
+    <linearGradient id="ffBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#180404" />
+      <stop offset="40%" stop-color="#3d0c02" />
+      <stop offset="75%" stop-color="#2a0808" />
+      <stop offset="100%" stop-color="#080202" />
+    </linearGradient>
+
+    <!-- Flame Glows -->
+    <radialGradient id="fireGlow" cx="25%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#ea580c" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="yellowGlow" cx="75%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#eab308" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#ca8a04" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="redGlow" cx="80%" cy="70%" r="50%">
+      <stop offset="0%" stop-color="#dc2626" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#991b1b" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Fire Text Gradient -->
+    <linearGradient id="fireTextGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="30%" stop-color="#f97316" />
+      <stop offset="70%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#dc2626" />
+    </linearGradient>
+
+    <!-- FF Button Gradient -->
+    <linearGradient id="ffBtnGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ea580c" />
+      <stop offset="50%" stop-color="#dc2626" />
+      <stop offset="100%" stop-color="#b91c1c" />
+    </linearGradient>
+
+    <!-- Filter for Glow Effects -->
+    <filter id="ffGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="ffSuperGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1200" height="500" rx="24" fill="url(#ffBgGrad)" />
+
+  <!-- Flame Glow Overlays -->
+  <rect width="1200" height="500" rx="24" fill="url(#fireGlow)" />
+  <rect width="1200" height="500" rx="24" fill="url(#yellowGlow)" />
+  <rect width="1200" height="500" rx="24" fill="url(#redGlow)" />
+
+  <!-- Cyber Camo & Speed Diagonal Lines -->
+  <g opacity="0.12" stroke="#f97316" stroke-width="2">
+    <line x1="-100" y1="500" x2="400" y2="0" />
+    <line x1="100" y1="500" x2="600" y2="0" />
+    <line x1="300" y1="500" x2="800" y2="0" />
+    <line x1="500" y1="500" x2="1000" y2="0" />
+    <line x1="700" y1="500" x2="1200" y2="0" />
+    <line x1="900" y1="500" x2="1400" y2="0" />
+  </g>
+
+  <!-- Embers and Fiery Sparks -->
+  <g opacity="0.6">
+    <circle cx="200" cy="100" r="3" fill="#fde047" filter="url(#ffGlow)" />
+    <circle cx="340" cy="380" r="4.5" fill="#f97316" filter="url(#ffGlow)" />
+    <circle cx="580" cy="90" r="2.5" fill="#ef4444" filter="url(#ffGlow)" />
+    <circle cx="700" cy="420" r="3.5" fill="#fde047" filter="url(#ffGlow)" />
+    <circle cx="1080" cy="100" r="4" fill="#fb923c" filter="url(#ffGlow)" />
+    <circle cx="1140" cy="350" r="3" fill="#ea580c" filter="url(#ffGlow)" />
+  </g>
+
+  <!-- LEFT / CENTER: Promotional Content -->
+  <!-- Top Tag / Pill Badge -->
+  <g transform="translate(80, 55)">
+    <rect width="210" height="34" rx="17" fill="#dc2626" stroke="#f97316" stroke-width="1.5" filter="url(#ffGlow)" />
+    <text x="105" y="22" fill="#ffffff" font-family="'Inter', sans-serif" font-weight="900" font-size="13" text-anchor="middle" letter-spacing="2">💥 FLASH SALE GArena</text>
+  </g>
+
+  <!-- Game Category Subtitle -->
+  <text x="80" y="130" fill="#fb923c" font-family="'Inter', sans-serif" font-weight="800" font-size="16" letter-spacing="3">
+    FREE FIRE &amp; FREE FIRE MAX
+  </text>
+
+  <!-- Main Headline Title -->
+  <text x="80" y="195" fill="#ffffff" font-family="'Inter', sans-serif" font-weight="900" font-size="46" letter-spacing="-1">
+    SUPER DISKON DIAMOND
+  </text>
+
+  <!-- Discount Highlight Ribbon -->
+  <g transform="translate(80, 220)">
+    <rect width="370" height="54" rx="12" fill="#1c0707" stroke="#ea580c" stroke-width="2" />
+    <text x="20" y="36" fill="url(#fireTextGrad)" font-family="'Inter', sans-serif" font-weight="900" font-size="28" letter-spacing="0.5">
+      DISKON HINGGA 50%
+    </text>
+    <rect x="300" y="12" width="55" height="30" rx="6" fill="#f97316" />
+    <text x="327" y="32" fill="#ffffff" font-family="'Inter', sans-serif" font-weight="900" font-size="14" text-anchor="middle">HOT</text>
+  </g>
+
+  <!-- Benefit Bullets -->
+  <g transform="translate(80, 310)" font-family="'Inter', sans-serif" font-size="14" font-weight="600" fill="#fed7aa">
+    <circle cx="8" cy="8" r="4" fill="#ea580c" />
+    <text x="22" y="13">⚡ Masuk Otomatis 1 Detik</text>
+    <circle cx="210" cy="8" r="4" fill="#ea580c" />
+    <text x="224" y="13">🛡️ 100% Legal &amp; Aman Garena</text>
+    <circle cx="440" cy="8" r="4" fill="#ea580c" />
+    <text x="454" y="13">🎁 Membership Bulanan</text>
+  </g>
+
+  <!-- CTA Button -->
+  <g transform="translate(80, 360)">
+    <rect width="230" height="54" rx="16" fill="url(#ffBtnGrad)" filter="url(#ffGlow)" />
+    <text x="115" y="33" fill="#ffffff" font-family="'Inter', sans-serif" font-weight="800" font-size="15" text-anchor="middle" letter-spacing="1">
+      TOP UP FREE FIRE ➔
+    </text>
+  </g>
+
+  <!-- RIGHT SIDE: Battle Royale Airdrop Crate & Glowing Diamond Illustration -->
+  <g transform="translate(770, 40)">
+    <!-- Fire Aura Glow -->
+    <circle cx="190" cy="210" r="160" fill="#f97316" opacity="0.25" filter="url(#ffSuperGlow)" />
+    <circle cx="190" cy="210" r="110" fill="#ef4444" opacity="0.3" filter="url(#ffSuperGlow)" />
+
+    <!-- Airdrop Crate (Red with Blue Top Cover) -->
+    <g transform="translate(60, 130) scale(1.1)">
+      <!-- Crate Shadow -->
+      <polygon points="40,190 200,190 230,160 70,160" fill="#000000" opacity="0.5" />
+      
+      <!-- Crate Front Face (Red Wood Texture) -->
+      <polygon points="50,110 170,110 170,180 50,180" fill="#dc2626" stroke="#991b1b" stroke-width="2" />
+      <polygon points="170,110 210,80 210,150 170,180" fill="#b91c1c" stroke="#7f1d1d" stroke-width="2" />
+      
+      <!-- Crate Top Tarp (Blue Canvas Cover) -->
+      <polygon points="50,110 170,110 210,80 90,80" fill="#0284c7" stroke="#0369a1" stroke-width="2" />
+      <polygon points="45,115 175,115 175,122 45,122" fill="#0369a1" />
+
+      <!-- Yellow Military Cross Ribbon -->
+      <polygon points="100,110 120,110 120,180 100,180" fill="#eab308" />
+      <polygon points="50,140 170,140 170,152 50,152" fill="#eab308" />
+    </g>
+
+    <!-- Floating Red/Gold Fiery Diamond over Airdrop Crate -->
+    <g transform="translate(100, 30) scale(1.1)">
+      <!-- Top Diamond Facets -->
+      <polygon points="100,20 155,70 45,70" fill="#fed7aa" opacity="0.95" />
+      <polygon points="45,70 155,70 100,165" fill="#f97316" />
+      <polygon points="0,70 45,70 100,165" fill="#ea580c" />
+      <polygon points="155,70 200,70 100,165" fill="#c2410c" />
+      <polygon points="0,70 45,70 30,20" fill="#fef08a" />
+      <polygon points="30,20 45,70 100,20" fill="#fde047" />
+      <polygon points="100,20 155,70 170,20" fill="#fb923c" />
+      <polygon points="170,20 155,70 200,70" fill="#ea580c" />
+      
+      <!-- Center Shimmer -->
+      <polygon points="85,35 115,35 100,65" fill="#ffffff" opacity="0.85" />
+    </g>
+
+    <!-- Flame Particles Rising -->
+    <path d="M 120,120 Q 130,80 120,60 Q 140,80 135,120" fill="#f97316" opacity="0.8" filter="url(#ffGlow)" />
+    <path d="M 280,140 Q 295,90 280,70 Q 305,95 295,140" fill="#ef4444" opacity="0.8" filter="url(#ffGlow)" />
+    <path d="M 210,30 Q 210,50 225,50 Q 210,50 210,70 Q 210,50 195,50 Q 210,50 210,30" fill="#fde047" filter="url(#ffGlow)" />
+  </g>
+</svg>

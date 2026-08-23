@@ -79,6 +79,7 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
     iconUrl: game.iconUrl || "",
     category: game.category || CATEGORIES[0], 
     statusCategory: game.statusCategory || "",
+    isVoucher: (game as any).isVoucher || game.category === "Voucher" || false,
     sortOrder: game.sortOrder || 0,
     homeSortOrder: (game as any).homeSortOrder !== undefined ? (game as any).homeSortOrder : (game.sortOrder || 0),
     isCheckAccountSupported: game.isCheckAccountSupported || false,
@@ -297,6 +298,53 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
     <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
       <Input label="Nama Game *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
       <Input label="Slug *" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
+      {/* Tipe Produk / Game */}
+      <div className="bg-black/30 border border-white/10 rounded-xl p-4 space-y-3">
+        <label className="block text-sm font-bold text-white">⚙️ Tipe Produk</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setForm({ ...form, isVoucher: false })}
+            className={`p-3 rounded-xl border text-left transition-all ${
+              !form.isVoucher
+                ? "bg-purple-600/20 border-purple-500 text-white shadow-lg shadow-purple-500/20"
+                : "bg-black/20 border-white/5 text-gray-400 hover:bg-white/5"
+            }`}
+          >
+            <div className="font-bold text-sm text-white flex items-center gap-1.5">
+              🎮 Top Up Game (Pakai ID Akun)
+            </div>
+            <div className="text-xs text-gray-400 mt-0.5">
+              Pembeli mengisi User ID &amp; Server ID game.
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setForm({ ...form, isVoucher: true, category: form.category === CATEGORIES[0] ? "Voucher" : form.category, statusCategory: form.statusCategory || "Voucher" })}
+            className={`p-3 rounded-xl border text-left transition-all ${
+              form.isVoucher
+                ? "bg-cyan-600/20 border-cyan-500 text-white shadow-lg shadow-cyan-500/20"
+                : "bg-black/20 border-white/5 text-gray-400 hover:bg-white/5"
+            }`}
+          >
+            <div className="font-bold text-sm text-cyan-300 flex items-center gap-1.5">
+              🎟️ Voucher / Digital (Tanpa ID Akun)
+            </div>
+            <div className="text-xs text-gray-400 mt-0.5">
+              Tanpa input ID. SN otomatis terbit &amp; dikirim ke email.
+            </div>
+          </button>
+        </div>
+
+        {form.isVoucher && (
+          <div className="bg-cyan-950/40 border border-cyan-500/30 rounded-lg p-3 text-xs text-cyan-200 flex items-center gap-2">
+            <span>✨</span>
+            <span><strong>Mode Voucher Aktif:</strong> Pelanggan tidak akan dimintai User ID saat checkout. Serial Number (SN) dari Digiflazz akan otomatis dikirimkan via email khusus SN.</span>
+          </div>
+        )}
+      </div>
+
       <div>
         <label className="text-sm font-medium text-gray-300 block mb-1.5">Kategori Game (/games) *</label>
         <select
@@ -411,16 +459,27 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
       </div>
       
       {/* Target Inputs */}
-      <div className="bg-black/20 border border-white/5 rounded-xl p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <label className="text-sm font-medium text-white block">Custom Data Target / Kolom Input ID (Opsional)</label>
-            <p className="text-xs text-gray-400 mt-0.5">Biarkan kosong untuk menggunakan standar User ID & Server ID.</p>
+      {form.isVoucher ? (
+        <div className="bg-cyan-950/20 border border-cyan-500/30 rounded-xl p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🎟️</span>
+            <h4 className="text-white font-bold text-sm">Produk Voucher Digital</h4>
           </div>
-          <Button variant="secondary" size="sm" onClick={addTargetInput}>
-            <Plus className="w-4 h-4 mr-1" /> Tambah Kolom
-          </Button>
+          <p className="text-xs text-gray-300 leading-relaxed">
+            Produk ini diset sebagai <strong>Voucher / Kode Digital</strong>. Form input ID akun dinonaktifkan di halaman frontend. Ketika transaksi selesai, Digiflazz akan menghasilkan Serial Number (SN) yang otomatis dikirimkan ke email pembeli &amp; tampil di halaman invoice pesanan.
+          </p>
         </div>
+      ) : (
+        <div className="bg-black/20 border border-white/5 rounded-xl p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm font-medium text-white block">Custom Data Target / Kolom Input ID (Opsional)</label>
+              <p className="text-xs text-gray-400 mt-0.5">Biarkan kosong untuk menggunakan standar User ID &amp; Server ID.</p>
+            </div>
+            <Button variant="secondary" size="sm" onClick={addTargetInput}>
+              <Plus className="w-4 h-4 mr-1" /> Tambah Kolom
+            </Button>
+          </div>
         
         {form.targetInputs.length > 0 && (
           <div className="space-y-3">
@@ -724,6 +783,7 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
           </div>
         )}
       </div>
+    )}
 
       {/* Urutan Tampil Kategori Produk (Pilih Kategori Paling Atas) */}
       {categoriesList.length > 0 && (

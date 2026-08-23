@@ -388,21 +388,30 @@ export default function OrderForm({ game }: OrderFormProps) {
     }
   }, [userId, serverId, customInputs, game.slug, needsServerId, hasCustomInputs, game.targetInputs]);
 
+  // ── Voucher Product Detection ─────────────────────────────────────────────
+  const isVoucherProduct = Boolean(
+    (game as any).isVoucher ||
+    game.category?.toLowerCase() === "voucher" ||
+    (Array.isArray(game.targetInputs) && game.targetInputs.length === 0 && game.category?.toLowerCase() === "voucher")
+  );
+
   // ── Submit Order ───────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) { toast.error("Pilih nominal terlebih dahulu"); return; }
     
-    if (hasCustomInputs) {
-      for (const input of game.targetInputs!) {
-        if (!customInputs[input.name]?.trim()) {
-          toast.error(`${input.label || input.name} wajib diisi`);
-          return;
+    if (!isVoucherProduct) {
+      if (hasCustomInputs) {
+        for (const input of game.targetInputs!) {
+          if (!customInputs[input.name]?.trim()) {
+            toast.error(`${input.label || input.name} wajib diisi`);
+            return;
+          }
         }
+      } else {
+        if (!userId.trim()) { toast.error("ID akun game wajib diisi"); return; }
+        if (needsServerId && !serverId.trim()) { toast.error("Server ID wajib diisi"); return; }
       }
-    } else {
-      if (!userId.trim()) { toast.error("ID akun game wajib diisi"); return; }
-      if (needsServerId && !serverId.trim()) { toast.error("Server ID wajib diisi"); return; }
     }
 
     if (!selectedPaymentMethod) { toast.error("Pilih metode pembayaran"); return; }
@@ -415,15 +424,17 @@ export default function OrderForm({ game }: OrderFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productId: selectedProduct.id || selectedProduct._id,
-          gameUserId: hasCustomInputs
-            ? formatCustomerNo(game.targetInputs!, customInputs, game.targetFormat)
-            : userId.trim(),
-          gameServerId: (!hasCustomInputs && needsServerId) ? serverId.trim() : undefined,
+          gameUserId: isVoucherProduct
+            ? (customerPhone.trim() || "VOUCHER")
+            : (hasCustomInputs
+                ? formatCustomerNo(game.targetInputs!, customInputs, game.targetFormat)
+                : userId.trim()),
+          gameServerId: (!isVoucherProduct && !hasCustomInputs && needsServerId) ? serverId.trim() : undefined,
           customerName: customerName.trim() || undefined,
           customerEmail: customerEmail.trim(),
           customerPhone: customerPhone.trim(),
           paymentMethodId: selectedPaymentMethod.id,
-          gameUsername: checkedUsername || undefined,
+          gameUsername: isVoucherProduct ? "Voucher Digital" : (checkedUsername || undefined),
           voucherCode: appliedVoucher ? appliedVoucher.code : undefined,
         }),
       });
@@ -454,7 +465,7 @@ export default function OrderForm({ game }: OrderFormProps) {
         router.push(`/order/${data.data.orderNumber}`);
       }
     } catch {
-      toast.error("Terjadi kesalahan, coba lagi");
+      toast.error("Terjadi kesalahan saat membuat pesanan");
       setSubmitting(false);
     }
   };
@@ -471,10 +482,10 @@ export default function OrderForm({ game }: OrderFormProps) {
 
   const isStandardInputsValid = userId.trim().length > 0 && (!needsServerId || serverId.trim().length > 0);
 
-  // canProceed: Cek ID Akun bersifat opsional (tombol cek tersedia, tapi tidak wajib sebelum lanjut)
-  const canProceed = hasCustomInputs
-    ? isCustomInputsValid
-    : isStandardInputsValid;
+  // canProceed: Untuk produk voucher langsung true tanpa perlu input ID akun
+  const canProceed = isVoucherProduct
+    ? true
+    : (hasCustomInputs ? isCustomInputsValid : isStandardInputsValid);
 
   const basePrice = selectedProduct?.sellingPrice || 0;
   const discountAmount = appliedVoucher ? appliedVoucher.discountAmount : 0;
@@ -492,114 +503,116 @@ export default function OrderForm({ game }: OrderFormProps) {
     <>
       <form onSubmit={handleSubmit} className="space-y-6">
 
-        {/* ── STEP 1: ID Akun Game ─────────────────────────────────────────── */}
-        <div className="bg-gaming-card rounded-2xl border border-white/5 p-5">
-          <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
-            <span className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
-            Masukkan Data Akun
-          </h2>
+        {/* ── STEP 1: ID Akun Game (Hanya untuk produk bertipe Top Up Game) ─── */}
+        {!isVoucherProduct && (
+          <div className="bg-gaming-card rounded-2xl border border-white/5 p-5">
+            <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <span className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+              Masukkan Data Akun
+            </h2>
 
-          <div className="space-y-4">
-            {hasCustomInputs ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {game.targetInputs!.map((input, idx) => {
-                  const isSelect = input.type === "select" || (input.options && input.options.length > 0);
-                  if (isSelect) {
+            <div className="space-y-4">
+              {hasCustomInputs ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {game.targetInputs!.map((input, idx) => {
+                    const isSelect = input.type === "select" || (input.options && input.options.length > 0);
+                    if (isSelect) {
+                      return (
+                        <CustomSelect
+                          key={idx}
+                          label={input.label || input.name}
+                          placeholder={input.placeholder || `Pilih ${input.label || input.name}`}
+                          value={customInputs[input.name] || ""}
+                          options={(input.options || []).map((opt: any) => ({
+                            label: typeof opt === "string" ? opt : (opt.label || opt.value),
+                            value: typeof opt === "string" ? opt : opt.value,
+                          }))}
+                          onChange={(val) => setCustomInputs({ ...customInputs, [input.name]: val })}
+                        />
+                      );
+                    }
+
                     return (
-                      <CustomSelect
+                      <Input
                         key={idx}
                         label={input.label || input.name}
-                        placeholder={input.placeholder || `Pilih ${input.label || input.name}`}
+                        type={input.type}
+                        placeholder={input.placeholder || `Masukkan ${input.label || input.name}`}
                         value={customInputs[input.name] || ""}
-                        options={(input.options || []).map((opt: any) => ({
-                          label: typeof opt === "string" ? opt : (opt.label || opt.value),
-                          value: typeof opt === "string" ? opt : opt.value,
-                        }))}
-                        onChange={(val) => setCustomInputs({ ...customInputs, [input.name]: val })}
+                        onChange={(e) => setCustomInputs({ ...customInputs, [input.name]: e.target.value })}
                       />
                     );
-                  }
-
-                  return (
-                    <Input
-                      key={idx}
-                      label={input.label || input.name}
-                      type={input.type}
-                      placeholder={input.placeholder || `Masukkan ${input.label || input.name}`}
-                      value={customInputs[input.name] || ""}
-                      onChange={(e) => setCustomInputs({ ...customInputs, [input.name]: e.target.value })}
-                    />
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Input
-                  label={`User ID ${game.name}`}
-                  placeholder="Contoh: 123456789"
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  icon={<Hash className="w-4 h-4" />}
-                />
-                {needsServerId && (
+                  })}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Input
-                    label="Server ID"
-                    placeholder="Contoh: 2345"
-                    value={serverId}
-                    onChange={(e) => setServerId(e.target.value)}
-                    icon={<Server className="w-4 h-4" />}
+                    label={`User ID ${game.name}`}
+                    placeholder="Contoh: 123456789"
+                    value={userId}
+                    onChange={(e) => setUserId(e.target.value)}
+                    icon={<Hash className="w-4 h-4" />}
                   />
-                )}
-              </div>
-            )}
-
-            {/* Jika Game Mendukung Cek Akun */}
-            {isCheckSupported && (
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-black/20 p-3 rounded-xl border border-white/5">
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  onClick={handleCheckAccount}
-                  loading={checkStatus === "checking"}
-                  disabled={hasCustomInputs ? !isCustomInputsValid : (!userId.trim() || (needsServerId && !serverId.trim()))}
-                  className="flex-shrink-0 w-full sm:w-auto"
-                >
-                  <Gamepad2 className="w-4 h-4" />
-                  {checkStatus === "checking" ? "Memverifikasi..." : "Cek ID Akun"}
-                </Button>
-
-                {/* Status Singkat Inline */}
-                <div className="flex-1">
-                  {checkStatus === "idle" && (
-                    <p className="text-gray-400 text-xs flex items-center gap-1.5">
-                      <Info className="w-3.5 h-3.5" /> Klik untuk memverifikasi keaslian akun Anda
-                    </p>
-                  )}
-                  {checkStatus === "valid" && (
-                    <p className="text-green-400 text-sm font-medium flex items-center gap-1.5">
-                      <CheckCircle className="w-4 h-4" /> Terverifikasi: {checkedUsername} {checkedRegion ? `(${checkedRegion})` : ""}
-                    </p>
-                  )}
-                  {checkStatus === "invalid" && (
-                    <p className="text-red-400 text-sm font-medium flex items-center gap-1.5">
-                      <XCircle className="w-4 h-4" /> {checkError}
-                    </p>
+                  {needsServerId && (
+                    <Input
+                      label="Server ID"
+                      placeholder="Contoh: 2345"
+                      value={serverId}
+                      onChange={(e) => setServerId(e.target.value)}
+                      icon={<Server className="w-4 h-4" />}
+                    />
                   )}
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
+              )}
 
-        {/* ── STEP 2: Pilih Nominal ────────────────────────────────────────── */}
+              {/* Jika Game Mendukung Cek Akun */}
+              {isCheckSupported && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-black/20 p-3 rounded-xl border border-white/5">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={handleCheckAccount}
+                    loading={checkStatus === "checking"}
+                    disabled={hasCustomInputs ? !isCustomInputsValid : (!userId.trim() || (needsServerId && !serverId.trim()))}
+                    className="flex-shrink-0 w-full sm:w-auto"
+                  >
+                    <Gamepad2 className="w-4 h-4" />
+                    {checkStatus === "checking" ? "Memverifikasi..." : "Cek ID Akun"}
+                  </Button>
+
+                  {/* Status Singkat Inline */}
+                  <div className="flex-1">
+                    {checkStatus === "idle" && (
+                      <p className="text-gray-400 text-xs flex items-center gap-1.5">
+                        <Info className="w-3.5 h-3.5" /> Klik untuk memverifikasi keaslian akun Anda
+                      </p>
+                    )}
+                    {checkStatus === "valid" && (
+                      <p className="text-green-400 text-sm font-medium flex items-center gap-1.5">
+                        <CheckCircle className="w-4 h-4" /> Terverifikasi: {checkedUsername} {checkedRegion ? `(${checkedRegion})` : ""}
+                      </p>
+                    )}
+                    {checkStatus === "invalid" && (
+                      <p className="text-red-400 text-sm font-medium flex items-center gap-1.5">
+                        <XCircle className="w-4 h-4" /> {checkError}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 2 (atau STEP 1 untuk Voucher): Pilih Nominal ────────────── */}
         <div className={`bg-gaming-card rounded-2xl border p-5 transition-all duration-300 ${
           canProceed ? "border-white/5" : "border-white/5 opacity-40 pointer-events-none select-none"
         }`}>
           <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
               canProceed ? "bg-purple-500" : "bg-gray-600"
-            }`}>2</span>
+            }`}>{isVoucherProduct ? "1" : "2"}</span>
             Pilih Nominal
             {!canProceed && game.isCheckAccountSupported && (
               <span className="text-gray-500 text-xs font-normal ml-1">
@@ -720,14 +733,14 @@ export default function OrderForm({ game }: OrderFormProps) {
           )}
         </div>
 
-        {/* ── STEP 3: Data Pembeli ─────────────────────────────────────────── */}
+        {/* ── STEP 3 (atau STEP 2 untuk Voucher): Data Pembeli ────────────── */}
         <div className={`bg-gaming-card rounded-2xl border p-5 transition-all duration-300 ${
           selectedProduct && canProceed ? "border-white/5" : "border-white/5 opacity-40 pointer-events-none select-none"
         }`}>
           <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
               selectedProduct && canProceed ? "bg-purple-500" : "bg-gray-600"
-            }`}>3</span>
+            }`}>{isVoucherProduct ? "2" : "3"}</span>
             Data Pembeli
             {!selectedProduct && canProceed && (
               <span className="text-gray-500 text-xs font-normal ml-1">— pilih nominal dulu</span>
@@ -755,7 +768,7 @@ export default function OrderForm({ game }: OrderFormProps) {
           <p className="text-gray-600 text-xs mt-2">📧 Bukti pembelian akan dikirim ke email ini</p>
         </div>
 
-        {/* ── STEP 4: Pilih Pembayaran ────────────────────────────────────────── */}
+        {/* ── STEP 4 (atau STEP 3 untuk Voucher): Pilih Pembayaran ─────────── */}
         <div id="step-payment" className={`bg-gaming-card rounded-2xl border p-5 transition-all duration-300 ${
           selectedProduct && canProceed ? "border-purple-500/40 ring-1 ring-purple-500/20 shadow-lg shadow-purple-500/10" : "border-white/5 opacity-40 pointer-events-none select-none"
         }`}>
@@ -763,7 +776,7 @@ export default function OrderForm({ game }: OrderFormProps) {
             <h2 className="text-white font-semibold flex items-center gap-2">
               <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                 selectedPaymentMethod ? "bg-emerald-500 text-white" : selectedProduct ? "bg-amber-500 text-black font-black animate-pulse" : "bg-gray-600 text-white"
-              }`}>4</span>
+              }`}>{isVoucherProduct ? "3" : "4"}</span>
               Pilih Pembayaran
               {!selectedPaymentMethod && selectedProduct && (
                 <span className="text-amber-400 text-xs font-bold bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/30 animate-pulse flex items-center gap-1">
@@ -853,10 +866,10 @@ export default function OrderForm({ game }: OrderFormProps) {
           </div>
         </div>
 
-        {/* ── STEP 5: Kode Promo / Voucher ─────────────────────────────────── */}
+        {/* ── STEP 5 (atau STEP 4 untuk Voucher): Kode Promo / Voucher ─────── */}
         <div className="bg-gaming-card rounded-2xl border border-white/5 p-5">
           <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
-            <span className="w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">5</span>
+            <span className="w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">{isVoucherProduct ? "4" : "5"}</span>
             Kode Promo / Voucher
           </h2>
 
