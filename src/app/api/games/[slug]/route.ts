@@ -17,12 +17,14 @@ export async function GET(
     }
 
     const products = await Product.find({ gameId: game._id, isActive: true })
-      .sort({ sortOrder: 1 })
+      .sort({ sortOrder: 1, sellingPrice: 1 })
       .lean();
 
     const slugLower = (slug || "").toLowerCase();
     const isAutoCheckSupported =
       slugLower.includes("genshin") ||
+      slugLower.includes("wuthering") ||
+      slugLower.includes("wuwa") ||
       slugLower.includes("honor") ||
       slugLower.includes("hok") ||
       slugLower.includes("king");

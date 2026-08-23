@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, Package, ToggleLeft, ToggleRight, Download, Zap, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, Package, ToggleLeft, ToggleRight, Download, Zap, Upload, ArrowDownUp, Sparkles, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -1010,6 +1010,61 @@ export default function AdminGamesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: "game" | "product"; id: string; name: string } | null>(null);
   const [importGame, setImportGame] = useState<Game | null | undefined>(undefined);
   const [showImportGameModal, setShowImportGameModal] = useState(false);
+  const [sortingGameId, setSortingGameId] = useState<string | null>(null);
+  const [sortingAll, setSortingAll] = useState(false);
+
+  const handleAutoSortProducts = async (gameId: string, mode: "price_asc" | "nominal_asc" | "name_asc" = "price_asc") => {
+    setSortingGameId(gameId);
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch("/api/admin/products/auto-sort", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ gameId, mode }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || "Produk berhasil diurutkan otomatis!");
+        // Refresh products for this game
+        const prodRes = await fetch(`/api/admin/products?gameId=${gameId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const prodData = await prodRes.json();
+        if (prodData.success) {
+          const sorted = [...prodData.data].sort((a: Product, b: Product) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) || a.sellingPrice - b.sellingPrice);
+          setProductsByGame((prev) => ({ ...prev, [gameId]: sorted }));
+        }
+      } else {
+        toast.error(data.error || "Gagal mengurutkan produk");
+      }
+    } catch {
+      toast.error("Terjadi kesalahan saat mengurutkan");
+    }
+    setSortingGameId(null);
+  };
+
+  const handleAutoSortAllGames = async (mode: "price_asc" | "nominal_asc" = "price_asc") => {
+    if (!confirm("Apakah Anda yakin ingin mengurutkan otomatis SEMUA produk di seluruh game (dari harga termurah ke termahal)?")) return;
+    setSortingAll(true);
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch("/api/admin/products/auto-sort", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ gameId: "all", mode }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || "Semua produk berhasil diurutkan!");
+        setProductsByGame({}); // Clear cache to reload on expand
+      } else {
+        toast.error(data.error || "Gagal mengurutkan produk");
+      }
+    } catch {
+      toast.error("Terjadi kesalahan saat mengurutkan semua produk");
+    }
+    setSortingAll(false);
+  };
 
   const fetchGames = async () => {
     setLoading(true);
@@ -1203,7 +1258,17 @@ export default function AdminGamesPage() {
           <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">Data Game & Urutan Tampil</h1>
           <p className="text-gray-400 text-sm mt-1">Kelola {games.length} game dan atur posisi urutan tampil di Beranda atau Daftar Semua Game.</p>
         </div>
-        <div className="relative z-10 flex gap-3">
+        <div className="relative z-10 flex gap-2 flex-wrap sm:flex-nowrap">
+          <button
+            type="button"
+            onClick={() => handleAutoSortAllGames("price_asc")}
+            disabled={sortingAll}
+            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/30 hover:to-teal-600/30 text-emerald-300 border border-emerald-500/30 px-3.5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] hover:scale-105"
+            title="Otomatis mengurutkan semua produk di semua game dari termurah ke termahal"
+          >
+            <ArrowDownUp className={`w-4 h-4 text-emerald-400 ${sortingAll ? "animate-spin" : ""}`} />
+            {sortingAll ? "Mengurutkan..." : "Auto-Urut Semua"}
+          </button>
           <button
             onClick={() => setShowImportGameModal(true)}
             className="flex items-center gap-2 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 hover:from-blue-600/30 hover:to-cyan-600/30 text-cyan-300 border border-blue-500/30 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] hover:scale-105"
@@ -1476,18 +1541,57 @@ export default function AdminGamesPage() {
                 {isExpanded && (
                   <div className="border-t border-white/5 bg-black/40 backdrop-blur-sm p-3 rounded-b-2xl">
                     {/* Products header */}
-                    <div className="flex items-center justify-between px-4 py-3 bg-white/5 rounded-xl border border-white/5 mb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 bg-white/5 rounded-xl border border-white/5 mb-3">
                       <div>
-                        <span className="text-gray-200 text-sm font-bold block">
-                          {loadingProducts === game._id ? "Memuat produk..." : `${products.length} Produk Tersedia`}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-200 text-sm font-bold block">
+                            {loadingProducts === game._id ? "Memuat produk..." : `${products.length} Produk Tersedia`}
+                          </span>
+                        </div>
                         <span className="text-gray-400 text-xs mt-0.5 block">
-                          Atur angka kolom <b className="text-purple-300">Urutan</b> untuk memindahkan posisi nominal produk di halaman top up.
+                          Atur angka kolom <b className="text-purple-300">Urutan</b> atau klik tombol <b className="text-cyan-300">Auto-Urutkan</b> di bawah.
                         </span>
                       </div>
-                      <button onClick={() => setAddProductGameId(game._id)} className="flex items-center gap-1.5 bg-purple-500 hover:bg-purple-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-purple-500/20">
-                        <Plus className="w-3.5 h-3.5" /> Tambah Produk
-                      </button>
+                      
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Auto-Sort Buttons */}
+                        {products.length > 1 && (
+                          <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10">
+                            <button
+                              type="button"
+                              onClick={() => handleAutoSortProducts(game._id, "price_asc")}
+                              disabled={sortingGameId === game._id}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 border border-cyan-500/30 transition-all cursor-pointer shadow-sm"
+                              title="Otomatis urutkan dari harga termurah ke termahal"
+                            >
+                              <ArrowDownUp className={`w-3.5 h-3.5 ${sortingGameId === game._id ? "animate-spin" : ""}`} />
+                              <span>{sortingGameId === game._id ? "Mengurutkan..." : "⚡ Termurah ➔ Termahal"}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAutoSortProducts(game._id, "nominal_asc")}
+                              disabled={sortingGameId === game._id}
+                              className="px-2 py-1.5 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+                              title="Urutkan dari nominal angka terkecil ke terbesar"
+                            >
+                              💎 Nominal
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAutoSortProducts(game._id, "name_asc")}
+                              disabled={sortingGameId === game._id}
+                              className="px-2 py-1.5 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+                              title="Urutkan alfabet A-Z"
+                            >
+                              🔤 A-Z
+                            </button>
+                          </div>
+                        )}
+
+                        <button onClick={() => setAddProductGameId(game._id)} className="flex items-center gap-1.5 bg-purple-500 hover:bg-purple-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-purple-500/20 cursor-pointer">
+                          <Plus className="w-3.5 h-3.5" /> Tambah Produk
+                        </button>
+                      </div>
                     </div>
 
                     {loadingProducts === game._id ? (

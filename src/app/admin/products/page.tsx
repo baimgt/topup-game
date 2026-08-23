@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { Plus, Search, ToggleLeft, ToggleRight, Pencil, Trash2, Zap } from "lucide-react";
+import { Plus, Search, ToggleLeft, ToggleRight, Pencil, Trash2, Zap, ArrowDownUp, RefreshCw, Sparkles, ChevronUp, ChevronDown } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
 import Button from "@/components/ui/Button";
@@ -118,6 +118,10 @@ export default function AdminProductsPage() {
   const [editProduct, setEditProduct] = useState<any | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<any | null>(null);
 
+  // Sync & Auto-Sort States
+  const [syncingDigi, setSyncingDigi] = useState(false);
+  const [sortingLoading, setSortingLoading] = useState(false);
+
   // Bulk Selection States
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkCategoryModalOpen, setBulkCategoryModalOpen] = useState(false);
@@ -139,9 +143,155 @@ export default function AdminProductsPage() {
     const data = await res.json();
     if (data.success) {
       setProducts(data.data);
-      setFiltered(data.data);
     }
     setLoading(false);
+  };
+
+  const fetchGames = async () => {
+    const res = await fetch("/api/games");
+    const data = await res.json();
+    if (data.success) setGames(data.data);
+  };
+
+  useEffect(() => {
+    fetchProducts();
+    fetchGames();
+  }, []);
+
+  // Filter and sort products
+  useEffect(() => {
+    let result = products;
+    if (search) {
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(search.toLowerCase()) ||
+          p.digiflazzSku.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    if (gameFilter !== "ALL") {
+      result = result.filter((p) => (p.gameId?._id || p.gameId) === gameFilter);
+    }
+    const sorted = [...result].sort(
+      (a, b) =>
+        (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) ||
+        a.sellingPrice - b.sellingPrice
+    );
+    setFiltered(sorted);
+  }, [search, gameFilter, products]);
+
+  // Sync Digiflazz live prices & product status
+  const handleSyncDigiflazz = async () => {
+    setSyncingDigi(true);
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch("/api/admin/digiflazz-products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type: "prepaid" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || "Harga & produk berhasil disinkronkan dari Digiflazz!");
+        fetchProducts();
+      } else {
+        toast.error(data.error || "Gagal sinkronisasi Digiflazz");
+      }
+    } catch {
+      toast.error("Terjadi kesalahan saat sinkronisasi Digiflazz");
+    }
+    setSyncingDigi(false);
+  };
+
+  // Auto Sort Handler
+  const handleAutoSort = async (mode: "price_asc" | "nominal_asc" | "name_asc" = "price_asc") => {
+    setSortingLoading(true);
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch("/api/admin/products/auto-sort", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          gameId: gameFilter === "ALL" ? "all" : gameFilter,
+          mode,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || "Produk berhasil diurutkan otomatis!");
+        fetchProducts();
+      } else {
+        toast.error(data.error || "Gagal mengurutkan produk");
+      }
+    } catch {
+      toast.error("Terjadi kesalahan saat mengurutkan produk");
+    }
+    setSortingLoading(false);
+  };
+
+  // Manual Update Sort Order
+  const updateProductSortOrder = async (productId: string, newSort: number) => {
+    setProducts((prev) =>
+      prev.map((p) => (p._id === productId ? { ...p, sortOrder: newSort } : p))
+    );
+    const token = localStorage.getItem("token");
+    try {
+      await fetch(`/api/admin/products/${productId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ sortOrder: newSort }),
+      });
+      toast.success("Urutan produk disimpan!");
+    } catch {
+      toast.error("Gagal menyimpan urutan produk");
+    }
+  };
+
+  // Quick Move Up / Down
+  const moveProductOrder = async (productId: string, direction: "up" | "down") => {
+    const currentIndex = filtered.findIndex((p) => p._id === productId);
+    if (currentIndex === -1) return;
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= filtered.length) return;
+
+    const currentItem = filtered[currentIndex];
+    const targetItem = filtered[targetIndex];
+
+    const currentSort = currentItem.sortOrder ?? currentIndex + 1;
+    const targetSort = targetItem.sortOrder ?? targetIndex + 1;
+
+    let newCurrentSort = targetSort;
+    let newTargetSort = currentSort;
+    if (newCurrentSort === newTargetSort) {
+      newCurrentSort = direction === "up" ? Math.max(1, targetSort - 1) : targetSort + 1;
+    }
+
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p._id === currentItem._id) return { ...p, sortOrder: newCurrentSort };
+        if (p._id === targetItem._id) return { ...p, sortOrder: newTargetSort };
+        return p;
+      })
+    );
+
+    const token = localStorage.getItem("token");
+    try {
+      await Promise.all([
+        fetch(`/api/admin/products/${currentItem._id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ sortOrder: newCurrentSort }),
+        }),
+        fetch(`/api/admin/products/${targetItem._id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ sortOrder: newTargetSort }),
+        }),
+      ]);
+      toast.success("Posisi urutan produk berhasil diubah!");
+      fetchProducts();
+    } catch {
+      toast.error("Gagal mengubah urutan");
+    }
   };
 
   const toggleSelectAll = () => {
@@ -249,24 +399,6 @@ export default function AdminProductsPage() {
     setBulkActionLoading(false);
   };
 
-  const fetchGames = async () => {
-    const res = await fetch("/api/games");
-    const data = await res.json();
-    if (data.success) setGames(data.data);
-  };
-
-  useEffect(() => {
-    fetchProducts();
-    fetchGames();
-  }, []);
-
-  useEffect(() => {
-    let result = products;
-    if (search) result = result.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.digiflazzSku.toLowerCase().includes(search.toLowerCase()));
-    if (gameFilter !== "ALL") result = result.filter((p) => (p.gameId?._id || p.gameId) === gameFilter);
-    setFiltered(result);
-  }, [search, gameFilter, products]);
-
   const editGameId = editProduct?.gameId?._id || editProduct?.gameId;
   const editGameCategories = useMemo(() => {
     if (!editGameId) return [];
@@ -316,52 +448,117 @@ export default function AdminProductsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/[0.02] backdrop-blur-md border border-white/5 p-6 rounded-2xl relative overflow-hidden">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white/[0.02] backdrop-blur-md border border-white/5 p-6 rounded-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 blur-[80px] rounded-full pointer-events-none" />
         <div className="relative z-10">
           <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">Data Produk</h1>
-          <p className="text-gray-400 text-sm mt-1">Kelola {filtered.length} produk top-up yang aktif.</p>
+          <p className="text-gray-400 text-sm mt-1">Kelola {filtered.length} produk top-up, atur urutan manual atau otomatis, dan sinkronkan harga.</p>
         </div>
-        <div className="relative z-10 flex gap-3">
+        
+        {/* Header Action Toolbar */}
+        <div className="relative z-10 flex flex-wrap gap-2.5">
+          {/* Sync Digiflazz Button */}
+          <button
+            type="button"
+            onClick={handleSyncDigiflazz}
+            disabled={syncingDigi}
+            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/30 hover:to-teal-600/30 text-emerald-300 border border-emerald-500/30 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] hover:scale-105 cursor-pointer"
+            title="Sinkronkan status produk dan harga modal live langsung dari Digiflazz API"
+          >
+            <RefreshCw className={`w-4 h-4 text-emerald-400 ${syncingDigi ? "animate-spin" : ""}`} />
+            {syncingDigi ? "Sinkronisasi..." : "Sync Digiflazz"}
+          </button>
+
+          {/* Auto Import Button */}
           <button
             type="button"
             onClick={() => setShowImportModal(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 hover:from-blue-600/30 hover:to-cyan-600/30 text-cyan-300 border border-blue-500/30 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] hover:scale-105"
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 hover:from-blue-600/30 hover:to-cyan-600/30 text-cyan-300 border border-blue-500/30 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] hover:scale-105 cursor-pointer"
           >
             <Zap className="w-4 h-4 text-cyan-400" />
-            Auto Import Digiflazz
+            Auto Import
           </button>
+
+          {/* Manual Add Product */}
           <Link href="/admin/products/new">
-            <button className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-purple-500/25 hover:scale-105">
+            <button className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-purple-500/25 hover:scale-105 cursor-pointer">
               <Plus className="w-4 h-4" />
-              Tambah Produk Manual
+              Tambah Produk
             </button>
           </Link>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white/[0.02] backdrop-blur-md rounded-2xl border border-white/5 p-5 flex flex-col sm:flex-row gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari nama produk atau SKU..."
-            className="w-full bg-black/20 border border-white/5 rounded-xl pl-11 pr-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-shadow"
-          />
+      {/* Filters & Auto-Sort Bar */}
+      <div className="bg-gaming-card rounded-2xl border border-white/5 p-4 space-y-3">
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
+          {/* Search Box */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari nama produk atau SKU Digiflazz..."
+              className="w-full bg-black/30 border border-white/10 rounded-xl pl-11 pr-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-all"
+            />
+          </div>
+
+          {/* Game Filter */}
+          <div className="relative min-w-[220px]">
+            <select
+              value={gameFilter}
+              onChange={(e) => setGameFilter(e.target.value)}
+              className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 appearance-none cursor-pointer font-medium"
+            >
+              <option value="ALL">Semua Game ({games.length} Game)</option>
+              {games.map((g) => (
+                <option key={g._id || g.id} value={g._id || g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+              <ChevronDown className="w-4 h-4" />
+            </div>
+          </div>
         </div>
-        <div className="relative min-w-[200px]">
-          <select
-            value={gameFilter}
-            onChange={(e) => setGameFilter(e.target.value)}
-            className="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-shadow appearance-none cursor-pointer"
-          >
-            <option value="ALL">Semua Game</option>
-            {games.map((g) => <option key={g._id || g.id} value={g._id || g.id}>{g.name}</option>)}
-          </select>
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+
+        {/* Auto-Sort Quick Action Buttons */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/5">
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span>Auto-Urutkan {gameFilter === "ALL" ? "Semua Game" : selectedGameForImport?.name || "Game Ini"}:</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => handleAutoSort("price_asc")}
+              disabled={sortingLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 border border-cyan-500/40 transition-all cursor-pointer shadow-sm"
+              title="Urutkan dari harga termurah ke termahal"
+            >
+              <ArrowDownUp className={`w-3.5 h-3.5 ${sortingLoading ? "animate-spin" : ""}`} />
+              <span>⚡ Termurah ➔ Termahal</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAutoSort("nominal_asc")}
+              disabled={sortingLoading}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 transition-all cursor-pointer"
+              title="Urutkan dari nominal angka terkecil ke terbesar"
+            >
+              💎 Nominal Angka
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAutoSort("name_asc")}
+              disabled={sortingLoading}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all cursor-pointer"
+              title="Urutkan alfabet A-Z"
+            >
+              🔤 Nama A - Z
+            </button>
           </div>
         </div>
       </div>
@@ -374,40 +571,40 @@ export default function AdminProductsPage() {
               <span>📦</span>
               <span>{selectedIds.size} Produk Dipilih</span>
             </span>
-            <span className="text-gray-300 text-xs font-medium hidden sm:inline">Pilih aksi masal sekaligus tanpa perlu edit satu per satu:</span>
+            <span className="text-gray-300 text-xs font-medium hidden sm:inline">Aksi masal untuk produk yang dicentang:</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setBulkCategoryModalOpen(true)}
-              className="flex items-center gap-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/40 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-105"
+              className="flex items-center gap-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/40 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-105 cursor-pointer"
             >
               <span>🏷️</span>
-              <span>Ubah Kategori Masal</span>
+              <span>Ubah Kategori</span>
             </button>
             <button
               type="button"
               onClick={() => handleBulkToggleActive(true)}
               disabled={bulkActionLoading}
-              className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-105"
+              className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-105 cursor-pointer"
             >
               <span>🟢</span>
-              <span>Aktifkan Semua</span>
+              <span>Aktifkan</span>
             </button>
             <button
               type="button"
               onClick={() => handleBulkToggleActive(false)}
               disabled={bulkActionLoading}
-              className="flex items-center gap-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-105"
+              className="flex items-center gap-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-105 cursor-pointer"
             >
               <span>🔴</span>
-              <span>Nonaktifkan Semua</span>
+              <span>Nonaktifkan</span>
             </button>
             <button
               type="button"
               onClick={() => setBulkDeleteConfirmOpen(true)}
               disabled={bulkActionLoading}
-              className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-105"
+              className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-105 cursor-pointer"
             >
               <span>🗑️</span>
               <span>Hapus ({selectedIds.size})</span>
@@ -415,7 +612,7 @@ export default function AdminProductsPage() {
             <button
               type="button"
               onClick={() => setSelectedIds(new Set())}
-              className="text-xs text-gray-400 hover:text-white px-2 py-1 underline font-medium ml-1"
+              className="text-xs text-gray-400 hover:text-white px-2 py-1 underline font-medium ml-1 cursor-pointer"
             >
               Batal
             </button>
@@ -428,7 +625,7 @@ export default function AdminProductsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-black/20 border-b border-white/5">
+              <tr className="bg-black/30 border-b border-white/5">
                 <th className="w-10 px-4 py-4 text-center">
                   <input
                     type="checkbox"
@@ -438,91 +635,198 @@ export default function AdminProductsPage() {
                     title="Pilih Semua Produk"
                   />
                 </th>
-                {["Produk", "Game", "SKU Digiflazz", "Harga Modal", "Harga Jual", "Margin", "Status", "Aksi"].map((h) => (
-                  <th key={h} className="text-gray-400 text-xs font-bold uppercase tracking-wider px-6 py-4 whitespace-nowrap">{h}</th>
-                ))}
+                <th className="text-gray-400 text-xs font-bold uppercase tracking-wider px-3 py-4 text-center w-12">#</th>
+                <th className="text-purple-300 text-xs font-bold uppercase tracking-wider px-4 py-4 text-center w-28 whitespace-nowrap">
+                  Urutan 🔢
+                </th>
+                <th className="text-gray-400 text-xs font-bold uppercase tracking-wider px-6 py-4 whitespace-nowrap">Produk</th>
+                <th className="text-gray-400 text-xs font-bold uppercase tracking-wider px-6 py-4 whitespace-nowrap">Game</th>
+                <th className="text-gray-400 text-xs font-bold uppercase tracking-wider px-6 py-4 whitespace-nowrap">SKU Digiflazz</th>
+                <th className="text-gray-400 text-xs font-bold uppercase tracking-wider px-6 py-4 whitespace-nowrap">Harga Modal</th>
+                <th className="text-gray-400 text-xs font-bold uppercase tracking-wider px-6 py-4 whitespace-nowrap">Harga Jual</th>
+                <th className="text-gray-400 text-xs font-bold uppercase tracking-wider px-6 py-4 whitespace-nowrap">Margin</th>
+                <th className="text-gray-400 text-xs font-bold uppercase tracking-wider px-6 py-4 whitespace-nowrap text-center">Status</th>
+                <th className="text-gray-400 text-xs font-bold uppercase tracking-wider px-6 py-4 whitespace-nowrap text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {loading ? (
-                <tr><td colSpan={9} className="px-6 py-16 text-center">
-                  <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto" />
-                </td></tr>
+                <tr>
+                  <td colSpan={11} className="px-6 py-16 text-center">
+                    <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto" />
+                  </td>
+                </tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={9} className="px-6 py-16 text-center text-gray-500 text-sm">Tidak ada produk ditemukan</td></tr>
-              ) : filtered.map((p) => {
-                const margin = p.sellingPrice - p.price;
-                const marginPct = ((margin / p.price) * 100).toFixed(0);
-                const isChecked = selectedIds.has(p._id);
-                return (
-                  <tr key={p._id} className={`transition-colors group ${isChecked ? "bg-purple-500/10" : "hover:bg-white/[0.03]"}`}>
-                    <td className="w-10 px-4 py-4 text-center">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleSelectOne(p._id)}
-                        className="w-4 h-4 rounded border-white/20 bg-black/40 text-purple-600 focus:ring-purple-500 cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-white text-sm font-bold group-hover:text-cyan-400 transition-colors">{p.name}</div>
-                      <div className="text-gray-500 text-xs mt-0.5 flex items-center gap-1">
-                        <span>🏷️</span>
-                        <span>{p.category}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-white/5 text-gray-300 text-xs font-medium border border-white/10">
-                        {p.gameId?.name || "—"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-gray-400 font-mono text-xs bg-black/30 px-2.5 py-1 rounded-md border border-white/5">{p.digiflazzSku}</span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-400 text-sm">{formatCurrency(p.price)}</td>
-                    <td className="px-6 py-4 text-white text-sm font-black tracking-tight">{formatCurrency(p.sellingPrice)}</td>
-                    <td className="px-6 py-4">
-                      <span className="text-green-400 text-xs font-bold bg-green-500/10 px-2 py-1 rounded-md border border-green-500/20">
-                        +{formatCurrency(margin)} ({marginPct}%)
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge variant={p.isActive ? "success" : "default"} className="text-[10px] uppercase tracking-wider px-2 py-0.5">
-                        {p.isActive ? "Aktif" : "Nonaktif"}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => setEditProduct(p)}
-                          className="p-2 rounded-lg transition-all border border-white/10 text-gray-300 hover:text-white hover:bg-white/10"
-                          title="Edit Produk"
+                <tr>
+                  <td colSpan={11} className="px-6 py-16 text-center text-gray-500 text-sm">
+                    Tidak ada produk ditemukan
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((p, pIndex) => {
+                  const margin = p.sellingPrice - p.price;
+                  const marginPct = p.price > 0 ? ((margin / p.price) * 100).toFixed(0) : "0";
+                  const isChecked = selectedIds.has(p._id);
+
+                  return (
+                    <tr
+                      key={p._id}
+                      className={`transition-colors group ${
+                        isChecked ? "bg-purple-500/10" : "hover:bg-white/[0.03]"
+                      }`}
+                    >
+                      {/* Checkbox */}
+                      <td className="w-10 px-4 py-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleSelectOne(p._id)}
+                          className="w-4 h-4 rounded border-white/20 bg-black/40 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                        />
+                      </td>
+
+                      {/* Rank Index */}
+                      <td className="px-3 py-4 text-center">
+                        <span className="text-gray-500 font-mono text-xs font-bold">
+                          #{pIndex + 1}
+                        </span>
+                      </td>
+
+                      {/* Interactive Sort Order Column */}
+                      <td className="px-4 py-4 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <div className="flex items-center bg-black/40 border border-purple-500/30 px-2 py-1 rounded-lg focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500/50 shadow-inner">
+                            <input
+                              type="number"
+                              value={p.sortOrder ?? (pIndex + 1)}
+                              onChange={(e) =>
+                                updateProductSortOrder(p._id, parseInt(e.target.value) || 0)
+                              }
+                              className="w-12 bg-transparent text-white font-mono font-bold text-xs text-center focus:outline-none"
+                              title="Ketik angka urutan tampil nominal produk"
+                            />
+                          </div>
+
+                          {/* Quick Up / Down shift buttons */}
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => moveProductOrder(p._id, "up")}
+                              disabled={pIndex === 0}
+                              className={`p-0.5 rounded text-gray-400 hover:text-white hover:bg-white/10 ${
+                                pIndex === 0 ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
+                              }`}
+                              title="Pindahkan naik satu posisi"
+                            >
+                              <ChevronUp className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveProductOrder(p._id, "down")}
+                              disabled={pIndex === filtered.length - 1}
+                              className={`p-0.5 rounded text-gray-400 hover:text-white hover:bg-white/10 ${
+                                pIndex === filtered.length - 1
+                                  ? "opacity-30 cursor-not-allowed"
+                                  : "cursor-pointer"
+                              }`}
+                              title="Pindahkan turun satu posisi"
+                            >
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Product Name & Category */}
+                      <td className="px-6 py-4">
+                        <div className="text-white text-sm font-bold group-hover:text-cyan-400 transition-colors">
+                          {p.name}
+                        </div>
+                        <div className="text-gray-400 text-xs mt-0.5 flex items-center gap-1 font-medium">
+                          <span>🏷️</span>
+                          <span>{p.category}</span>
+                        </div>
+                      </td>
+
+                      {/* Game Name */}
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-white/5 text-gray-300 text-xs font-semibold border border-white/10">
+                          {p.gameId?.name || "—"}
+                        </span>
+                      </td>
+
+                      {/* Digiflazz SKU */}
+                      <td className="px-6 py-4">
+                        <span className="text-gray-400 font-mono text-xs bg-black/30 px-2.5 py-1 rounded-md border border-white/5">
+                          {p.digiflazzSku}
+                        </span>
+                      </td>
+
+                      {/* Capital Price */}
+                      <td className="px-6 py-4 text-gray-400 text-sm font-medium">
+                        {formatCurrency(p.price)}
+                      </td>
+
+                      {/* Selling Price */}
+                      <td className="px-6 py-4 text-white text-sm font-black tracking-tight">
+                        {formatCurrency(p.sellingPrice)}
+                      </td>
+
+                      {/* Margin */}
+                      <td className="px-6 py-4">
+                        <span className="text-green-400 text-xs font-bold bg-green-500/10 px-2.5 py-1 rounded-md border border-green-500/20 whitespace-nowrap">
+                          +{formatCurrency(margin)} ({marginPct}%)
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-6 py-4 text-center">
+                        <Badge
+                          variant={p.isActive ? "success" : "default"}
+                          className="text-[10px] uppercase tracking-wider px-2.5 py-0.5"
                         >
-                          <Pencil className="w-4 h-4 text-purple-400" />
-                        </button>
-                        <button
-                          onClick={() => toggleActive(p._id, p.isActive)}
-                          className={`p-2 rounded-lg transition-all border ${
-                            p.isActive 
-                              ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20" 
-                              : "border-green-500/30 text-green-400 bg-green-500/10 hover:bg-green-500/20"
-                          }`}
-                          title={p.isActive ? "Nonaktifkan" : "Aktifkan"}
-                        >
-                          {p.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
-                        </button>
-                        <button
-                          onClick={() => setDeleteProduct(p)}
-                          className="p-2 rounded-lg transition-all border border-red-500/20 text-red-400 bg-red-500/10 hover:bg-red-500/20"
-                          title="Hapus Produk"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                          {p.isActive ? "Aktif" : "Nonaktif"}
+                        </Badge>
+                      </td>
+
+                      {/* Action Buttons */}
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => setEditProduct(p)}
+                            className="p-2 rounded-lg transition-all border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 cursor-pointer"
+                            title="Edit Produk"
+                          >
+                            <Pencil className="w-4 h-4 text-purple-400" />
+                          </button>
+                          <button
+                            onClick={() => toggleActive(p._id, p.isActive)}
+                            className={`p-2 rounded-lg transition-all border cursor-pointer ${
+                              p.isActive
+                                ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20"
+                                : "border-green-500/30 text-green-400 bg-green-500/10 hover:bg-green-500/20"
+                            }`}
+                            title={p.isActive ? "Nonaktifkan" : "Aktifkan"}
+                          >
+                            {p.isActive ? (
+                              <ToggleRight className="w-4 h-4" />
+                            ) : (
+                              <ToggleLeft className="w-4 h-4" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setDeleteProduct(p)}
+                            className="p-2 rounded-lg transition-all border border-red-500/20 text-red-400 bg-red-500/10 hover:bg-red-500/20 cursor-pointer"
+                            title="Hapus Produk"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
