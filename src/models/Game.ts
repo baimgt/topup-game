@@ -27,6 +27,7 @@ export interface IGame extends Document {
   sortOrder: number;
   homeSortOrder: number;
   // SKU Digiflazz khusus untuk cek username — BUKAN produk jual
+  checkUsernameSku?: string;
   isCheckAccountSupported: boolean;
   isVoucher?: boolean;
   targetInputs?: ITargetInput[];
