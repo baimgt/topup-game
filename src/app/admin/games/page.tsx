@@ -409,9 +409,49 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
                   >
                     <option value="text">Teks Bebas (Text)</option>
                     <option value="number">Angka Saja (Number)</option>
+                    <option value="select">Pilihan / Dropdown (Select)</option>
                     <option value="email">Email</option>
                     <option value="password">Password (Tersembunyi)</option>
                   </select>
+
+                  {input.type === "select" && (
+                    <div className="mt-2.5 bg-black/30 p-3 rounded-xl border border-purple-500/20 space-y-2">
+                      <label className="block text-[11px] font-medium text-purple-300">
+                        Daftar Pilihan / Server (Format: <code className="bg-purple-900/50 px-1 py-0.5 rounded text-purple-200">Label:value</code>, pisahkan dengan koma atau baris baru)
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="Contoh: Asia:asia, America:america, Europe:europe, TW / HK / MO:tw_hk_mo"
+                        value={
+                          Array.isArray(input.options)
+                            ? input.options.map((o: any) => typeof o === "string" ? o : `${o.label || o.value}:${o.value}`).join(", ")
+                            : (input.optionsText || "")
+                        }
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const parsedOptions = raw
+                            .split(/[,\n]/)
+                            .map((item) => item.trim())
+                            .filter(Boolean)
+                            .map((item) => {
+                              if (item.includes(":")) {
+                                const [lbl, ...valParts] = item.split(":");
+                                return { label: lbl.trim(), value: valParts.join(":").trim() };
+                              }
+                              return { label: item, value: item.toLowerCase().replace(/\s+/g, "_") };
+                            });
+                          
+                          const next = [...form.targetInputs];
+                          next[idx] = { ...next[idx], options: parsedOptions, optionsText: raw };
+                          setForm({ ...form, targetInputs: next });
+                        }}
+                        className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                      />
+                      <p className="text-[10px] text-gray-400">
+                        Pilihan di atas akan muncul sebagai dropdown saat pembeli melakukan pemesanan.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

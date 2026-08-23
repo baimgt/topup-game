@@ -1,3 +1,16 @@
+export interface TargetInputOption {
+  label: string;
+  value: string;
+}
+
+export interface TargetInput {
+  name: string;
+  label?: string;
+  placeholder?: string;
+  type: string;
+  options?: TargetInputOption[];
+}
+
 export interface Game {
   id: string;
   _id?: string;
@@ -12,7 +25,7 @@ export interface Game {
   sortOrder: number;
   homeSortOrder?: number;
   isCheckAccountSupported: boolean;
-  targetInputs?: { name: string; label?: string; placeholder?: string; type: string }[];
+  targetInputs?: TargetInput[];
   targetFormat?: string;
   categoryOrder?: string[];
   products?: Product[];

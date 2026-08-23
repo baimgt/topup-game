@@ -17,21 +17,35 @@ const GAME_BRAND_MAP: Record<string, string[]> = {
 };
 
 // Custom checker untuk Genshin Impact (via Enka Network API & Region Parser)
-async function checkGenshinImpact(uid: string) {
+async function checkGenshinImpact(uid: string, selectedServer?: string) {
   const cleanUid = uid.trim();
 
   if (!/^\d{8,11}$/.test(cleanUid)) {
     return { success: false, error: "UID Genshin Impact harus 8-11 digit angka" };
   }
 
-  // Tentukan region server dari prefix UID
-  let region = "Asia";
-  const first = cleanUid.charAt(0);
-  if (first === "6") region = "America (NA)";
-  else if (first === "7") region = "Europe (EU)";
-  else if (first === "8") region = "Asia (ASIA)";
-  else if (first === "9") region = "TW / HK / MO";
-  else if (first === "1" || first === "2" || first === "5") region = "China (CN)";
+  // Tentukan region server berdasarkan pilihan user atau prefix UID
+  let region = "";
+
+  if (selectedServer && selectedServer.trim()) {
+    const s = selectedServer.toLowerCase().trim();
+    if (s === "asia" || s.includes("asia")) region = "Asia (ASIA)";
+    else if (s === "america" || s.includes("america") || s.includes("na") || s.includes("us")) region = "America (NA)";
+    else if (s === "europe" || s.includes("europe") || s.includes("eu")) region = "Europe (EU)";
+    else if (s === "tw_hk_mo" || s.includes("tw") || s.includes("hk") || s.includes("mo")) region = "TW / HK / MO";
+    else if (s.includes("china") || s.includes("cn")) region = "China (CN)";
+  }
+
+  // Jika server tidak dipilih atau belum terpetakan, deteksi otomatis dari digit pertama UID
+  if (!region) {
+    const first = cleanUid.charAt(0);
+    if (first === "6") region = "America (NA)";
+    else if (first === "7") region = "Europe (EU)";
+    else if (first === "8" || first === "1") region = "Asia (ASIA)";
+    else if (first === "9") region = "TW / HK / MO";
+    else if (first === "2" || first === "5") region = "China (CN)";
+    else region = "Asia (ASIA)";
+  }
 
   try {
     const res = await axios.get(`https://enka.network/api/uid/${cleanUid}`, {
@@ -135,7 +149,7 @@ export async function POST(req: NextRequest) {
 
     // ── Direct Auto Checker khusus Genshin Impact & Honor of Kings ──
     if (slugLower.includes("genshin")) {
-      const result = await checkGenshinImpact(userId);
+      const result = await checkGenshinImpact(userId, serverId);
       return NextResponse.json(result);
     }
 

@@ -86,6 +86,10 @@ const createGameSchema = z.object({
     label: z.string().optional(),
     placeholder: z.string().optional(),
     type: z.string().min(1),
+    options: z.array(z.object({
+      label: z.string().optional(),
+      value: z.string().min(1),
+    })).optional(),
   })).optional(),
 });
 

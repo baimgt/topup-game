@@ -14,6 +14,7 @@ import ProductCard from "@/components/games/ProductCard";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 interface PaymentMethod {
   id: string;
@@ -183,7 +184,7 @@ export default function OrderForm({ game }: OrderFormProps) {
   // 2. Game adalah Genshin Impact / Honor of Kings (punya auto-checker tanpa Digiflazz)
   const slugLower = (game.slug || "").toLowerCase();
   const isGenshinOrHOK = slugLower.includes("genshin") || slugLower.includes("honor-of-kings") || slugLower.includes("honor_of_kings");
-  const isCheckSupported = !hasCustomInputs && (Boolean(game.isCheckAccountSupported) || isGenshinOrHOK);
+  const isCheckSupported = Boolean(game.isCheckAccountSupported) || isGenshinOrHOK;
 
   // Account check
   const [checkStatus, setCheckStatus] = useState<CheckStatus>(isCheckSupported ? "idle" : "unsupported");
@@ -289,12 +290,12 @@ export default function OrderForm({ game }: OrderFormProps) {
 
   // Reset check saat userId/serverId berubah, tapi HANYA jika game mendukung cek akun
   useEffect(() => {
-    if (game.isCheckAccountSupported && !hasCustomInputs && checkStatus !== "idle") {
+    if (isCheckSupported && checkStatus !== "idle") {
       setCheckStatus("idle");
       setCheckedUsername("");
       setCheckError("");
     }
-  }, [userId, serverId, game.isCheckAccountSupported, hasCustomInputs]);
+  }, [userId, serverId, customInputs, isCheckSupported]);
 
   // Autofill user profile
   useEffect(() => {
@@ -316,9 +317,31 @@ export default function OrderForm({ game }: OrderFormProps) {
 
   // ── Cek Akun ───────────────────────────────────────────────────────────────
   const handleCheckAccount = useCallback(async () => {
-    if (hasCustomInputs) return;
-    if (!userId.trim()) { toast.error("Masukkan ID akun game terlebih dahulu"); return; }
-    if (needsServerId && !serverId.trim()) { toast.error("Masukkan Server ID terlebih dahulu"); return; }
+    let checkUid = userId.trim();
+    let checkServer = (needsServerId ? serverId.trim() : undefined) || undefined;
+
+    if (hasCustomInputs) {
+      const uidKey = game.targetInputs?.find(i => 
+        i.name.toLowerCase().includes("user") || 
+        i.name.toLowerCase().includes("id") || 
+        i.name.toLowerCase().includes("uid") || 
+        i.label?.toLowerCase().includes("user") || 
+        i.label?.toLowerCase().includes("id") ||
+        i.label?.toLowerCase().includes("uid")
+      )?.name || game.targetInputs?.[0]?.name;
+
+      const serverKey = game.targetInputs?.find(i => 
+        i.name.toLowerCase().includes("server") || 
+        i.name.toLowerCase().includes("zone") || 
+        i.label?.toLowerCase().includes("server") || 
+        i.label?.toLowerCase().includes("zone")
+      )?.name;
+
+      if (uidKey) checkUid = (customInputs[uidKey] || "").trim();
+      if (serverKey) checkServer = (customInputs[serverKey] || "").trim() || undefined;
+    }
+
+    if (!checkUid) { toast.error("Masukkan ID akun game terlebih dahulu"); return; }
 
     setCheckStatus("checking");
     setCheckedUsername("");
@@ -330,8 +353,8 @@ export default function OrderForm({ game }: OrderFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameSlug: game.slug,
-          userId: userId.trim(),
-          serverId: serverId.trim() || undefined,
+          userId: checkUid,
+          serverId: checkServer,
         }),
       });
 
@@ -358,7 +381,7 @@ export default function OrderForm({ game }: OrderFormProps) {
       setCheckError("Gagal mengecek akun, coba lagi");
       toast.error("Gagal mengecek akun");
     }
-  }, [userId, serverId, game.slug, needsServerId, hasCustomInputs]);
+  }, [userId, serverId, customInputs, game.slug, needsServerId, hasCustomInputs, game.targetInputs]);
 
   // ── Submit Order ───────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
@@ -368,22 +391,17 @@ export default function OrderForm({ game }: OrderFormProps) {
     if (hasCustomInputs) {
       for (const input of game.targetInputs!) {
         if (!customInputs[input.name]?.trim()) {
-          toast.error(`${input.name} wajib diisi`);
+          toast.error(`${input.label || input.name} wajib diisi`);
           return;
         }
       }
     } else {
       if (!userId.trim()) { toast.error("ID akun game wajib diisi"); return; }
       if (needsServerId && !serverId.trim()) { toast.error("Server ID wajib diisi"); return; }
-      if (game.isCheckAccountSupported && checkStatus !== "valid" && checkStatus !== "unsupported") { 
-        toast.error("Silakan cek akun terlebih dahulu"); 
-        return; 
-      }
     }
 
-    if (!selectedPaymentMethod) { toast.error("Metode pembayaran wajib dipilih"); return; }
+    if (!selectedPaymentMethod) { toast.error("Pilih metode pembayaran"); return; }
     if (!customerEmail.trim()) { toast.error("Email wajib diisi"); return; }
-    if (!customerPhone.trim()) { toast.error("Nomor WhatsApp wajib diisi"); return; }
 
     setSubmitting(true);
     try {
@@ -391,12 +409,12 @@ export default function OrderForm({ game }: OrderFormProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          productId: selectedProduct.id,
-          gameUserId: hasCustomInputs 
+          productId: selectedProduct.id || selectedProduct._id,
+          gameUserId: hasCustomInputs
             ? formatCustomerNo(game.targetInputs!, customInputs, game.targetFormat)
             : userId.trim(),
           gameServerId: (!hasCustomInputs && needsServerId) ? serverId.trim() : undefined,
-          customerName: customerName.trim() || "Guest",
+          customerName: customerName.trim() || undefined,
           customerEmail: customerEmail.trim(),
           customerPhone: customerPhone.trim(),
           paymentMethodId: selectedPaymentMethod.id,
@@ -479,16 +497,35 @@ export default function OrderForm({ game }: OrderFormProps) {
           <div className="space-y-4">
             {hasCustomInputs ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {game.targetInputs!.map((input, idx) => (
-                  <Input
-                    key={idx}
-                    label={input.label || input.name}
-                    type={input.type}
-                    placeholder={input.placeholder || `Masukkan ${input.label || input.name}`}
-                    value={customInputs[input.name] || ""}
-                    onChange={(e) => setCustomInputs({ ...customInputs, [input.name]: e.target.value })}
-                  />
-                ))}
+                {game.targetInputs!.map((input, idx) => {
+                  const isSelect = input.type === "select" || (input.options && input.options.length > 0);
+                  if (isSelect) {
+                    return (
+                      <CustomSelect
+                        key={idx}
+                        label={input.label || input.name}
+                        placeholder={input.placeholder || `Pilih ${input.label || input.name}`}
+                        value={customInputs[input.name] || ""}
+                        options={(input.options || []).map((opt: any) => ({
+                          label: typeof opt === "string" ? opt : (opt.label || opt.value),
+                          value: typeof opt === "string" ? opt : opt.value,
+                        }))}
+                        onChange={(val) => setCustomInputs({ ...customInputs, [input.name]: val })}
+                      />
+                    );
+                  }
+
+                  return (
+                    <Input
+                      key={idx}
+                      label={input.label || input.name}
+                      type={input.type}
+                      placeholder={input.placeholder || `Masukkan ${input.label || input.name}`}
+                      value={customInputs[input.name] || ""}
+                      onChange={(e) => setCustomInputs({ ...customInputs, [input.name]: e.target.value })}
+                    />
+                  );
+                })}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -512,7 +549,7 @@ export default function OrderForm({ game }: OrderFormProps) {
             )}
 
             {/* Jika Game Mendukung Cek Akun */}
-            {isCheckSupported && !hasCustomInputs && (
+            {isCheckSupported && (
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-black/20 p-3 rounded-xl border border-white/5">
                 <Button
                   type="button"
@@ -520,7 +557,7 @@ export default function OrderForm({ game }: OrderFormProps) {
                   size="sm"
                   onClick={handleCheckAccount}
                   loading={checkStatus === "checking"}
-                  disabled={!userId.trim() || (needsServerId && !serverId.trim())}
+                  disabled={hasCustomInputs ? !isCustomInputsValid : (!userId.trim() || (needsServerId && !serverId.trim()))}
                   className="flex-shrink-0 w-full sm:w-auto"
                 >
                   <Gamepad2 className="w-4 h-4" />
@@ -536,7 +573,7 @@ export default function OrderForm({ game }: OrderFormProps) {
                   )}
                   {checkStatus === "valid" && (
                     <p className="text-green-400 text-sm font-medium flex items-center gap-1.5">
-                      <CheckCircle className="w-4 h-4" /> Terverifikasi: {checkedUsername}
+                      <CheckCircle className="w-4 h-4" /> Terverifikasi: {checkedUsername} {checkedRegion ? `(${checkedRegion})` : ""}
                     </p>
                   )}
                   {checkStatus === "invalid" && (

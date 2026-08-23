@@ -1,5 +1,18 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
+export interface ITargetInputOption {
+  label: string;
+  value: string;
+}
+
+export interface ITargetInput {
+  name: string;
+  label?: string;
+  placeholder?: string;
+  type: string;
+  options?: ITargetInputOption[];
+}
+
 export interface IGame extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
@@ -16,7 +29,7 @@ export interface IGame extends Document {
   // SKU Digiflazz khusus untuk cek username — BUKAN produk jual
   checkUsernameSku?: string;
   isCheckAccountSupported: boolean;
-  targetInputs?: { name: string; label?: string; placeholder?: string; type: string }[];
+  targetInputs?: ITargetInput[];
   targetFormat?: string; // "concat" | "space" | "pipe"
   categoryOrder?: string[];
   createdAt: Date;
@@ -46,6 +59,12 @@ const GameSchema = new Schema<IGame>(
         label: { type: String, default: "" },
         placeholder: { type: String, default: "" },
         type: { type: String, required: true, default: "text" },
+        options: [
+          {
+            label: { type: String, default: "" },
+            value: { type: String, default: "" },
+          },
+        ],
       },
     ],
   },
