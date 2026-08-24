@@ -113,6 +113,7 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [gameFilter, setGameFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
   const [games, setGames] = useState<any[]>([]);
   const [showImportModal, setShowImportModal] = useState(false);
   const [editProduct, setEditProduct] = useState<any | null>(null);
@@ -133,6 +134,20 @@ export default function AdminProductsPage() {
     if (gameFilter === "ALL") return undefined;
     return games.find((g) => (g._id || g.id) === gameFilter);
   }, [gameFilter, games]);
+
+  // Statistics for products (total, active, inactive)
+  const stats = useMemo(() => {
+    const baseList =
+      gameFilter === "ALL"
+        ? products
+        : products.filter((p) => (p.gameId?._id || p.gameId) === gameFilter);
+
+    const total = baseList.length;
+    const active = baseList.filter((p) => p.isActive).length;
+    const inactive = baseList.filter((p) => !p.isActive).length;
+
+    return { total, active, inactive };
+  }, [products, gameFilter]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -171,13 +186,18 @@ export default function AdminProductsPage() {
     if (gameFilter !== "ALL") {
       result = result.filter((p) => (p.gameId?._id || p.gameId) === gameFilter);
     }
+    if (statusFilter === "ACTIVE") {
+      result = result.filter((p) => p.isActive);
+    } else if (statusFilter === "INACTIVE") {
+      result = result.filter((p) => !p.isActive);
+    }
     const sorted = [...result].sort(
       (a, b) =>
         (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) ||
         a.sellingPrice - b.sellingPrice
     );
     setFiltered(sorted);
-  }, [search, gameFilter, products]);
+  }, [search, gameFilter, statusFilter, products]);
 
   // Sync Digiflazz live prices & product status
   const handleSyncDigiflazz = async () => {
@@ -490,7 +510,154 @@ export default function AdminProductsPage() {
       </div>
 
       {/* Filters & Auto-Sort Bar */}
-      <div className="bg-gaming-card rounded-2xl border border-white/5 p-4 space-y-3">
+      <div className="bg-gaming-card rounded-2xl border border-white/5 p-4 space-y-3.5">
+        {/* Status Filter Tabs (Semua, Aktif, Nonaktif) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/5">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Tab: Semua */}
+            <button
+              type="button"
+              onClick={() => setStatusFilter("ALL")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                statusFilter === "ALL"
+                  ? "bg-purple-600 text-white shadow-md shadow-purple-600/30 border border-purple-500"
+                  : "bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10"
+              }`}
+            >
+              <span>Semua Produk</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                  statusFilter === "ALL"
+                    ? "bg-black/30 text-purple-200"
+                    : "bg-black/20 text-gray-400"
+                }`}
+              >
+                {stats.total}
+              </span>
+            </button>
+
+            {/* Tab: Aktif */}
+            <button
+              type="button"
+              onClick={() => setStatusFilter("ACTIVE")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                statusFilter === "ACTIVE"
+                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30 border border-emerald-500"
+                  : "bg-white/5 hover:bg-white/10 text-emerald-400 border border-emerald-500/20"
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Aktif</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                  statusFilter === "ACTIVE"
+                    ? "bg-black/30 text-emerald-200"
+                    : "bg-emerald-950/40 text-emerald-300"
+                }`}
+              >
+                {stats.active}
+              </span>
+            </button>
+
+            {/* Tab: Nonaktif (Sorot jika ada produk nonaktif) */}
+            <button
+              type="button"
+              onClick={() => setStatusFilter("INACTIVE")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                statusFilter === "INACTIVE"
+                  ? "bg-red-600 text-white shadow-md shadow-red-600/30 border border-red-500"
+                  : stats.inactive > 0
+                  ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 shadow-[0_0_12px_rgba(239,68,68,0.15)]"
+                  : "bg-white/5 hover:bg-white/10 text-gray-400 border border-white/10"
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  stats.inactive > 0 ? "bg-red-400 animate-ping" : "bg-gray-500"
+                }`}
+              />
+              <span>Nonaktif</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black ${
+                  statusFilter === "INACTIVE"
+                    ? "bg-black/30 text-red-100"
+                    : stats.inactive > 0
+                    ? "bg-red-500/30 text-red-200 border border-red-500/40"
+                    : "bg-black/20 text-gray-400"
+                }`}
+              >
+                {stats.inactive}
+              </span>
+            </button>
+          </div>
+
+          {stats.inactive > 0 && statusFilter !== "INACTIVE" && (
+            <button
+              type="button"
+              onClick={() => setStatusFilter("INACTIVE")}
+              className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1.5 font-medium cursor-pointer transition-colors"
+            >
+              <span>⚠️ Ada {stats.inactive} produk nonaktif</span>
+              <span className="underline">Lihat</span>
+            </button>
+          )}
+        </div>
+
+        {/* Inactive Products Notification & Quick Batch Enable */}
+        {statusFilter === "INACTIVE" && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fadeIn">
+            <div className="flex items-center gap-2.5 text-red-300">
+              <span className="text-xl">🚫</span>
+              <div>
+                <span className="font-bold text-sm text-red-200">
+                  Menampilkan {filtered.length} Produk Nonaktif
+                </span>
+                <p className="text-gray-400 text-[11px] mt-0.5">
+                  Produk-produk ini saat ini disembunyikan dan tidak dapat dibeli oleh pengunjung.
+                </p>
+              </div>
+            </div>
+            {filtered.length > 0 && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const allInactiveIds = filtered.map((p) => p._id);
+                  setBulkActionLoading(true);
+                  try {
+                    const token = localStorage.getItem("token");
+                    const res = await fetch("/api/admin/products/bulk", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({
+                        action: "toggleActive",
+                        productIds: allInactiveIds,
+                        isActive: true,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      toast.success(`Berhasil mengaktifkan ${allInactiveIds.length} produk!`);
+                      fetchProducts();
+                    } else {
+                      toast.error(data.error || "Gagal mengaktifkan produk");
+                    }
+                  } catch {
+                    toast.error("Gagal mengaktifkan produk");
+                  }
+                  setBulkActionLoading(false);
+                }}
+                disabled={bulkActionLoading}
+                className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition-all shadow-md hover:scale-105 cursor-pointer whitespace-nowrap"
+              >
+                <span>⚡ Aktifkan Semua ({filtered.length})</span>
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
           {/* Search Box */}
           <div className="flex-1 relative">
@@ -782,8 +949,8 @@ export default function AdminProductsPage() {
                       {/* Status */}
                       <td className="px-6 py-4 text-center">
                         <Badge
-                          variant={p.isActive ? "success" : "default"}
-                          className="text-[10px] uppercase tracking-wider px-2.5 py-0.5"
+                          variant={p.isActive ? "success" : "danger"}
+                          className="text-[10px] uppercase tracking-wider px-2.5 py-0.5 font-bold"
                         >
                           {p.isActive ? "Aktif" : "Nonaktif"}
                         </Badge>
