@@ -7,8 +7,23 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/api/uploads/"],
-        disallow: ["/admin/", "/api/", "/profile", "/orders"],
+        allow: [
+          "/",
+          "/api/uploads/",
+          "/favicon.ico",
+          "/favicon.svg",
+          "/icon",
+          "/apple-icon",
+        ],
+        disallow: ["/admin/", "/profile", "/orders"],
+      },
+      {
+        userAgent: "Googlebot-Image",
+        allow: ["/", "/api/uploads/", "/public/"],
+      },
+      {
+        userAgent: "Google-Favicon",
+        allow: ["/"],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

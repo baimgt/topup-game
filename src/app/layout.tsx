@@ -53,9 +53,30 @@ export async function generateMetadata(): Promise<Metadata> {
           url: iconUrl,
           ...(iconUrl.endsWith(".svg") ? { type: "image/svg+xml" } : {}),
         },
+        {
+          url: iconUrl,
+          sizes: "48x48",
+        },
+        {
+          url: iconUrl,
+          sizes: "96x96",
+        },
+        {
+          url: iconUrl,
+          sizes: "192x192",
+        },
       ],
-      shortcut: iconUrl,
-      apple: iconUrl,
+      shortcut: [
+        {
+          url: iconUrl,
+        },
+      ],
+      apple: [
+        {
+          url: iconUrl,
+          sizes: "180x180",
+        },
+      ],
     },
     openGraph: {
       title: `${siteName} - Top Up Game Terpercaya`,
