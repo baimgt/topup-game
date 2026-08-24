@@ -8,8 +8,17 @@ export const dynamic = "force-dynamic";
 // Daftar produk pascabayar populer bawaan jika database belum disinkronkan
 const DEFAULT_PASCA_PRODUCTS = [
   {
-    buyer_sku_code: "pln-pasca",
+    buyer_sku_code: "plnpascabayar",
     product_name: "PLN Pascabayar (Tagihan Listrik)",
+    category: "PLN",
+    brand: "PLN",
+    admin: 2500,
+    commission: 1000,
+    buyer_product_status: true,
+  },
+  {
+    buyer_sku_code: "pln",
+    product_name: "PLN Pascabayar (Standar)",
     category: "PLN",
     brand: "PLN",
     admin: 2500,

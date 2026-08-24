@@ -196,7 +196,12 @@ export async function sendInvoiceEmail(order: any) {
 
         ${isPaid ? `
         <div style="text-align: center; margin: 32px 0;">
-          <a href="${orderUrl}" style="background-color: #7c3aed; background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%); color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 15px; display: inline-block; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);">
+          ${order.isPascabayar ? `
+          <a href="${order.receiptUrl || `https://receipt.tagihanpulsa.com/digiflazz/${order.sn || order.digiflazzRef}`}" style="background-color: #059669; background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: #ffffff; padding: 14px 24px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4); margin-right: 8px; margin-bottom: 8px;">
+            📄 Unduh Struk PDF Resmi ➔
+          </a>
+          ` : ''}
+          <a href="${orderUrl}" style="background-color: #7c3aed; background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%); color: #ffffff; padding: 14px 24px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4); margin-bottom: 8px;">
             Buka Detail Pesanan di Web ➔
           </a>
         </div>

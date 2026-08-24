@@ -69,6 +69,14 @@ export async function processOrderPayment(order: any) {
         order.receiptNo = payResult.sn;
       }
 
+      const refCode = payResult.sn || payResult.ref_id || order.digiflazzRef;
+      if (refCode) {
+        order.receiptUrl = `https://receipt.tagihanpulsa.com/digiflazz/${refCode}`;
+        if (order.pascabayarData) {
+          order.pascabayarData.receiptUrl = order.receiptUrl;
+        }
+      }
+
       order.orderStatus =
         payResult.status === "Sukses"
           ? "SUCCESS"
@@ -186,6 +194,13 @@ export async function syncOrderStatus(orderNumber: string) {
         if (digiStatus.sn) {
           order.sn = digiStatus.sn;
           order.receiptNo = digiStatus.sn;
+        }
+        const refCode = digiStatus.sn || digiStatus.ref_id || order.digiflazzRef;
+        if (refCode) {
+          order.receiptUrl = `https://receipt.tagihanpulsa.com/digiflazz/${refCode}`;
+          if (order.pascabayarData) {
+            order.pascabayarData.receiptUrl = order.receiptUrl;
+          }
         }
         if (digiStatus.status === "Sukses") {
           order.orderStatus = "SUCCESS";

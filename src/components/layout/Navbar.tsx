@@ -81,7 +81,7 @@ export default function Navbar() {
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-indigo-500 transition-all duration-300 group-hover:w-full rounded-full" />
             </Link>
             <Link href="/tagihan" className="relative text-cyan-300 hover:text-cyan-200 font-semibold text-sm transition-colors group py-1 flex items-center gap-1.5">
-              <span>⚡ Bayar Tagihan</span>
+              <span>Bayar Tagihan</span>
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-cyan-400 transition-all duration-300 group-hover:w-full rounded-full" />
             </Link>
             <Link href="/order/check" className="relative text-gray-300 hover:text-white font-medium text-sm transition-colors group py-1">
@@ -212,7 +212,7 @@ export default function Navbar() {
                 <div className="w-7 h-7 rounded-lg nav-icon-box bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300 group-hover:text-white group-hover:bg-cyan-600/40 transition-colors">
                   <Zap className="w-4 h-4" />
                 </div>
-                <span>⚡ Bayar Tagihan (PPOB)</span>
+                <span>Bayar Tagihan (PPOB)</span>
               </Link>
 
               <Link 

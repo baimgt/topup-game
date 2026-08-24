@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, XCircle, Clock, RefreshCw, Home, Search, Copy, Check } from "lucide-react";
+import { CheckCircle, XCircle, Clock, RefreshCw, Home, Search, Copy, Check, ExternalLink, FileText, Download } from "lucide-react";
 import toast from "react-hot-toast";
 import { Order } from "@/types";
 import { formatCurrency } from "@/lib/utils";
@@ -415,15 +415,34 @@ export default function OrderDetailPage() {
               <div className="font-mono text-xl sm:text-2xl font-black text-yellow-400 tracking-wider break-all text-center sm:text-left select-all">
                 {order.sn}
               </div>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleCopySn}
-                className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold px-5 py-2.5 flex items-center justify-center gap-2 flex-shrink-0 shadow-lg shadow-cyan-500/20"
-              >
-                {copiedSn ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4 text-white" />}
-                {copiedSn ? "Tersalin!" : "Salin No. Ref"}
-              </Button>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleCopySn}
+                  className="flex-1 sm:flex-initial bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold px-4 py-2.5 flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-500/20"
+                >
+                  {copiedSn ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4 text-white" />}
+                  {copiedSn ? "Tersalin!" : "Salin No. Ref"}
+                </Button>
+                {(order as any).isPascabayar && (
+                  <a
+                    href={(order as any).receiptUrl || `https://receipt.tagihanpulsa.com/digiflazz/${order.sn || order.digiflazzRef}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 sm:flex-initial"
+                  >
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 font-bold px-4 py-2.5 flex items-center justify-center gap-1.5"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Struk PDF</span>
+                    </Button>
+                  </a>
+                )}
+              </div>
             </div>
 
             <p className="text-gray-300 text-xs leading-relaxed flex items-center gap-1.5 mt-2">
@@ -458,6 +477,12 @@ export default function OrderDetailPage() {
               <div className="flex justify-between">
                 <span className="text-gray-400">{(order as any).isPascabayar ? "Nama Pemilik Rekening" : "Nama Akun (Nickname)"}</span>
                 <span className="text-cyan-300 font-bold">{order.gameUsername}</span>
+              </div>
+            )}
+            {(order as any).pascabayarData?.standMeter && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">Stand Meter</span>
+                <span className="text-cyan-300 font-mono font-semibold">{(order as any).pascabayarData.standMeter}</span>
               </div>
             )}
             {(order as any).pascabayarData?.period && (

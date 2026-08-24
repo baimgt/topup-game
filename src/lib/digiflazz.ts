@@ -147,7 +147,7 @@ export async function inquiryPascabayar(
   const sign = makeSign(username, apiKey, refId);
 
   const payload: Record<string, unknown> = {
-    commands: "inquiry-pasca",
+    commands: "inq-pasca",
     username,
     buyer_sku_code: buyerSkuCode,
     customer_no: customerNo,
@@ -159,8 +159,11 @@ export async function inquiryPascabayar(
     payload.testing = true;
   }
 
-  const response = await axios.post(`${DIGIFLAZZ_BASE_URL}/transaction`, payload);
-  return response.data.data;
+  const response = await axios.post(`${DIGIFLAZZ_BASE_URL}/transaction`, payload, {
+    validateStatus: () => true,
+    timeout: 25000,
+  });
+  return response.data?.data || response.data;
 }
 
 /**
@@ -191,8 +194,11 @@ export async function payPascabayar(
     payload.testing = true;
   }
 
-  const response = await axios.post(`${DIGIFLAZZ_BASE_URL}/transaction`, payload);
-  return response.data.data;
+  const response = await axios.post(`${DIGIFLAZZ_BASE_URL}/transaction`, payload, {
+    validateStatus: () => true,
+    timeout: 25000,
+  });
+  return response.data?.data || response.data;
 }
 
 /**
@@ -208,16 +214,22 @@ export async function checkStatusPascabayar(
   const apiKey = options?.apiKey || getCreds().apiKey;
   const sign = makeSign(username, apiKey, refId);
 
-  const response = await axios.post(`${DIGIFLAZZ_BASE_URL}/transaction`, {
-    commands: "status-pasca",
-    username,
-    buyer_sku_code: buyerSkuCode,
-    customer_no: customerNo,
-    ref_id: refId,
-    sign,
-  });
-
-  return response.data.data;
+  const response = await axios.post(
+    `${DIGIFLAZZ_BASE_URL}/transaction`,
+    {
+      commands: "status-pasca",
+      username,
+      buyer_sku_code: buyerSkuCode,
+      customer_no: customerNo,
+      ref_id: refId,
+      sign,
+    },
+    {
+      validateStatus: () => true,
+      timeout: 25000,
+    }
+  );
+  return response.data?.data || response.data;
 }
 
 export async function checkTransactionStatus(

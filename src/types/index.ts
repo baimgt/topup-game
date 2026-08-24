@@ -74,6 +74,7 @@ export interface Order {
   isPascabayar?: boolean;
   pascabayarData?: any;
   receiptNo?: string;
+  receiptUrl?: string;
   notes?: string;
   isFlashSale?: boolean;
   flashSaleDecremented?: boolean;

@@ -16,13 +16,17 @@ import {
   ChevronRight,
   Sparkles,
   ArrowRight,
-  Flame,
   FileText,
-  Activity,
-  Tv,
+  HelpCircle,
+  Layers,
+  Check,
+  Building2,
+  HeartPulse,
+  Wifi,
   Smartphone,
   Droplets,
-  HelpCircle,
+  Fuel,
+  Wallet,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils";
@@ -51,6 +55,7 @@ interface InquiryResult {
   period: string;
   tariff: string;
   daya: number;
+  standMeter?: string;
   lembarTagihan: number;
   detail: any[];
   message: string;
@@ -65,14 +70,52 @@ interface PaymentMethod {
   icon?: string;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  PLN: "⚡",
-  BPJS: "🏥",
-  PDAM: "💧",
-  "Internet & TV": "🌐",
-  "HP Pascabayar": "📱",
-  Multifinance: "💳",
-  "Gas Negara": "⛽",
+const CATEGORY_META: Record<
+  string,
+  { icon: string; desc: string; placeholder: string; badgeColor: string }
+> = {
+  PLN: {
+    icon: "⚡",
+    desc: "Listrik Pascabayar & Non-Taglis",
+    placeholder: "Masukkan 12 Digit Nomor Meter / ID Pelanggan PLN",
+    badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
+  },
+  BPJS: {
+    icon: "🏥",
+    desc: "BPJS Kesehatan & Ketenagakerjaan",
+    placeholder: "Masukkan 13 Digit Nomor Kartu BPJS",
+    badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  },
+  PDAM: {
+    icon: "💧",
+    desc: "Air PDAM Seluruh Indonesia",
+    placeholder: "Masukkan Nomor Pelanggan PDAM Anda",
+    badgeColor: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  },
+  "Internet & TV": {
+    icon: "🌐",
+    desc: "Telkom, Indihome, Speedy, TV Kabel",
+    placeholder: "Masukkan Nomor Pelanggan / ID Telepon",
+    badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  },
+  "HP Pascabayar": {
+    icon: "📱",
+    desc: "Kartu Halo, Indosat Matrix, XL Prioritas",
+    placeholder: "Contoh: 0811xxxxxxxx / 0812xxxxxxxx",
+    badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
+  },
+  Multifinance: {
+    icon: "💳",
+    desc: "Cicilan FIF, BAF, WOM, Mega Auto",
+    placeholder: "Masukkan Nomor Kontrak Perjanjian Cicilan",
+    badgeColor: "bg-rose-50 text-rose-700 border-rose-200",
+  },
+  "Gas Negara": {
+    icon: "⛽",
+    desc: "Gas Rumah Tangga & Industri PGN",
+    placeholder: "Masukkan Nomor Pelanggan Gas PGN",
+    badgeColor: "bg-orange-50 text-orange-700 border-orange-200",
+  },
 };
 
 export default function TagihanPascabayarPage() {
@@ -92,15 +135,27 @@ export default function TagihanPascabayarPage() {
   // Inquiry states
   const [inquiryLoading, setInquiryLoading] = useState(false);
   const [inquiryData, setInquiryData] = useState<InquiryResult | null>(null);
+  const [paidModalInfo, setPaidModalInfo] = useState<{
+    isOpen: boolean;
+    customerNo: string;
+    productName: string;
+    message: string;
+  }>({
+    isOpen: false,
+    customerNo: "",
+    productName: "",
+    message: "",
+  });
 
   // Payment states
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string>("");
+  const [paymentCategoryFilter, setPaymentCategoryFilter] = useState<string>("ALL");
   const [customerEmail, setCustomerEmail] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
   const [submittingOrder, setSubmittingOrder] = useState(false);
 
-  // Fetch products
+  // Fetch products & payment methods
   useEffect(() => {
     async function loadPascaProducts() {
       setLoadingProducts(true);
@@ -141,7 +196,7 @@ export default function TagihanPascabayarPage() {
     loadPaymentMethods();
   }, []);
 
-  // Filter products by selected category & search
+  // Filter products by category & search
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchCat =
@@ -150,7 +205,6 @@ export default function TagihanPascabayarPage() {
       const matchSearch =
         !searchFilter ||
         p.product_name?.toLowerCase().includes(searchFilter.toLowerCase()) ||
-        p.buyer_sku_code?.toLowerCase().includes(searchFilter.toLowerCase()) ||
         p.brand?.toLowerCase().includes(searchFilter.toLowerCase());
       return matchCat && matchSearch;
     });
@@ -159,7 +213,6 @@ export default function TagihanPascabayarPage() {
   // Set default SKU when filtered products change
   useEffect(() => {
     if (filteredProducts.length > 0) {
-      // Prioritaskan SKU yang sedang dipilih jika masih ada di list
       if (!filteredProducts.some((p) => p.buyer_sku_code === selectedSku)) {
         setSelectedSku(filteredProducts[0].buyer_sku_code);
       }
@@ -186,6 +239,38 @@ export default function TagihanPascabayarPage() {
   const selectedProduct = useMemo(() => {
     return products.find((p) => p.buyer_sku_code === selectedSku);
   }, [products, selectedSku]);
+
+  const activeCategoryMeta = useMemo(() => {
+    return (
+      CATEGORY_META[selectedCategory] || {
+        icon: "🏷️",
+        desc: "Layanan Tagihan Bulanan",
+        placeholder: "Masukkan Nomor Pelanggan / ID Tagihan Anda",
+        badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200",
+      }
+    );
+  }, [selectedCategory]);
+
+  // Grouped Payment Methods
+  const filteredPaymentMethods = useMemo(() => {
+    if (paymentCategoryFilter === "ALL") return paymentMethods;
+    return paymentMethods.filter(
+      (m) =>
+        m.category?.toLowerCase() === paymentCategoryFilter.toLowerCase() ||
+        (paymentCategoryFilter === "E-WALLET" &&
+          (m.id.toLowerCase().includes("shopee") ||
+            m.id.toLowerCase().includes("gopay") ||
+            m.id.toLowerCase().includes("dana") ||
+            m.id.toLowerCase().includes("ovo") ||
+            m.id.toLowerCase().includes("qris"))) ||
+        (paymentCategoryFilter === "VA" &&
+          (m.id.toLowerCase().includes("va") ||
+            m.id.toLowerCase().includes("bca") ||
+            m.id.toLowerCase().includes("bri") ||
+            m.id.toLowerCase().includes("bni") ||
+            m.id.toLowerCase().includes("mandiri")))
+    );
+  }, [paymentMethods, paymentCategoryFilter]);
 
   // Handle Cek Tagihan (Inquiry)
   const handleInquiry = async (e?: React.FormEvent) => {
@@ -218,6 +303,21 @@ export default function TagihanPascabayarPage() {
       if (data.success && data.data) {
         setInquiryData(data.data);
         toast.success("Tagihan berhasil ditemukan!");
+      } else if (
+        data.isPaid ||
+        data.rc === "60" ||
+        data.rc === "17" ||
+        data.error?.toLowerCase().includes("lunas") ||
+        data.error?.toLowerCase().includes("belum tersedia")
+      ) {
+        setPaidModalInfo({
+          isOpen: true,
+          customerNo: customerNo.trim(),
+          productName: selectedProduct?.product_name || "Tagihan PLN Pascabayar",
+          message:
+            data.error ||
+            "Tagihan untuk nomor ID pelanggan ini sudah lunas atau belum diterbitkan oleh biller resmi.",
+        });
       } else {
         toast.error(data.error || "Gagal memeriksa tagihan. Pastikan nomor ID benar.");
       }
@@ -280,6 +380,7 @@ export default function TagihanPascabayarPage() {
           period: inquiryData.period,
           tariff: inquiryData.tariff,
           daya: inquiryData.daya,
+          standMeter: inquiryData.standMeter,
           lembarTagihan: inquiryData.lembarTagihan,
           detail: inquiryData.detail,
           paymentMethodId: selectedPaymentMethodId,
@@ -321,260 +422,369 @@ export default function TagihanPascabayarPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070512] text-white pt-24 pb-20 px-4 sm:px-6 relative overflow-hidden">
-      {/* Background Decorative Glows */}
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-r from-purple-600/15 via-cyan-600/15 to-blue-600/15 blur-[120px] rounded-full pointer-events-none -z-10" />
-      <div className="absolute top-80 right-0 w-[400px] h-[400px] bg-purple-700/10 blur-[100px] rounded-full pointer-events-none -z-10" />
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 pt-24 pb-28 px-4 sm:px-6 relative overflow-hidden">
+      {/* Background Soft Decorative Accents */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[350px] bg-gradient-to-r from-indigo-100 via-purple-50 to-blue-100 blur-[100px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute top-96 -left-20 w-[400px] h-[400px] bg-indigo-50/80 blur-[100px] rounded-full pointer-events-none -z-10" />
 
-      <div className="max-w-5xl mx-auto space-y-8">
-        {/* Header Hero Section */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-bold tracking-wide uppercase shadow-inner">
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-            <span>Layanan Resmi PPOB & Cek Tagihan 24 Jam</span>
+      <div className="max-w-6xl mx-auto space-y-10">
+        {/* ── HERO BANNER SECTION ───────────────────────────────────── */}
+        <div className="text-center space-y-3.5 pt-2">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-indigo-200/80 text-indigo-700 text-xs font-bold tracking-wide uppercase shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+            <span>Layanan Resmi PPOB & Cek Tagihan 24 Jam Otomatis</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-100 to-gray-400">
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900">
             Bayar Tagihan Bulanan Lebih Praktis
           </h1>
 
-          <p className="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto font-normal leading-relaxed">
-            Cek dan bayar tagihan listrik PLN, BPJS Kesehatan, PDAM, Telkom Indihome, Pascabayar HP, dan cicilan Multifinance langsung lunas dengan bukti struk resmi.
+          <p className="text-slate-600 text-sm sm:text-base max-w-2xl mx-auto font-normal leading-relaxed">
+            Cek dan bayar tagihan listrik PLN, BPJS Kesehatan, PDAM, Telkom Indihome, Pascabayar HP, dan cicilan Multifinance langsung lunas dengan bukti struk PDF resmi.
           </p>
 
-          {/* Trust Badges */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-xs font-semibold text-gray-300">
-            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl backdrop-blur-md">
-              <Zap className="w-4 h-4 text-cyan-400" />
-              <span>Cek Tagihan Instan</span>
+          {/* Quick Trust Pills */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2 text-xs font-semibold text-slate-700">
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3.5 py-1.5 rounded-xl shadow-sm">
+              <Zap className="w-4 h-4 text-amber-500" />
+              <span>Inquiry Detikan</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl backdrop-blur-md">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Terhubung Biller Resmi</span>
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3.5 py-1.5 rounded-xl shadow-sm">
+              <FileText className="w-4 h-4 text-indigo-600" />
+              <span>Struk PDF Resmi Biller</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl backdrop-blur-md">
-              <FileText className="w-4 h-4 text-purple-400" />
-              <span>Struk Pembayaran Sah</span>
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3.5 py-1.5 rounded-xl shadow-sm">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Terhubung Biller Nasional</span>
             </div>
           </div>
         </div>
 
-        {/* Category Navigation Pills */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-2 backdrop-blur-xl shadow-2xl overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-2 min-w-max">
+        {/* ── CATEGORY SWITCHER CARDS ──────────────────────────────── */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+              <Layers className="w-4 h-4 text-indigo-600" />
+              <span>Pilih Kategori Layanan Tagihan</span>
+            </h2>
+            <span className="text-xs text-slate-400 font-medium">
+              {categories.length} Kategori Tersedia
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
             {categories.map((cat) => {
-              const isSelected =
-                selectedCategory?.toLowerCase() === cat.toLowerCase();
+              const isSelected = selectedCategory?.toLowerCase() === cat.toLowerCase();
+              const meta = CATEGORY_META[cat] || {
+                icon: "🏷️",
+                desc: "Layanan Tagihan",
+                badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200",
+              };
+
               return (
                 <button
                   key={cat}
+                  type="button"
                   onClick={() => {
                     setSelectedCategory(cat);
                     setSearchFilter("");
+                    if (inquiryData) setInquiryData(null);
                   }}
-                  className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between gap-3 relative group ${
                     isSelected
-                      ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25 border border-purple-400/40 scale-[1.02]"
-                      : "bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/5"
+                      ? "bg-white border-indigo-600 shadow-lg shadow-indigo-100 ring-2 ring-indigo-600/20 scale-[1.02]"
+                      : "bg-white hover:bg-slate-50 border-slate-200 shadow-sm hover:border-slate-300"
                   }`}
                 >
-                  <span className="text-base">{CATEGORY_ICONS[cat] || "🏷️"}</span>
-                  <span>{cat}</span>
+                  {/* Category Icon */}
+                  <div className="flex items-center justify-between">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl bg-slate-100 border border-slate-200 group-hover:scale-105 transition-transform ${
+                        isSelected ? "bg-indigo-50 border-indigo-200" : ""
+                      }`}
+                    >
+                      {meta.icon}
+                    </div>
+                    {isSelected && (
+                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 shadow-sm" />
+                    )}
+                  </div>
+
+                  {/* Category Name */}
+                  <div>
+                    <h3
+                      className={`text-xs font-bold tracking-tight line-clamp-1 ${
+                        isSelected ? "text-indigo-700" : "text-slate-800"
+                      }`}
+                    >
+                      {cat}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                      {meta.desc}
+                    </p>
+                  </div>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Step 1 & 2: Form Pengecekan Tagihan */}
+        {/* ── MAIN 2-COLUMN WORKFLOW SECTION ───────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Kolom Kiri: Form Input Layanan & No Pelanggan */}
-          <div className="lg:col-span-6 bg-gaming-card border border-white/10 rounded-2xl p-6 sm:p-7 backdrop-blur-xl shadow-2xl space-y-6">
-            <div className="flex items-center gap-3 pb-4 border-b border-white/5">
-              <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 font-black text-sm">
-                1
+          {/* KOLOM KIRI: Step 1 (Pilih Biller & No Pelanggan) */}
+          <div className="lg:col-span-6 space-y-6">
+            {/* Card Form Input */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xl shadow-slate-200/50 space-y-6">
+              {/* Step Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-indigo-200">
+                    1
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">
+                      Pilih Layanan & Masukkan ID
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Kategori aktif:{" "}
+                      <span className="text-indigo-600 font-bold">
+                        {selectedCategory}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <span className="text-2xl">{activeCategoryMeta.icon}</span>
               </div>
-              <div>
-                <h2 className="text-base font-bold text-white">
-                  Pilih Layanan & Masukkan ID
-                </h2>
-                <p className="text-xs text-gray-400">
-                  Pilih produk tagihan dan ketik nomor pelanggan Anda
-                </p>
-              </div>
-            </div>
 
-            <form onSubmit={handleInquiry} className="space-y-4">
-              {/* Dropdown Produk / Biller */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5 uppercase tracking-wider">
-                  Layanan / Biller Tagihan *
-                </label>
-                <select
-                  value={selectedSku}
-                  onChange={(e) => handleSkuChange(e.target.value)}
-                  className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 transition-all font-medium cursor-pointer"
-                  disabled={loadingProducts}
-                >
-                  {filteredProducts.length === 0 ? (
-                    <option value="">Tidak ada produk di kategori ini</option>
+              <form onSubmit={handleInquiry} className="space-y-5">
+                {/* Visual Biller Options Grid */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Layanan / Biller Tagihan *
+                  </label>
+
+                  {filteredProducts.length > 1 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-48 overflow-y-auto pr-1">
+                      {filteredProducts.map((p) => {
+                        const isSelected = selectedSku === p.buyer_sku_code;
+                        return (
+                          <button
+                            key={p.buyer_sku_code}
+                            type="button"
+                            onClick={() => handleSkuChange(p.buyer_sku_code)}
+                            className={`p-3 rounded-xl border text-left transition-all duration-200 cursor-pointer flex items-center justify-between gap-2 ${
+                              isSelected
+                                ? "bg-indigo-50/70 border-indigo-500 text-indigo-950 font-bold shadow-sm ring-1 ring-indigo-500"
+                                : "bg-slate-50 hover:bg-slate-100/80 border-slate-200 text-slate-700 hover:text-slate-900"
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold truncate">
+                                {p.product_name}
+                              </p>
+                              <span className="text-[11px] text-slate-500 font-medium">
+                                {p.brand || selectedCategory}
+                              </span>
+                            </div>
+                            {isSelected && (
+                              <CheckCircle2 className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   ) : (
-                    filteredProducts.map((p) => (
-                      <option key={p.buyer_sku_code} value={p.buyer_sku_code}>
-                        {p.product_name}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-
-              {/* Input Nomor Pelanggan */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5 uppercase tracking-wider">
-                  Nomor Pelanggan / ID Tagihan / No. Meter *
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={customerNo}
-                    onChange={(e) => handleCustomerNoChange(e.target.value)}
-                    placeholder="Contoh: 530000000001 / No. Peserta"
-                    className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-all font-mono font-bold tracking-wide"
-                    required
-                  />
-                  {customerNo && (
-                    <button
-                      type="button"
-                      onClick={() => handleCustomerNoChange("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs px-1.5 py-0.5 rounded bg-white/10"
-                    >
-                      ✕
-                    </button>
+                    <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm font-semibold flex items-center justify-between">
+                      <span className="truncate">
+                        {selectedProduct?.product_name || "Memuat produk..."}
+                      </span>
+                      <span className="text-xs text-indigo-600 font-bold">
+                        ✓ Terpilih
+                      </span>
+                    </div>
                   )}
                 </div>
-                <p className="text-[11px] text-gray-500 mt-1.5">
-                  💡 Pastikan nomor ID tagihan sudah sesuai dengan struk tagihan bulan sebelumnya.
-                </p>
-              </div>
 
-              {/* Tombol Cek Tagihan */}
-              <Button
-                type="submit"
-                variant="primary"
-                loading={inquiryLoading}
-                disabled={!selectedSku || !customerNo.trim()}
-                className="w-full py-3.5 text-sm font-bold shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01] transition-transform"
-              >
-                <Search className="w-4 h-4" />
-                <span>{inquiryLoading ? "Memeriksa Tagihan..." : "Cek Tagihan Sekarang"}</span>
-              </Button>
-            </form>
+                {/* Input Nomor Pelanggan / ID Tagihan */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Nomor Pelanggan / ID Tagihan / No. Meter *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={customerNo}
+                      onChange={(e) => handleCustomerNoChange(e.target.value)}
+                      placeholder={activeCategoryMeta.placeholder}
+                      className="w-full bg-slate-50 focus:bg-white border border-slate-300 focus:border-indigo-600 rounded-2xl px-4 py-3.5 text-slate-900 text-sm placeholder-slate-400 focus:outline-none transition-all font-mono font-bold tracking-wider shadow-inner"
+                      required
+                    />
+                    {customerNo && (
+                      <button
+                        type="button"
+                        onClick={() => handleCustomerNoChange("")}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs px-2 py-1 rounded-lg bg-slate-200/60 hover:bg-slate-200 transition-colors font-medium"
+                      >
+                        ✕ Hapus
+                      </button>
+                    )}
+                  </div>
 
-            {/* Panduan Singkat */}
-            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 space-y-2 text-xs text-gray-400">
-              <div className="flex items-center gap-2 text-purple-300 font-bold">
-                <HelpCircle className="w-4 h-4 text-purple-400" />
-                <span>Informasi Pembayaran Pascabayar</span>
+                  {/* Contoh / Helper Shortcut Tag */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-500">
+                    <span>💡 Contoh Cek:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCustomerNoChange("530000000001")}
+                      className="px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-mono transition-colors font-semibold"
+                    >
+                      530000000001 (Tes Demo)
+                    </button>
+                    {selectedCategory === "PLN" && (
+                      <button
+                        type="button"
+                        onClick={() => handleCustomerNoChange("325100174233")}
+                        className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-mono transition-colors font-semibold"
+                      >
+                        325100174233 (PLN Anda)
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tombol Eksekusi Cek Tagihan */}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={inquiryLoading}
+                  disabled={!selectedSku || !customerNo.trim()}
+                  className="w-full py-4 text-sm font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xl shadow-indigo-500/20 rounded-2xl flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01] transition-transform"
+                >
+                  <Search className="w-4 h-4" />
+                  <span>
+                    {inquiryLoading ? "Memeriksa Tagihan ke Server..." : "Cek Tagihan Sekarang"}
+                  </span>
+                </Button>
+              </form>
+            </div>
+
+            {/* Panduan Pembayaran Pascabayar */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3 text-xs text-slate-600 shadow-sm">
+              <div className="flex items-center gap-2 text-indigo-700 font-bold">
+                <HelpCircle className="w-4 h-4 text-indigo-600" />
+                <span>Ketentuan Tagihan Pascabayar</span>
               </div>
-              <ul className="space-y-1 pl-4 list-disc text-gray-400">
-                <li>Tagihan PLN, BPJS, PDAM diperbarui otomatis setiap bulan oleh biller.</li>
-                <li>Jika tagihan sudah lunas, sistem akan menampilkan status "Tagihan Sudah Lunas".</li>
-                <li>Setelah pembayaran sukses, nomor referensi/SN struk sah akan otomatis dikirim ke email Anda.</li>
+              <ul className="space-y-1.5 pl-4 list-disc text-slate-500 leading-relaxed">
+                <li>
+                  Tagihan diperbarui otomatis setiap bulan sesuai jadwal rilis dari masing-masing biller (PLN, BPJS, PDAM, Telkom).
+                </li>
+                <li>
+                  Jika tagihan Anda berstatus <strong>"Belum Tersedia / Lunas"</strong>, artinya tidak ada tunggakan pembayaran untuk periode berjalan.
+                </li>
+                <li>
+                  Struk PDF resmi langsung dapat diunduh setelah pembayaran berhasil diverifikasi.
+                </li>
               </ul>
             </div>
           </div>
 
-          {/* Kolom Kanan: Rincian Tagihan & Checkout (Muncul setelah Cek Tagihan) */}
+          {/* KOLOM KANAN: Step 2 & 3 (Rincian Tagihan & Checkout) */}
           <div className="lg:col-span-6 space-y-6">
             {!inquiryData && (
-              <div className="bg-gaming-card border border-dashed border-white/10 rounded-2xl p-12 text-center flex flex-col items-center justify-center gap-4 min-h-[380px]">
-                <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 text-2xl animate-pulse">
+              <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-10 sm:p-14 text-center flex flex-col items-center justify-center gap-4 min-h-[420px] shadow-sm">
+                <div className="w-20 h-20 rounded-3xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-3xl">
                   🧾
                 </div>
-                <div className="space-y-1 max-w-sm">
-                  <h3 className="text-base font-bold text-white">
+                <div className="space-y-2 max-w-sm">
+                  <h3 className="text-base font-bold text-slate-800">
                     Rincian Tagihan Belum Dimuat
                   </h3>
-                  <p className="text-xs text-gray-400">
-                    Masukkan nomor ID pelanggan Anda di sebelah kiri dan klik tombol <strong>"Cek Tagihan Sekarang"</strong> untuk melihat rincian pemakaian dan total bayar.
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Pilih layanan di sebelah kiri, masukkan nomor ID pelanggan Anda, lalu klik tombol{" "}
+                    <strong className="text-indigo-600">"Cek Tagihan Sekarang"</strong> untuk melihat rincian pemakaian dan total bayar.
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Kartu Rincian Tagihan Resmi */}
+            {/* KARTU RINCIAN TAGIHAN RESMI (CLEAN WHITE DIGITAL RECEIPT) */}
             {inquiryData && (
               <div className="space-y-6 animate-fadeIn">
-                {/* Rincian Tagihan */}
-                <div className="bg-gradient-to-b from-[#130f2c] to-[#0d0922] border border-purple-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/10 blur-3xl pointer-events-none" />
-
-                  {/* Header Kartu */}
-                  <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-xl">🧾</span>
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xl shadow-slate-200/60 relative overflow-hidden">
+                  {/* Header Struk */}
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🧾</span>
                       <div>
-                        <h3 className="text-sm font-bold text-white">
-                          Rincian Tagihan Pelanggan
+                        <h3 className="text-sm font-bold text-slate-900 tracking-wide">
+                          Rincian Tagihan Resmi
                         </h3>
-                        <p className="text-[11px] text-cyan-300 font-mono">
+                        <p className="text-xs text-indigo-600 font-semibold">
                           {inquiryData.productName}
                         </p>
                       </div>
                     </div>
-                    <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase">
-                      ✓ Valid
+                    <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Terverifikasi
                     </span>
                   </div>
 
-                  {/* Info Pelanggan */}
+                  {/* Info Pelanggan Detail */}
                   <div className="py-4 space-y-2.5 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-400">Nama Pelanggan</span>
-                      <span className="text-white font-bold text-sm tracking-wide">
+                      <span className="text-slate-500">Nama Pelanggan</span>
+                      <span className="text-slate-900 font-bold text-sm tracking-wide">
                         {inquiryData.customerName}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-400">ID Pelanggan / No. Meter</span>
-                      <span className="text-cyan-300 font-mono font-bold">
+                      <span className="text-slate-500">ID Pelanggan / No. Meter</span>
+                      <span className="text-indigo-600 font-mono font-bold text-sm">
                         {inquiryData.customerNo}
                       </span>
                     </div>
                     {inquiryData.tariff && inquiryData.tariff !== "-" && (
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-400">Tarif / Daya</span>
-                        <span className="text-gray-200 font-semibold">
+                        <span className="text-slate-500">Tarif / Daya</span>
+                        <span className="text-slate-800 font-semibold">
                           {inquiryData.tariff} {inquiryData.daya ? `(${inquiryData.daya} VA)` : ""}
+                        </span>
+                      </div>
+                    )}
+                    {inquiryData.standMeter && inquiryData.standMeter !== "-" && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Stand Meter</span>
+                        <span className="text-slate-900 font-mono font-semibold">
+                          {inquiryData.standMeter}
                         </span>
                       </div>
                     )}
                     {inquiryData.period && inquiryData.period !== "-" && (
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-400">Periode Tagihan</span>
-                        <span className="text-gray-200 font-semibold">
+                        <span className="text-slate-500">Periode Tagihan</span>
+                        <span className="text-slate-800 font-semibold">
                           {inquiryData.period}
                         </span>
                       </div>
                     )}
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-400">Jumlah Lembar Tagihan</span>
-                      <span className="text-gray-200 font-semibold">
+                      <span className="text-slate-500">Jumlah Lembar Tagihan</span>
+                      <span className="text-slate-800 font-semibold">
                         {inquiryData.lembarTagihan} Bulan / Lembar
                       </span>
                     </div>
                   </div>
 
                   {/* Breakdown Biaya */}
-                  <div className="pt-4 border-t border-dashed border-white/10 space-y-2 text-xs">
+                  <div className="pt-4 border-t border-dashed border-slate-200 space-y-2.5 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-400">Tagihan Pokok Biller</span>
-                      <span className="text-gray-200 font-mono font-semibold">
+                      <span className="text-slate-500">Tagihan Pokok Biller</span>
+                      <span className="text-slate-900 font-mono font-semibold">
                         {formatCurrency(inquiryData.billAmount)}
                       </span>
                     </div>
                     {inquiryData.penalty > 0 && (
-                      <div className="flex items-center justify-between text-red-400">
+                      <div className="flex items-center justify-between text-red-600">
                         <span>Denda Keterlambatan</span>
                         <span className="font-mono font-semibold">
                           +{formatCurrency(inquiryData.penalty)}
@@ -582,13 +792,13 @@ export default function TagihanPascabayarPage() {
                       </div>
                     )}
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-400">Biaya Admin & Layanan</span>
-                      <span className="text-gray-200 font-mono font-semibold">
+                      <span className="text-slate-500">Biaya Admin Biller & Layanan</span>
+                      <span className="text-slate-900 font-mono font-semibold">
                         {formatCurrency(inquiryData.adminFee)}
                       </span>
                     </div>
                     {paymentFee > 0 && (
-                      <div className="flex items-center justify-between text-purple-300">
+                      <div className="flex items-center justify-between text-indigo-600">
                         <span>Biaya Pembayaran ({selectedPaymentMethod?.name})</span>
                         <span className="font-mono font-semibold">
                           +{formatCurrency(paymentFee)}
@@ -598,96 +808,141 @@ export default function TagihanPascabayarPage() {
                   </div>
 
                   {/* Total Tagihan */}
-                  <div className="mt-5 pt-4 border-t border-white/15 flex items-center justify-between">
+                  <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/80 -mx-6 -mb-6 px-6 py-4 rounded-b-3xl">
                     <div>
-                      <span className="text-xs text-gray-400 block">Total Pembayaran</span>
-                      <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Siap dibayar
+                      <span className="text-xs text-slate-500 block font-medium">Total Tagihan Siap Bayar</span>
+                      <span className="text-xs text-emerald-600 font-bold flex items-center gap-1 mt-0.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Tagihan Aktif
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-300 font-mono">
+                      <span className="text-2xl sm:text-3xl font-black text-indigo-700 font-mono">
                         {formatCurrency(grandTotal)}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Form Kontak & Metode Pembayaran */}
-                <div className="bg-gaming-card border border-white/10 rounded-2xl p-6 space-y-5">
-                  <div className="flex items-center gap-3 pb-3 border-b border-white/5">
-                    <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 font-black text-sm">
+                {/* FORM KONTAK & PEMILIHAN METODE PEMBAYARAN */}
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xl shadow-slate-200/50 space-y-6">
+                  {/* Step Header */}
+                  <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-indigo-200">
                       2
                     </div>
                     <div>
-                      <h2 className="text-base font-bold text-white">
-                        Kontak & Pembayaran
+                      <h2 className="text-base font-bold text-slate-900">
+                        Kontak & Metode Pembayaran
                       </h2>
-                      <p className="text-xs text-gray-400">
-                        Struk bukti pembayaran lunas akan dikirim ke email ini
+                      <p className="text-xs text-slate-500">
+                        Struk PDF bukti lunas akan otomatis dikirim ke email ini
                       </p>
                     </div>
                   </div>
 
                   {/* Input Email & WhatsApp */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
-                      <label className="block text-xs font-bold text-gray-300 mb-1">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                         Email Penerima Struk *
                       </label>
                       <div className="relative">
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                           type="email"
                           value={customerEmail}
                           onChange={(e) => setCustomerEmail(e.target.value)}
                           placeholder="nama@email.com"
-                          className="w-full bg-black/40 border border-white/15 rounded-xl pl-10 pr-3 py-2.5 text-white text-xs focus:outline-none focus:border-purple-500"
+                          className="w-full bg-slate-50 focus:bg-white border border-slate-300 focus:border-indigo-600 rounded-xl pl-10 pr-3 py-3 text-slate-900 text-xs focus:outline-none transition-colors"
                           required
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-gray-300 mb-1">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                         No. WhatsApp (Opsional)
                       </label>
                       <div className="relative">
-                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                           type="tel"
                           value={customerPhone}
                           onChange={(e) => setCustomerPhone(e.target.value)}
                           placeholder="08123456789"
-                          className="w-full bg-black/40 border border-white/15 rounded-xl pl-10 pr-3 py-2.5 text-white text-xs focus:outline-none focus:border-purple-500"
+                          className="w-full bg-slate-50 focus:bg-white border border-slate-300 focus:border-indigo-600 rounded-xl pl-10 pr-3 py-3 text-slate-900 text-xs focus:outline-none transition-colors"
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Pilihan Metode Pembayaran */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-300 mb-2">
-                      Pilih Metode Pembayaran *
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                      {paymentMethods.map((m) => {
+                  {/* Filter Kategori Pembayaran */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Pilih Metode Pembayaran *
+                      </label>
+                      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentCategoryFilter("ALL")}
+                          className={`px-2 py-0.5 rounded-md font-bold transition-colors ${
+                            paymentCategoryFilter === "ALL"
+                              ? "bg-white text-slate-900 shadow-sm"
+                              : "text-slate-500 hover:text-slate-900"
+                          }`}
+                        >
+                          Semua
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentCategoryFilter("E-WALLET")}
+                          className={`px-2 py-0.5 rounded-md font-bold transition-colors ${
+                            paymentCategoryFilter === "E-WALLET"
+                              ? "bg-white text-slate-900 shadow-sm"
+                              : "text-slate-500 hover:text-slate-900"
+                          }`}
+                        >
+                          QRIS & E-Wallet
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentCategoryFilter("VA")}
+                          className={`px-2 py-0.5 rounded-md font-bold transition-colors ${
+                            paymentCategoryFilter === "VA"
+                              ? "bg-white text-slate-900 shadow-sm"
+                              : "text-slate-500 hover:text-slate-900"
+                          }`}
+                        >
+                          Virtual Account
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Grid Metode Pembayaran */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-60 overflow-y-auto pr-1">
+                      {filteredPaymentMethods.map((m) => {
                         const isSelected = selectedPaymentMethodId === m.id;
                         return (
                           <button
                             key={m.id}
                             type="button"
                             onClick={() => setSelectedPaymentMethodId(m.id)}
-                            className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-1 cursor-pointer ${
+                            className={`p-3 rounded-xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between gap-1.5 relative ${
                               isSelected
-                                ? "bg-purple-600/20 border-purple-500 shadow-md shadow-purple-500/20"
-                                : "bg-black/30 border-white/10 hover:border-white/20"
+                                ? "bg-indigo-50/80 border-indigo-600 shadow-md shadow-indigo-100 ring-1 ring-indigo-600"
+                                : "bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-300"
                             }`}
                           >
-                            <span className="text-xs font-bold text-white truncate">
-                              {m.name}
-                            </span>
-                            <span className="text-[10px] text-gray-400 font-mono">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-900 truncate">
+                                {m.name}
+                              </span>
+                              {isSelected && (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0" />
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-mono font-medium">
                               {m.fee > 0
                                 ? `Fee: ${m.feeType === "percent" ? `${m.fee}%` : formatCurrency(m.fee)}`
                                 : "Bebas Biaya"}
@@ -704,7 +959,7 @@ export default function TagihanPascabayarPage() {
                     variant="primary"
                     loading={submittingOrder}
                     onClick={handlePayBill}
-                    className="w-full py-4 text-base font-black bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-black shadow-xl shadow-emerald-500/25 cursor-pointer hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
+                    className="w-full py-4 text-base font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl shadow-emerald-600/20 rounded-2xl cursor-pointer hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
                   >
                     <span>Bayar Tagihan Sekarang ({formatCurrency(grandTotal)})</span>
                     <ArrowRight className="w-5 h-5" />
@@ -714,7 +969,102 @@ export default function TagihanPascabayarPage() {
             )}
           </div>
         </div>
+
+        {/* ── SECURITY & SERVICE GUARANTEE ─────────────────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t border-slate-200">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 flex items-start gap-3.5 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 flex-shrink-0">
+              <Zap className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-slate-900">Pelunasan Otomatis 24 Jam</h4>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Pembayaran Anda langsung diproses ke sistem biller resmi tanpa jeda waktu manual.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 flex items-start gap-3.5 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 flex-shrink-0">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-slate-900">Struk Sah & Legal</h4>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Dilengkapi nomor referensi SN resmi yang diakui oleh PLN, BPJS, PDAM, dan Telkom.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 flex items-start gap-3.5 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 flex-shrink-0">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-slate-900">Pembayaran Aman Terenkripsi</h4>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Didukung oleh Payment Gateway resmi berlisensi Bank Indonesia dengan enkripsi 256-bit.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* ── MODAL POPUP: TAGIHAN SUDAH LUNAS / TIDAK ADA TAGIHAN ──────── */}
+      {paidModalInfo.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative overflow-hidden text-center space-y-6">
+            {/* Icon Header */}
+            <div className="flex justify-center">
+              <div className="w-20 h-20 rounded-3xl bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center shadow-md shadow-emerald-100">
+                <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+              </div>
+            </div>
+
+            {/* Title & Subtitle */}
+            <div className="space-y-1.5">
+              <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-black uppercase tracking-wider">
+                Status Tagihan Lunas
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 pt-1">
+                Tidak Ada Tagihan Tertunggak
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
+                {paidModalInfo.message}
+              </p>
+            </div>
+
+            {/* Information Card */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs space-y-2.5 text-left">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Layanan</span>
+                <span className="text-slate-900 font-bold">{paidModalInfo.productName}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">ID Pelanggan</span>
+                <span className="text-indigo-600 font-mono font-bold">{paidModalInfo.customerNo}</span>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                <span className="text-slate-500">Status Pembayaran</span>
+                <span className="text-emerald-600 font-black flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> LUNAS / NIHIL
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-1">
+              <Button
+                variant="primary"
+                onClick={() => setPaidModalInfo({ ...paidModalInfo, isOpen: false })}
+                className="w-full py-3.5 text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-600/20 rounded-xl cursor-pointer"
+              >
+                Tutup & Cek ID Lain
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

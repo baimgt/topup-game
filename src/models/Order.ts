@@ -48,10 +48,13 @@ export interface IOrder extends Document {
     period?: string;
     tariff?: string;
     daya?: number;
+    standMeter?: string;
+    receiptUrl?: string;
     billCount?: number;
     detail?: any[];
   };
   receiptNo?: string;
+  receiptUrl?: string;
   snSentAt?: Date; // Waktu pengiriman email SN / Struk
   notes?: string;
   orderItems: IOrderItem[];
@@ -122,10 +125,13 @@ const OrderSchema = new Schema<IOrder>(
       period: { type: String },
       tariff: { type: String },
       daya: { type: Number },
+      standMeter: { type: String },
+      receiptUrl: { type: String },
       billCount: { type: Number },
       detail: { type: Array },
     },
     receiptNo: { type: String },
+    receiptUrl: { type: String },
     snSentAt: { type: Date },
     notes: { type: String },
     orderItems: [OrderItemSchema],
