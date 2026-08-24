@@ -69,17 +69,17 @@ export default function ForgotPasswordPage() {
                 <Gamepad2 className="w-6 h-6 text-white" />
               </div>
             )}
-            <span className="text-white font-extrabold text-xl tracking-tight">
+            <span className="text-slate-900 dark:text-white font-extrabold text-xl tracking-tight">
               {siteName}
             </span>
           </Link>
-          <h1 className="text-2xl font-bold text-white mb-2">Lupa Password</h1>
-          <p className="text-gray-400 text-sm">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Lupa Password</h1>
+          <p className="text-slate-600 dark:text-gray-400 text-sm font-medium">
             Masukkan email Anda dan kami akan mengirimkan instruksi untuk mereset password.
           </p>
         </div>
 
-        <div className="bg-gaming-card rounded-2xl border border-white/5 p-6">
+        <div className="bg-white dark:bg-gaming-card rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-xl shadow-slate-900/5">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Email terdaftar"
@@ -97,9 +97,11 @@ export default function ForgotPasswordPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/auth/login" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
-              <ArrowLeft className="w-4 h-4" />
-              Kembali ke Halaman Login
+            <Link 
+              href="/auth/login" 
+              className="inline-flex items-center gap-2 text-sm text-indigo-600 dark:text-purple-400 hover:underline font-bold transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" /> Kembali ke Halaman Masuk
             </Link>
           </div>
         </div>

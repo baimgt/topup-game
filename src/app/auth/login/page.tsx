@@ -75,15 +75,15 @@ export default function LoginPage() {
                 <Gamepad2 className="w-6 h-6 text-white" />
               </div>
             )}
-            <span className="text-white font-extrabold text-xl tracking-tight">
+            <span className="text-slate-900 dark:text-white font-extrabold text-xl tracking-tight">
               {siteName}
             </span>
           </Link>
-          <h1 className="text-2xl font-bold text-white mb-2">Masuk ke Akun</h1>
-          <p className="text-gray-400 text-sm">Selamat datang kembali!</p>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Masuk ke Akun</h1>
+          <p className="text-slate-600 dark:text-gray-400 text-sm font-medium">Selamat datang kembali!</p>
         </div>
 
-        <div className="bg-gaming-card rounded-2xl border border-white/5 p-6">
+        <div className="bg-white dark:bg-gaming-card rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-xl shadow-slate-900/5">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Email"
@@ -104,7 +104,7 @@ export default function LoginPage() {
               required
             />
             <div className="flex justify-end mt-[-8px]">
-              <Link href="/auth/forgot-password" className="text-xs text-purple-400 hover:text-purple-300">
+              <Link href="/auth/forgot-password" className="text-xs text-indigo-600 dark:text-purple-400 hover:underline font-semibold">
                 Lupa Password?
               </Link>
             </div>
@@ -115,18 +115,18 @@ export default function LoginPage() {
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/5"></div>
+              <div className="w-full border-t border-slate-200 dark:border-white/5"></div>
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-gaming-card px-2 text-gray-400">Atau masuk dengan</span>
+              <span className="bg-white dark:bg-gaming-card px-2 text-slate-500 dark:text-gray-400 font-semibold">Atau masuk dengan</span>
             </div>
           </div>
 
           <GoogleLoginButton onSuccess={handleGoogleSuccess} onError={(err) => toast.error(err)} />
 
-          <p className="text-center text-gray-400 text-sm mt-6">
+          <p className="text-center text-slate-600 dark:text-gray-400 text-sm mt-6 font-medium">
             Belum punya akun?{" "}
-            <Link href="/auth/register" className="text-purple-400 hover:text-purple-300">
+            <Link href="/auth/register" className="text-indigo-600 dark:text-purple-400 hover:underline font-bold">
               Daftar sekarang
             </Link>
           </p>

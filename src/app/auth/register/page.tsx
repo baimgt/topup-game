@@ -187,19 +187,19 @@ function RegisterForm() {
                 <Gamepad2 className="w-6 h-6 text-white" />
               </div>
             )}
-            <span className="text-white font-extrabold text-xl tracking-tight">
+            <span className="text-slate-900 dark:text-white font-extrabold text-xl tracking-tight">
               {siteName}
             </span>
           </Link>
-          <h1 className="text-2xl font-bold text-white mb-2">Buat Akun Baru</h1>
-          <p className="text-gray-400 text-sm">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Buat Akun Baru</h1>
+          <p className="text-slate-600 dark:text-gray-400 text-sm font-medium">
             {isGoogleRegister 
               ? "Lengkapi kata sandi untuk mengaktifkan login manual."
               : "Daftar dan mulai top up game favoritmu"}
           </p>
         </div>
 
-        <div className="bg-gaming-card rounded-2xl border border-white/5 p-6 relative">
+        <div className="bg-white dark:bg-gaming-card rounded-2xl border border-slate-200 dark:border-white/5 p-6 relative shadow-xl shadow-slate-900/5">
           {isGoogleRegister && (
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-green-500 to-emerald-400 rounded-t-2xl" />
           )}
@@ -226,18 +226,16 @@ function RegisterForm() {
                 disabled={isGoogleRegister}
               />
               {isGoogleRegister && (
-                <span className="absolute right-3 top-[38px] text-[10px] bg-green-500/10 text-green-400 border border-green-500/20 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                <span className="absolute right-3 top-[38px] text-[10px] bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> Terverifikasi Google
                 </span>
               )}
             </div>
             <Input
               label="Nomor WhatsApp"
-              type="tel"
-              placeholder="081234567890"
+              placeholder="08123456789"
               value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-              icon={<span className="font-bold text-gray-400 text-sm">#</span>}
+              onChange={(e) => setPhone(e.target.value)}
               required
             />
             <Input
@@ -250,7 +248,7 @@ function RegisterForm() {
               required
             />
             <Button type="submit" variant="primary" size="lg" loading={loading} className="w-full">
-              {isGoogleRegister ? "Selesaikan Pendaftaran" : "Daftar Sekarang"}
+              Daftar Sekarang
             </Button>
           </form>
 
@@ -258,10 +256,10 @@ function RegisterForm() {
             <>
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-white/5"></div>
+                  <div className="w-full border-t border-slate-200 dark:border-white/5"></div>
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-gaming-card px-2 text-gray-400">Atau daftar dengan</span>
+                  <span className="bg-white dark:bg-gaming-card px-2 text-slate-500 dark:text-gray-400 font-semibold">Atau daftar dengan</span>
                 </div>
               </div>
 
@@ -269,9 +267,9 @@ function RegisterForm() {
             </>
           )}
 
-          <p className="text-center text-gray-400 text-sm mt-6">
+          <p className="text-center text-slate-600 dark:text-gray-400 text-sm mt-6 font-medium">
             Sudah punya akun?{" "}
-            <Link href="/auth/login" className="text-purple-400 hover:text-purple-300">
+            <Link href="/auth/login" className="text-indigo-600 dark:text-purple-400 hover:underline font-bold">
               Masuk di sini
             </Link>
           </p>

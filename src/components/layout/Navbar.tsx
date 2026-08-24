@@ -173,7 +173,7 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.99 }}
             transition={{ type: "spring", damping: 30, stiffness: 350 }}
-            className="md:hidden bg-[#09090b]/98 backdrop-blur-2xl border-b border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.7)] overflow-hidden"
+            className="md:hidden mobile-nav-drawer bg-[#09090b]/98 backdrop-blur-2xl border-b border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.7)] overflow-hidden"
           >
             <div className="px-4 pt-3 pb-6 space-y-1.5">
               
@@ -183,7 +183,7 @@ export default function Navbar() {
                 className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-200 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1] transition-all font-semibold text-sm group"
                 onClick={() => setIsOpen(false)}
               >
-                <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/40 transition-colors">
+                <div className="w-7 h-7 rounded-lg nav-icon-box bg-white/[0.06] border border-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/40 transition-colors">
                   <Home className="w-4 h-4" />
                 </div>
                 <span>Beranda</span>
@@ -194,7 +194,7 @@ export default function Navbar() {
                 className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-200 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1] transition-all font-semibold text-sm group"
                 onClick={() => setIsOpen(false)}
               >
-                <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/40 transition-colors">
+                <div className="w-7 h-7 rounded-lg nav-icon-box bg-white/[0.06] border border-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/40 transition-colors">
                   <Gamepad2 className="w-4 h-4" />
                 </div>
                 <span>Semua Game</span>
@@ -205,7 +205,7 @@ export default function Navbar() {
                 className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-200 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1] transition-all font-semibold text-sm group"
                 onClick={() => setIsOpen(false)}
               >
-                <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/40 transition-colors">
+                <div className="w-7 h-7 rounded-lg nav-icon-box bg-white/[0.06] border border-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/40 transition-colors">
                   <Search className="w-4 h-4" />
                 </div>
                 <span>Cek Pesanan</span>
@@ -216,7 +216,7 @@ export default function Navbar() {
                 className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-200 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1] transition-all font-semibold text-sm group"
                 onClick={() => setIsOpen(false)}
               >
-                <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/40 transition-colors">
+                <div className="w-7 h-7 rounded-lg nav-icon-box bg-white/[0.06] border border-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/40 transition-colors">
                   <Trophy className="w-4 h-4" />
                 </div>
                 <span>Leaderboard</span>
@@ -236,7 +236,7 @@ export default function Navbar() {
                       {user.name?.charAt(0).toUpperCase() || "U"}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white leading-tight">{user.name}</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{user.name}</p>
                       <p className="text-[11px] text-gray-400 leading-tight">{user.email}</p>
                     </div>
                   </Link>
@@ -269,12 +269,12 @@ export default function Navbar() {
               ) : (
                 <div className="grid grid-cols-2 gap-3 pt-2">
                   <Link href="/auth/login" onClick={() => setIsOpen(false)} className="block">
-                    <button className="w-full rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm font-bold py-2.5 transition-all active:scale-95">
+                    <button className="btn-login-outline w-full rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm font-bold py-2.5 transition-all active:scale-95">
                       Masuk
                     </button>
                   </Link>
                   <Link href="/auth/register" onClick={() => setIsOpen(false)} className="block">
-                    <button className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold py-2.5 transition-all active:scale-95 shadow-lg shadow-indigo-600/30">
+                    <button className="btn-register-primary w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold py-2.5 transition-all active:scale-95 shadow-lg shadow-indigo-600/30">
                       Daftar
                     </button>
                   </Link>
