@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Gamepad2, ArrowLeft } from "lucide-react";
@@ -11,7 +11,21 @@ import Button from "@/components/ui/Button";
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [siteName, setSiteName] = useState("Gamerstore");
+  const [siteLogo, setSiteLogo] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          if (data.data.siteName) setSiteName(data.data.siteName);
+          if (data.data.siteLogo) setSiteLogo(data.data.siteLogo);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,12 +61,16 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
-              <Gamepad2 className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-white font-bold text-xl">
-              Game<span className="text-purple-400">TopUp</span>
+          <Link href="/" className="inline-flex items-center gap-2 mb-6 group">
+            {siteLogo ? (
+              <img src={siteLogo} alt={siteName} className="w-10 h-10 object-contain rounded-xl shadow-md group-hover:scale-105 transition-transform" />
+            ) : (
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                <Gamepad2 className="w-6 h-6 text-white" />
+              </div>
+            )}
+            <span className="text-white font-extrabold text-xl tracking-tight">
+              {siteName}
             </span>
           </Link>
           <h1 className="text-2xl font-bold text-white mb-2">Lupa Password</h1>

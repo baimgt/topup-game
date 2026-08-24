@@ -24,8 +24,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [siteName, setSiteName] = useState("Gamerstore");
+  const [siteLogo, setSiteLogo] = useState("");
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          if (data.data.siteName) setSiteName(data.data.siteName);
+          if (data.data.siteLogo) setSiteLogo(data.data.siteLogo);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -48,13 +62,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     localStorage.setItem("admin_theme", nextTheme);
   };
 
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    localStorage.removeItem("user");
+  const handleLogout = () => {
     localStorage.removeItem("token");
-    window.dispatchEvent(new Event("auth_changed"));
-    router.push("/");
-    router.refresh();
+    localStorage.removeItem("user");
+    router.push("/auth/login");
   };
 
   const isActive = (item: typeof navItems[0]) => {
@@ -63,10 +74,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className={cn("flex h-screen overflow-hidden relative selection:bg-purple-500/30 transition-colors duration-300", theme === "light" ? "bg-slate-100 text-slate-900 gaming-light-theme" : "bg-[#0a0a0f] text-white")}>
-      {/* Background Effects */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/10 blur-[100px]" />
+    <div className={cn(
+      "min-h-screen flex font-sans transition-colors duration-300",
+      theme === "dark" ? "bg-[#09090b] text-gray-100" : "bg-slate-50 text-slate-900"
+    )}>
+      {/* Background Glow */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] rounded-full bg-purple-600/10 blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-5%] w-[30%] h-[50%] rounded-full bg-cyan-600/10 blur-[100px]" />
       </div>
 
@@ -79,12 +93,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-5 h-20 border-b border-white/5">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/20">
-            <Gamepad className="w-5 h-5 text-white" />
-          </div>
+          {siteLogo ? (
+            <img src={siteLogo} alt={siteName} className="w-10 h-10 object-contain rounded-xl shadow-lg flex-shrink-0" />
+          ) : (
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+              <Gamepad className="w-5 h-5 text-white" />
+            </div>
+          )}
           {sidebarOpen && (
             <span className="text-white font-black text-lg tracking-wide truncate">
-              Game<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">TopUp</span>
+              {siteName}
             </span>
           )}
         </div>

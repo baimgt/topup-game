@@ -209,21 +209,7 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
           </div>
         </div>
 
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 via-transparent to-transparent pointer-events-none" />
-        <div className="max-w-md w-full text-center space-y-6 relative z-10 bg-gaming-card p-8 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-xl">
-          <div className="w-16 h-16 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex items-center justify-center mx-auto text-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)]">
-            <AlertTriangle className="w-8 h-8" />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-white tracking-wide">Website Dalam Pemeliharaan</h1>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              {maintenanceMsg || "Kami sedang melakukan pemeliharaan sistem berkala untuk meningkatkan kualitas layanan. Silakan kembali beberapa saat lagi."}
-            </p>
-          </div>
-          <div className="pt-4 border-t border-white/5">
-            <p className="text-xs text-gray-500">Terima kasih atas pengertian dan kesabaran Anda.</p>
-          </div>
-        </div>
+                
       </div>
     );
   }
