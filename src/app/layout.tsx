@@ -31,9 +31,17 @@ export async function generateMetadata(): Promise<Metadata> {
     description: siteDesc,
     keywords: "top up game, mobile legends, free fire, pubg, valorant, genshin impact, voucher game",
     icons: {
-      icon: [{ url: iconUrl }],
-      shortcut: [{ url: iconUrl }],
-      apple: [{ url: iconUrl }],
+      icon: [
+        { url: "/favicon.svg", type: "image/svg+xml" },
+        { url: iconUrl, type: "image/png" },
+      ],
+      shortcut: ["/favicon.svg"],
+      apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+    },
+    openGraph: {
+      title: `${siteName} - Top Up Game Terpercaya`,
+      description: siteDesc,
+      images: siteLogo ? [{ url: siteLogo }] : [],
     },
   };
 }
@@ -42,6 +50,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id">
       <head>
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="alternate icon" href="/favicon.svg" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
         <script
           type="text/javascript"
           src="https://app.sandbox.midtrans.com/snap/snap.js"

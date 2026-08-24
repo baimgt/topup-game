@@ -1,4 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+const fs = require('fs');
+const path = require('path');
+
+// SVG content for the brand favicon
+const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
     <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#a855f7" />
@@ -24,4 +28,10 @@
   <circle cx="45" cy="34" r="1.8" fill="#ffffff" />
   <circle cx="37" cy="34" r="1.8" fill="#ffffff" />
   <circle cx="41" cy="38" r="1.8" fill="#ffffff" />
-</svg>
+</svg>`;
+
+// Save SVG to public and src/app
+fs.writeFileSync(path.join(__dirname, '../public/favicon.svg'), svgContent);
+fs.writeFileSync(path.join(__dirname, '../src/app/icon.svg'), svgContent);
+
+console.log('Favicon SVG created in public/favicon.svg and src/app/icon.svg');
