@@ -48,26 +48,25 @@ export default function Navbar() {
   return (
     <motion.nav 
       style={{ background: navBackground, borderColor: navBorder }}
-      className="fixed top-0 left-0 right-0 z-50 backdrop-blur-2xl border-b transition-all duration-300 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
+      className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b transition-all duration-300 shadow-[0_4px_25px_rgba(0,0,0,0.4)]"
     >
       <motion.div style={{ paddingBottom: navPadding, paddingTop: navPadding }} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-12">
-          {/* Logo */}
+          {/* Logo & Clean Site Name */}
           <Link href="/" className="flex items-center gap-3 group" onClick={() => setIsOpen(false)}>
             {siteLogo ? (
-              <img src={siteLogo} alt={siteName} className="w-10 h-10 object-contain rounded-xl shadow-[0_0_20px_rgba(157,78,221,0.5)] group-hover:scale-105 transition-transform" />
+              <img src={siteLogo} alt={siteName} className="w-10 h-10 object-contain rounded-xl shadow-[0_0_15px_rgba(99,102,241,0.3)] group-hover:scale-105 transition-transform" />
             ) : (
               <motion.div 
                 whileHover={{ rotate: 180, scale: 1.1 }}
                 transition={{ type: "spring", stiffness: 200, damping: 10 }}
-                className="w-10 h-10 bg-gradient-to-br from-purple-500 via-pink-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(157,78,221,0.5)]"
+                className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.4)]"
               >
                 <Gamepad2 className="w-6 h-6 text-white" />
               </motion.div>
             )}
-            <span className="text-white font-extrabold text-xl tracking-tight flex items-center gap-1">
-              {siteName.substring(0, 4)}<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">{siteName.substring(4) || "Store"}</span>
-              <Sparkles className="w-3.5 h-3.5 text-yellow-400 animate-pulse opacity-80" />
+            <span className="text-white font-extrabold text-xl tracking-tight">
+              {siteName}
             </span>
           </Link>
 
@@ -75,19 +74,19 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-8">
             <Link href="/" className="relative text-gray-300 hover:text-white font-medium text-sm transition-colors group py-1">
               Beranda
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-300 group-hover:w-full rounded-full" />
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-indigo-500 transition-all duration-300 group-hover:w-full rounded-full" />
             </Link>
             <Link href="/games" className="relative text-gray-300 hover:text-white font-medium text-sm transition-colors group py-1">
               Semua Game
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-300 group-hover:w-full rounded-full" />
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-indigo-500 transition-all duration-300 group-hover:w-full rounded-full" />
             </Link>
             <Link href="/order/check" className="relative text-gray-300 hover:text-white font-medium text-sm transition-colors group py-1">
               Cek Pesanan
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-300 group-hover:w-full rounded-full" />
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-indigo-500 transition-all duration-300 group-hover:w-full rounded-full" />
             </Link>
             <Link href="/leaderboard" className="relative text-gray-300 hover:text-white font-medium text-sm transition-colors group py-1">
               Leaderboard
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-300 group-hover:w-full rounded-full" />
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-indigo-500 transition-all duration-300 group-hover:w-full rounded-full" />
             </Link>
           </div>
 
@@ -97,13 +96,13 @@ export default function Navbar() {
               <div className="flex items-center gap-3">
                 {user.role === "ADMIN" && (
                   <Link href="/admin">
-                    <Button variant="ghost" size="sm" className="rounded-full hover:bg-purple-500/20 text-purple-300">
+                    <Button variant="ghost" size="sm" className="rounded-full hover:bg-white/10 text-gray-300 hover:text-white">
                       <LayoutDashboard className="w-4 h-4" />
                     </Button>
                   </Link>
                 )}
                 <Link href="/orders">
-                  <Button variant="ghost" size="sm" className="rounded-full hover:bg-cyan-500/20 text-cyan-300">
+                  <Button variant="ghost" size="sm" className="rounded-full hover:bg-white/10 text-gray-300 hover:text-white">
                     <ShoppingBag className="w-4 h-4" />
                   </Button>
                 </Link>
@@ -113,7 +112,7 @@ export default function Navbar() {
                     whileTap={{ scale: 0.95 }}
                     className="flex items-center gap-2 text-sm text-white bg-white/5 hover:bg-white/10 transition-all cursor-pointer pr-4 pl-1.5 py-1.5 rounded-full border border-white/10 shadow-lg"
                   >
-                    <div className="w-7 h-7 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full flex items-center justify-center shadow-md shadow-purple-500/30">
+                    <div className="w-7 h-7 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-full flex items-center justify-center shadow-md">
                       <span className="text-white text-xs font-bold">{user.name?.charAt(0).toUpperCase() || "U"}</span>
                     </div>
                     <span className="font-medium">{user.name}</span>
@@ -126,64 +125,64 @@ export default function Navbar() {
                   <Button variant="ghost" size="sm" className="rounded-full text-gray-300 hover:text-white">Masuk</Button>
                 </Link>
                 <Link href="/auth/register">
-                  <Button variant="primary" size="sm" className="rounded-full px-6 shadow-md shadow-indigo-500/20">Daftar</Button>
+                  <Button variant="primary" size="sm" className="rounded-full px-6 shadow-md shadow-indigo-600/25">Daftar</Button>
                 </Link>
               </>
             )}
           </div>
 
-          {/* Ultra-Smooth Animated Mobile Menu Button */}
+          {/* Clean Smooth Animated Hamburger Button */}
           <motion.button
-            whileTap={{ scale: 0.88 }}
+            whileTap={{ scale: 0.9 }}
             onClick={() => setIsOpen(!isOpen)}
-            className={`md:hidden relative w-11 h-11 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-300 border ${
+            className={`md:hidden relative w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-1.5 transition-all duration-200 border ${
               isOpen 
-                ? "bg-gradient-to-br from-purple-600/30 to-cyan-600/30 border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.4)]" 
-                : "bg-white/[0.06] hover:bg-white/[0.12] border-white/10 shadow-md"
+                ? "bg-white/15 border-white/20 shadow-lg" 
+                : "bg-white/[0.06] hover:bg-white/[0.12] border-white/10 shadow-sm"
             }`}
             aria-label="Toggle navigation menu"
           >
             {/* Top Bar */}
             <motion.span
-              animate={isOpen ? { rotate: 45, y: 7.5, width: 22 } : { rotate: 0, y: 0, width: 22 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className="h-[2.5px] bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full origin-center shadow-sm"
+              animate={isOpen ? { rotate: 45, y: 7, width: 20 } : { rotate: 0, y: 0, width: 20 }}
+              transition={{ type: "spring", stiffness: 450, damping: 28 }}
+              className="h-[2px] bg-white rounded-full origin-center"
             />
             {/* Middle Bar */}
             <motion.span
-              animate={isOpen ? { opacity: 0, scaleX: 0 } : { opacity: 1, scaleX: 1, width: 16 }}
-              transition={{ duration: 0.2 }}
-              className="h-[2.5px] bg-cyan-400 rounded-full shadow-sm"
+              animate={isOpen ? { opacity: 0, scaleX: 0 } : { opacity: 1, scaleX: 1, width: 14 }}
+              transition={{ duration: 0.15 }}
+              className="h-[2px] bg-gray-300 rounded-full"
             />
             {/* Bottom Bar */}
             <motion.span
-              animate={isOpen ? { rotate: -45, y: -7.5, width: 22 } : { rotate: 0, y: 0, width: 22 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className="h-[2.5px] bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full origin-center shadow-sm"
+              animate={isOpen ? { rotate: -45, y: -7, width: 20 } : { rotate: 0, y: 0, width: 20 }}
+              transition={{ type: "spring", stiffness: 450, damping: 28 }}
+              className="h-[2px] bg-white rounded-full origin-center"
             />
           </motion.button>
         </div>
       </motion.div>
 
-      {/* Ultra-Smooth Glassmorphic Mobile Drawer */}
+      {/* Clean Glassmorphic Mobile Drawer */}
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            initial={{ opacity: 0, y: -15, scale: 0.98 }}
+            initial={{ opacity: 0, y: -10, scale: 0.99 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -15, scale: 0.98 }}
-            transition={{ type: "spring", damping: 28, stiffness: 320 }}
-            className="md:hidden bg-[#09051d]/95 backdrop-blur-2xl border-b border-purple-500/20 shadow-[0_25px_50px_rgba(0,0,0,0.8)] overflow-hidden"
+            exit={{ opacity: 0, y: -10, scale: 0.99 }}
+            transition={{ type: "spring", damping: 30, stiffness: 350 }}
+            className="md:hidden bg-[#09090b]/98 backdrop-blur-2xl border-b border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.7)] overflow-hidden"
           >
-            <div className="px-4 pt-3 pb-6 space-y-2">
+            <div className="px-4 pt-3 pb-6 space-y-1.5">
               
-              {/* Navigation Links with Icons */}
+              {/* Navigation Links */}
               <Link 
                 href="/" 
-                className="flex items-center gap-3.5 px-4 py-3 rounded-xl text-white hover:text-white bg-white/[0.03] hover:bg-white/[0.08] active:bg-white/[0.12] transition-all font-bold text-sm border border-white/5 hover:border-indigo-500/30 group shadow-sm"
+                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-200 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1] transition-all font-semibold text-sm group"
                 onClick={() => setIsOpen(false)}
               >
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 group-hover:scale-110 transition-transform shadow-sm">
+                <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/40 transition-colors">
                   <Home className="w-4 h-4" />
                 </div>
                 <span>Beranda</span>
@@ -191,10 +190,10 @@ export default function Navbar() {
 
               <Link 
                 href="/games" 
-                className="flex items-center gap-3.5 px-4 py-3 rounded-xl text-white hover:text-white bg-white/[0.03] hover:bg-white/[0.08] active:bg-white/[0.12] transition-all font-bold text-sm border border-white/5 hover:border-purple-500/30 group shadow-sm"
+                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-200 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1] transition-all font-semibold text-sm group"
                 onClick={() => setIsOpen(false)}
               >
-                <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform shadow-sm">
+                <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/40 transition-colors">
                   <Gamepad2 className="w-4 h-4" />
                 </div>
                 <span>Semua Game</span>
@@ -202,79 +201,79 @@ export default function Navbar() {
 
               <Link 
                 href="/order/check" 
-                className="flex items-center gap-3.5 px-4 py-3 rounded-xl text-white hover:text-white bg-white/[0.03] hover:bg-white/[0.08] active:bg-white/[0.12] transition-all font-bold text-sm border border-white/5 hover:border-cyan-500/30 group shadow-sm"
+                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-200 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1] transition-all font-semibold text-sm group"
                 onClick={() => setIsOpen(false)}
               >
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300 group-hover:scale-110 transition-transform shadow-sm">
+                <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/40 transition-colors">
                   <Search className="w-4 h-4" />
                 </div>
-                <span>Cek Status Pesanan</span>
+                <span>Cek Pesanan</span>
               </Link>
 
               <Link 
                 href="/leaderboard" 
-                className="flex items-center gap-3.5 px-4 py-3 rounded-xl text-white hover:text-white bg-white/[0.03] hover:bg-white/[0.08] active:bg-white/[0.12] transition-all font-bold text-sm border border-white/5 hover:border-yellow-500/30 group shadow-sm"
+                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-200 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.1] transition-all font-semibold text-sm group"
                 onClick={() => setIsOpen(false)}
               >
-                <div className="w-8 h-8 rounded-lg bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center text-yellow-300 group-hover:scale-110 transition-transform shadow-sm">
+                <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/40 transition-colors">
                   <Trophy className="w-4 h-4" />
                 </div>
-                <span>Leaderboard Top Spender</span>
+                <span>Leaderboard</span>
               </Link>
               
-              <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-3" />
+              <div className="h-px bg-white/10 my-3" />
               
               {/* User Account / Auth Area */}
               {user ? (
                 <div className="space-y-1.5 pt-1">
                   <Link 
                     href="/profile" 
-                    className="flex items-center gap-3.5 px-4 py-3 rounded-xl text-white hover:text-white bg-white/[0.06] hover:bg-white/[0.10] transition-all border border-white/10 shadow-sm" 
+                    className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-white bg-white/[0.05] hover:bg-white/[0.08] transition-all border border-white/10" 
                     onClick={() => setIsOpen(false)}
                   >
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-full flex items-center justify-center text-xs text-white font-bold shadow-md">
+                    <div className="w-7 h-7 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-full flex items-center justify-center text-xs text-white font-bold shadow-md">
                       {user.name?.charAt(0).toUpperCase() || "U"}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">{user.name}</p>
-                      <p className="text-[11px] text-gray-300">{user.email}</p>
+                      <p className="text-sm font-bold text-white leading-tight">{user.name}</p>
+                      <p className="text-[11px] text-gray-400 leading-tight">{user.email}</p>
                     </div>
                   </Link>
 
                   <Link 
                     href="/orders" 
-                    className="flex items-center gap-3.5 px-4 py-2.5 rounded-xl text-gray-200 hover:text-white hover:bg-white/[0.06] transition-all text-sm font-semibold" 
+                    className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-white/[0.06] transition-all text-sm font-medium" 
                     onClick={() => setIsOpen(false)}
                   >
-                    <ShoppingBag className="w-4 h-4 text-cyan-400" /> Riwayat Pesanan
+                    <ShoppingBag className="w-4 h-4 text-gray-400" /> Riwayat Pesanan
                   </Link>
 
                   {user.role === "ADMIN" && (
                     <Link 
                       href="/admin" 
-                      className="flex items-center gap-3.5 px-4 py-2.5 rounded-xl text-purple-300 hover:text-purple-200 hover:bg-purple-500/20 transition-all text-sm font-bold" 
+                      className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-all text-sm font-semibold" 
                       onClick={() => setIsOpen(false)}
                     >
-                      <LayoutDashboard className="w-4 h-4" /> Dashboard Admin
+                      <LayoutDashboard className="w-4 h-4" /> Admin Dashboard
                     </Link>
                   )}
 
                   <button 
                     onClick={() => { logout(); setIsOpen(false); }} 
-                    className="flex items-center gap-3.5 px-4 py-2.5 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-sm font-semibold w-full text-left"
+                    className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-sm font-medium w-full text-left"
                   >
-                    <LogOut className="w-4 h-4" /> Keluar dari Akun
+                    <LogOut className="w-4 h-4" /> Keluar
                   </button>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3 pt-2">
                   <Link href="/auth/login" onClick={() => setIsOpen(false)} className="block">
-                    <button className="w-full rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-sm font-bold py-2.5 transition-all active:scale-95 shadow-sm">
+                    <button className="w-full rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm font-bold py-2.5 transition-all active:scale-95">
                       Masuk
                     </button>
                   </Link>
                   <Link href="/auth/register" onClick={() => setIsOpen(false)} className="block">
-                    <button className="w-full rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 hover:brightness-110 text-white text-sm font-bold py-2.5 transition-all active:scale-95 shadow-lg shadow-indigo-500/30">
+                    <button className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold py-2.5 transition-all active:scale-95 shadow-lg shadow-indigo-600/30">
                       Daftar
                     </button>
                   </Link>
