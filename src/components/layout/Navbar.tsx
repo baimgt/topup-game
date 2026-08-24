@@ -131,34 +131,35 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Clean Smooth Animated Hamburger Button */}
+          {/* Ultra-Aesthetic Animated Mobile Hamburger Button */}
           <motion.button
             whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.05 }}
             onClick={() => setIsOpen(!isOpen)}
-            className={`md:hidden relative w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-1.5 transition-all duration-200 border ${
+            className={`md:hidden relative w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-[5px] transition-all duration-300 border shadow-md ${
               isOpen 
-                ? "bg-white/15 border-white/20 shadow-lg" 
-                : "bg-white/[0.06] hover:bg-white/[0.12] border-white/10 shadow-sm"
+                ? "bg-gradient-to-br from-indigo-600 to-violet-600 border-indigo-400 shadow-[0_0_16px_rgba(99,102,241,0.5)]" 
+                : "bg-slate-900/90 hover:bg-slate-900 border-slate-700/60 shadow-slate-950/20"
             }`}
             aria-label="Toggle navigation menu"
           >
             {/* Top Bar */}
             <motion.span
-              animate={isOpen ? { rotate: 45, y: 7, width: 20 } : { rotate: 0, y: 0, width: 20 }}
-              transition={{ type: "spring", stiffness: 450, damping: 28 }}
-              className="h-[2px] bg-white rounded-full origin-center"
+              animate={isOpen ? { rotate: 45, y: 7, width: 20, backgroundColor: "#ffffff" } : { rotate: 0, y: 0, width: 20, backgroundColor: "#ffffff" }}
+              transition={{ type: "spring", stiffness: 380, damping: 22 }}
+              className="h-[2px] rounded-full origin-center shadow-sm"
             />
             {/* Middle Bar */}
             <motion.span
-              animate={isOpen ? { opacity: 0, scaleX: 0 } : { opacity: 1, scaleX: 1, width: 14 }}
-              transition={{ duration: 0.15 }}
-              className="h-[2px] bg-gray-300 rounded-full"
+              animate={isOpen ? { opacity: 0, scaleX: 0, x: 8 } : { opacity: 1, scaleX: 1, x: 0, width: 14, backgroundColor: "#818cf8" }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="h-[2px] rounded-full shadow-sm self-start ml-[10px]"
             />
             {/* Bottom Bar */}
             <motion.span
-              animate={isOpen ? { rotate: -45, y: -7, width: 20 } : { rotate: 0, y: 0, width: 20 }}
-              transition={{ type: "spring", stiffness: 450, damping: 28 }}
-              className="h-[2px] bg-white rounded-full origin-center"
+              animate={isOpen ? { rotate: -45, y: -7, width: 20, backgroundColor: "#ffffff" } : { rotate: 0, y: 0, width: 20, backgroundColor: "#ffffff" }}
+              transition={{ type: "spring", stiffness: 380, damping: 22 }}
+              className="h-[2px] rounded-full origin-center shadow-sm"
             />
           </motion.button>
         </div>
