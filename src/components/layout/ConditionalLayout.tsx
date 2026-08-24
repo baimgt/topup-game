@@ -35,14 +35,15 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
           setIsMaintenance(data.data.maintenanceMode);
           if (data.data.maintenanceMessage) setMaintenanceMsg(data.data.maintenanceMessage);
 
-          if (data.data.siteLogo) {
+          const dynamicIcon = data.data.siteFavicon || data.data.siteLogo;
+          if (dynamicIcon) {
             let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
             if (!link) {
               link = document.createElement("link");
               link.rel = "icon";
               document.head.appendChild(link);
             }
-            link.href = data.data.siteLogo;
+            link.href = dynamicIcon;
           }
           
           if (data.data.announcementEnabled) {

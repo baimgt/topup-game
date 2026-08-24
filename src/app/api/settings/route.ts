@@ -42,6 +42,7 @@ export async function GET() {
         announcementUrl: settings.announcementUrl || "",
         siteName: settings.siteName || "Gamerstore",
         siteLogo: settings.siteLogo || "",
+        siteFavicon: settings.siteFavicon || "",
         siteDescription: settings.siteDescription || "Platform top up game terpercaya",
         companyAddress: settings.companyAddress || "Jakarta, Indonesia",
         contactEmail: settings.contactEmail || "support@gamerstore.com",

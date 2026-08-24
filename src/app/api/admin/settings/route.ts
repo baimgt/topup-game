@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const ALLOWED_FIELDS = [
       "maintenanceMode", "maintenanceMessage",
       "announcementEnabled", "announcementText", "announcementImage", "announcementUrl",
-      "siteName", "siteLogo", "siteDescription",
+      "siteName", "siteLogo", "siteFavicon", "siteDescription",
       "companyAddress", "contactEmail", "contactPhone",
       "whatsappNumber", "instagramUrl",
       "smtpHost", "smtpPort", "smtpUser", "smtpPass", "smtpFrom",

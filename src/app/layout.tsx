@@ -11,6 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
   let siteName = "GamerStore";
   let siteDesc = "Platform top up game terpercaya dengan proses cepat, aman, dan harga terbaik.";
   let siteLogo = "";
+  let siteFavicon = "";
 
   try {
     await connectDB();
@@ -19,12 +20,14 @@ export async function generateMetadata(): Promise<Metadata> {
       if (settings.siteName) siteName = settings.siteName;
       if (settings.siteDescription) siteDesc = settings.siteDescription;
       if (settings.siteLogo) siteLogo = settings.siteLogo;
+      if (settings.siteFavicon) siteFavicon = settings.siteFavicon;
     }
   } catch (error) {
     console.error("Failed to fetch settings for metadata:", error);
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://gamerstoreplus.com";
+  const iconUrl = siteFavicon || siteLogo || "/favicon.svg";
 
   return {
     metadataBase: new URL(baseUrl),
@@ -47,12 +50,12 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: [
         {
-          url: "/favicon.svg",
-          type: "image/svg+xml",
+          url: iconUrl,
+          ...(iconUrl.endsWith(".svg") ? { type: "image/svg+xml" } : {}),
         },
       ],
-      shortcut: "/favicon.svg",
-      apple: "/favicon.svg",
+      shortcut: iconUrl,
+      apple: iconUrl,
     },
     openGraph: {
       title: `${siteName} - Top Up Game Terpercaya`,

@@ -10,6 +10,7 @@ import GatewayTab from "../payment/tabs/GatewayTab";
 interface Settings {
   siteName: string;
   siteLogo: string;
+  siteFavicon: string;
   siteDescription: string;
   companyAddress: string;
   contactEmail: string;
@@ -32,6 +33,7 @@ interface Settings {
 const defaultSettings: Settings = {
   siteName: "GamerStore",
   siteLogo: "",
+  siteFavicon: "",
   siteDescription: "Platform top up game terpercaya",
   companyAddress: "Jakarta, Indonesia",
   contactEmail: "support@gamerstore.com",
@@ -172,63 +174,129 @@ export default function AdminSettingsPage() {
           <h2 className="text-xl font-bold text-white tracking-tight">Informasi Website</h2>
         </div>
         <div className="space-y-5 relative z-10">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Logo Website</label>
-            <div className="flex items-center gap-4">
-              {settings.siteLogo ? (
-                <img
-                  src={settings.siteLogo}
-                  alt="Site Logo"
-                  className="w-16 h-16 object-contain rounded-lg border border-white/10 bg-black/20"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-lg border border-white/10 bg-black/20 flex items-center justify-center text-gray-500 text-xs">No Logo</div>
-              )}
-              <label className="flex items-center justify-center px-4 py-2 bg-black/20 border border-white/10 rounded-xl cursor-pointer hover:bg-white/5 transition-colors text-sm text-gray-300">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    
-                    const toastId = toast.loading("Mengunggah logo...");
-                    try {
-                      const formData = new FormData();
-                      formData.append("file", file);
-                      const token = localStorage.getItem("token");
-                      const res = await fetch("/api/admin/upload", {
-                        method: "POST",
-                        headers: { Authorization: `Bearer ${token}` },
-                        body: formData,
-                      });
-                      const data = await res.json();
-                      if (data.success) {
-                        // Update local state
-                        update("siteLogo", data.url);
-                        // Auto-save logo URL to DB immediately
-                        const saveRes = await fetch("/api/admin/settings", {
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Logo Website */}
+            <div className="p-4 bg-black/20 border border-white/5 rounded-xl space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-300">Logo Website</label>
+                <p className="text-xs text-gray-500 mt-0.5">Digunakan di header, footer, dan branding.</p>
+              </div>
+              <div className="flex items-center gap-4">
+                {settings.siteLogo ? (
+                  <img
+                    src={settings.siteLogo}
+                    alt="Site Logo"
+                    className="w-14 h-14 object-contain rounded-lg border border-white/10 bg-black/30"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-lg border border-white/10 bg-black/30 flex items-center justify-center text-gray-500 text-xs">No Logo</div>
+                )}
+                <label className="flex items-center justify-center px-4 py-2 bg-purple-600/20 border border-purple-500/30 rounded-xl cursor-pointer hover:bg-purple-600/30 transition-colors text-xs font-semibold text-purple-300">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      const toastId = toast.loading("Mengunggah logo...");
+                      try {
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        const token = localStorage.getItem("token");
+                        const res = await fetch("/api/admin/upload", {
                           method: "POST",
-                          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                          body: JSON.stringify({ ...settings, siteLogo: data.url }),
+                          headers: { Authorization: `Bearer ${token}` },
+                          body: formData,
                         });
-                        const saveData = await saveRes.json();
-                        if (saveData.success) {
-                          toast.success("Logo berhasil diunggah & disimpan!", { id: toastId });
+                        const data = await res.json();
+                        if (data.success) {
+                          update("siteLogo", data.url);
+                          const saveRes = await fetch("/api/admin/settings", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ ...settings, siteLogo: data.url }),
+                          });
+                          const saveData = await saveRes.json();
+                          if (saveData.success) {
+                            toast.success("Logo berhasil diunggah & disimpan!", { id: toastId });
+                          } else {
+                            toast.success("Logo diunggah (klik Simpan untuk menyimpan)", { id: toastId });
+                          }
                         } else {
-                          toast.success("Logo diunggah (klik Simpan untuk menyimpan)", { id: toastId });
+                          throw new Error(data.error);
                         }
-                      } else {
-                        throw new Error(data.error);
+                      } catch (err: any) {
+                        toast.error(err.message || "Gagal mengunggah", { id: toastId });
                       }
-                    } catch (err: any) {
-                      toast.error(err.message || "Gagal mengunggah", { id: toastId });
-                    }
-                  }}
-                />
-                Upload Logo
-              </label>
+                    }}
+                  />
+                  Upload Logo
+                </label>
+              </div>
+            </div>
+
+            {/* Favicon Website */}
+            <div className="p-4 bg-black/20 border border-white/5 rounded-xl space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-300">Favicon Website</label>
+                <p className="text-xs text-gray-500 mt-0.5">Ikon tab browser (SVG, PNG, atau ICO).</p>
+              </div>
+              <div className="flex items-center gap-4">
+                {settings.siteFavicon || settings.siteLogo ? (
+                  <img
+                    src={settings.siteFavicon || settings.siteLogo}
+                    alt="Favicon Preview"
+                    className="w-14 h-14 object-contain rounded-lg border border-white/10 bg-black/30 p-2"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-lg border border-white/10 bg-black/30 flex items-center justify-center text-gray-500 text-xs">/favicon.svg</div>
+                )}
+                <label className="flex items-center justify-center px-4 py-2 bg-blue-600/20 border border-blue-500/30 rounded-xl cursor-pointer hover:bg-blue-600/30 transition-colors text-xs font-semibold text-blue-300">
+                  <input
+                    type="file"
+                    accept="image/*,.ico"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      const toastId = toast.loading("Mengunggah favicon...");
+                      try {
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        const token = localStorage.getItem("token");
+                        const res = await fetch("/api/admin/upload", {
+                          method: "POST",
+                          headers: { Authorization: `Bearer ${token}` },
+                          body: formData,
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          update("siteFavicon", data.url);
+                          const saveRes = await fetch("/api/admin/settings", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ ...settings, siteFavicon: data.url }),
+                          });
+                          const saveData = await saveRes.json();
+                          if (saveData.success) {
+                            toast.success("Favicon berhasil diunggah & disimpan!", { id: toastId });
+                          } else {
+                            toast.success("Favicon diunggah (klik Simpan untuk menyimpan)", { id: toastId });
+                          }
+                        } else {
+                          throw new Error(data.error);
+                        }
+                      } catch (err: any) {
+                        toast.error(err.message || "Gagal mengunggah", { id: toastId });
+                      }
+                    }}
+                  />
+                  Upload Favicon
+                </label>
+              </div>
             </div>
           </div>
 

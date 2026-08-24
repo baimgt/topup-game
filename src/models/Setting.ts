@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface ISetting extends Document {
   siteName: string;
   siteLogo: string;
+  siteFavicon: string;
   siteDescription: string;
   companyAddress: string;
   contactEmail: string;
@@ -27,6 +28,7 @@ const SettingSchema = new Schema<ISetting>(
   {
     siteName: { type: String, default: "Gamerstore" },
     siteLogo: { type: String, default: "" },
+    siteFavicon: { type: String, default: "" },
     siteDescription: { type: String, default: "Platform top up game terpercaya" },
     companyAddress: { type: String, default: "Jakarta, Indonesia" },
     contactEmail: { type: String, default: "support@gamerstore.com" },
