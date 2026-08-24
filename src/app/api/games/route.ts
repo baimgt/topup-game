@@ -79,6 +79,8 @@ const createGameSchema = z.object({
   sortOrder: z.number().optional(),
   homeSortOrder: z.number().optional(),
   isCheckAccountSupported: z.boolean().optional(),
+  checkUsernameSku: z.string().optional(),
+  isVoucher: z.boolean().optional(),
   targetFormat: z.string().optional(),
   categoryOrder: z.array(z.string()).optional(),
   targetInputs: z.array(z.object({

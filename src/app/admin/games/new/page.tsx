@@ -169,7 +169,7 @@ export default function NewGamePage() {
 
                 <button
                   type="button"
-                  onClick={() => setForm({ ...form, isVoucher: true, category: form.category || "Voucher", statusCategory: form.statusCategory || "Voucher" })}
+                  onClick={() => setForm({ ...form, isVoucher: true })}
                   className={`p-3.5 rounded-xl border text-left transition-all ${
                     form.isVoucher
                       ? "bg-cyan-600/20 border-cyan-500 text-white shadow-lg shadow-cyan-500/20"

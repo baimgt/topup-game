@@ -39,7 +39,7 @@ export async function PATCH(
     const ALLOWED_FIELDS = [
       "name", "slug", "description", "imageUrl", "bannerUrl", "iconUrl",
       "category", "statusCategory", "sortOrder", "homeSortOrder", "isActive",
-      "isCheckAccountSupported", "checkUsernameSku", "targetFormat",
+      "isCheckAccountSupported", "checkUsernameSku", "isVoucher", "targetFormat",
       "targetInputs", "categoryOrder",
     ];
     const safeBody = Object.fromEntries(

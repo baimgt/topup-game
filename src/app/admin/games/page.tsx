@@ -11,10 +11,10 @@ import { formatCurrency } from "@/lib/utils";
 import ImportProductsModal from "@/components/admin/ImportProductsModal";
 import ImportGameModal from "@/components/admin/ImportGameModal";
 
-const CATEGORIES = ["Mobile", "PC", "Console", "RPG", "Lainnya"];
+const CATEGORIES = ["Mobile", "PC", "Console", "RPG", "Voucher", "Lainnya"];
 const STATUS_CATEGORIES = ["Lagi Populer", "Baru Rilis", "Voucher", "Top Up Langsung", "Top Up Login", "Pulsa", "Entertainment"];
 
-interface Game { _id: string; name: string; slug: string; description?: string; imageUrl?: string; bannerUrl?: string; iconUrl?: string; category: string; statusCategory?: string; isActive: boolean; sortOrder: number; homeSortOrder?: number; isCheckAccountSupported: boolean; targetFormat?: string; targetInputs?: any[]; products?: Product[]; categoryOrder?: string[]; }
+interface Game { _id: string; name: string; slug: string; description?: string; imageUrl?: string; bannerUrl?: string; iconUrl?: string; category: string; statusCategory?: string; isVoucher?: boolean; isActive: boolean; sortOrder: number; homeSortOrder?: number; isCheckAccountSupported: boolean; targetFormat?: string; targetInputs?: any[]; products?: Product[]; categoryOrder?: string[]; }
 interface Product { _id: string; name: string; description?: string; price: number; sellingPrice: number; digiflazzSku: string; category: string; isActive: boolean; sortOrder: number; }
 
 function formatSamplePreview(inputs: any[], format?: string) {
@@ -321,7 +321,7 @@ function EditGameModal({ game, onClose, onSaved }: { game: Game; onClose: () => 
 
           <button
             type="button"
-            onClick={() => setForm({ ...form, isVoucher: true, category: form.category === CATEGORIES[0] ? "Voucher" : form.category, statusCategory: form.statusCategory || "Voucher" })}
+            onClick={() => setForm({ ...form, isVoucher: true })}
             className={`p-3 rounded-xl border text-left transition-all ${
               form.isVoucher
                 ? "bg-cyan-600/20 border-cyan-500 text-white shadow-lg shadow-cyan-500/20"
