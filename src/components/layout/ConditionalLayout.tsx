@@ -69,8 +69,20 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
   };
 
   const handleBannerClick = () => {
-    if (announcementUrl) {
-      window.open(announcementUrl, "_blank");
+    if (!announcementUrl) return;
+    let target = announcementUrl.trim();
+    if (!target) return;
+    
+    // Close popup on click
+    handleClosePopup();
+
+    if (target.startsWith("/")) {
+      window.location.href = target;
+    } else {
+      if (!target.startsWith("http://") && !target.startsWith("https://")) {
+        target = `https://${target}`;
+      }
+      window.open(target, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -197,16 +209,24 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
           </div>
         </div>
 
-        <style jsx global>{`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
+        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 via-transparent to-transparent pointer-events-none" />
+        <div className="max-w-md w-full text-center space-y-6 relative z-10 bg-gaming-card p-8 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-xl">
+          <div className="w-16 h-16 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex items-center justify-center mx-auto text-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)]">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-white tracking-wide">Website Dalam Pemeliharaan</h1>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              {maintenanceMsg || "Kami sedang melakukan pemeliharaan sistem berkala untuk meningkatkan kualitas layanan. Silakan kembali beberapa saat lagi."}
+            </p>
+          </div>
+          <div className="pt-4 border-t border-white/5">
+            <p className="text-xs text-gray-500">Terima kasih atas pengertian dan kesabaran Anda.</p>
+          </div>
+        </div>
       </div>
     );
   }
-
 
   return (
     <div className="gaming-light-theme min-h-screen flex flex-col">
@@ -216,23 +236,24 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative max-w-lg w-full bg-gaming-card border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+              className="relative max-w-lg w-full bg-[#0d0724] border border-purple-500/30 rounded-2xl overflow-hidden shadow-2xl group"
             >
               <button
                 onClick={handleClosePopup}
-                className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                className="absolute top-3 right-3 z-20 w-8 h-8 flex items-center justify-center bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors border border-white/20 shadow-md"
+                aria-label="Tutup Pengumuman"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
               
               <div 
-                className={`flex flex-col ${announcementUrl ? "cursor-pointer" : ""}`}
+                className={`flex flex-col ${announcementUrl ? "cursor-pointer hover:opacity-95 transition-opacity" : ""}`}
                 onClick={handleBannerClick}
               >
                 {announcementImage ? (
@@ -244,8 +265,15 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
                 )}
                 
                 {announcementText && (
-                  <div className="p-5 text-center bg-white/5">
-                    <p className="text-white font-medium">{announcementText}</p>
+                  <div className="p-4 text-center bg-white/5 border-t border-white/10">
+                    <p className="text-white font-medium text-sm">{announcementText}</p>
+                  </div>
+                )}
+
+                {announcementUrl && (
+                  <div className="p-3 bg-indigo-600 hover:bg-indigo-500 text-white text-center text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors">
+                    <span>Lihat Promo &amp; Info Selengkapnya</span>
+                    <span>➔</span>
                   </div>
                 )}
               </div>
