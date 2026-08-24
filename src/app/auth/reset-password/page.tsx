@@ -72,7 +72,7 @@ function ResetPasswordForm() {
   };
 
   return (
-    <div className="bg-white dark:bg-gaming-card rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-xl shadow-slate-900/5">
+    <div className="bg-gaming-card rounded-2xl border border-white/5 p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           label="Email"
@@ -160,17 +160,17 @@ export default function ResetPasswordPage() {
                 <Gamepad2 className="w-6 h-6 text-white" />
               </div>
             )}
-            <span className="text-slate-900 dark:text-white font-extrabold text-xl tracking-tight">
+            <span className="text-white font-extrabold text-xl tracking-tight">
               {siteName}
             </span>
           </Link>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Buat Password Baru</h1>
-          <p className="text-slate-600 dark:text-gray-400 text-sm font-medium">
+          <h1 className="text-2xl font-bold text-white mb-2">Buat Password Baru</h1>
+          <p className="text-gray-400 text-sm">
             Masukkan kode OTP yang telah dikirim ke email Anda beserta password baru.
           </p>
         </div>
 
-        <Suspense fallback={<div className="text-center text-slate-500 dark:text-gray-400 py-10">Memuat formulir...</div>}>
+        <Suspense fallback={<div className="text-center text-gray-400 py-10">Memuat formulir...</div>}>
           <ResetPasswordForm />
         </Suspense>
       </div>
