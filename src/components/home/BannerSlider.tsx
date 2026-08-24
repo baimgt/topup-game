@@ -67,10 +67,10 @@ export default function BannerSlider() {
     });
   }, [banners.length]);
 
-  const prevSlide = () => {
+  const prevSlide = useCallback(() => {
     if (banners.length === 0) return;
     setCurrentIndex((prevIndex) => (prevIndex - 1 + banners.length) % banners.length);
-  };
+  }, [banners.length]);
 
   useEffect(() => {
     async function fetchBanners() {
@@ -96,22 +96,22 @@ export default function BannerSlider() {
   if (banners.length === 0) return null;
 
   return (
-    <div className="relative py-6 w-full select-none overflow-hidden">
+    <div className="relative py-3 sm:py-6 w-full select-none overflow-hidden">
       {/* Slides Container */}
-      <div className="max-w-7xl mx-auto px-4 relative flex items-center justify-center">
-        {/* Previous Button */}
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 relative flex items-center justify-center">
+        {/* Previous Button (Hidden on small mobile to avoid blocking content, accessible via swipe) */}
         {banners.length > 1 && (
           <button
             onClick={prevSlide}
-            className="absolute left-6 z-20 w-11 h-11 bg-black/40 hover:bg-black/60 border border-white/10 rounded-full flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-lg"
+            className="hidden sm:flex absolute left-2 md:left-6 z-20 w-9 h-9 md:w-11 md:h-11 bg-black/50 hover:bg-black/80 border border-white/10 rounded-full items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-xl backdrop-blur-sm"
             aria-label="Previous Banner"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
           </button>
         )}
 
-        {/* Carousel Area */}
-        <div className="w-full flex items-center justify-center min-h-[200px] h-[240px] sm:h-[280px] md:h-[340px] relative">
+        {/* Carousel Area with Proportional Aspect Ratio */}
+        <div className="w-full flex items-center justify-center aspect-[2.1/1] sm:aspect-[2.4/1] md:aspect-[2.7/1] min-h-[140px] max-h-[360px] relative">
           <AnimatePresence initial={false} mode="popLayout">
             {banners.map((banner, index) => {
               // Calculate relative positioning for 3D/center active layout
@@ -133,30 +133,39 @@ export default function BannerSlider() {
               const cardContent = (
                 <>
                   {banner.bannerType !== "image" && (
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/[0.02] rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-48 sm:w-64 h-48 sm:h-64 bg-white/[0.03] rounded-full blur-3xl pointer-events-none" />
                   )}
                   
                   {banner.bannerType === "image" ? (
-                    // Subtle hover overlay for image banners
-                    <div className="absolute inset-0 bg-black/10 hover:bg-black/0 transition-colors duration-300 pointer-events-none" />
+                    <div className="relative w-full h-full">
+                      {banner.imageUrl && (
+                        <img
+                          src={banner.imageUrl}
+                          alt={banner.title || "Promo Banner"}
+                          className="w-full h-full object-cover object-center rounded-xl sm:rounded-2xl md:rounded-3xl"
+                          loading="lazy"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-black/10 hover:bg-black/0 transition-colors duration-300 pointer-events-none rounded-xl sm:rounded-2xl md:rounded-3xl" />
+                    </div>
                   ) : (
-                    <>
+                    <div className="w-full h-full flex flex-col justify-between p-3 sm:p-6 md:p-8 relative z-10">
                       {/* Banner Header */}
-                      <div className="relative z-10 flex justify-between items-start w-full">
-                        <span className="bg-white/10 backdrop-blur-md text-white font-bold text-xs uppercase tracking-wider px-3.5 py-1.5 rounded-full border border-white/10">
+                      <div className="flex justify-between items-start w-full gap-2">
+                        <span className="bg-white/10 backdrop-blur-md text-white font-bold text-[10px] sm:text-xs uppercase tracking-wider px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-white/10">
                           {banner.badge || "Promo"}
                         </span>
-                        <span className={`font-black text-xl sm:text-2xl md:text-4xl italic tracking-tighter ${banner.textColor || "text-blue-400"}`}>
+                        <span className={`font-black text-sm sm:text-xl md:text-3xl italic tracking-tight ${banner.textColor || "text-blue-400"}`}>
                           {banner.discount}
                         </span>
                       </div>
 
                       {/* Banner Content */}
-                      <div className="relative z-10 space-y-1.5 md:space-y-3 w-full text-left">
-                        <h3 className="text-white text-lg sm:text-2xl md:text-4xl font-extrabold tracking-tight leading-tight">
+                      <div className="space-y-1 sm:space-y-2 md:space-y-3 w-full text-left my-auto">
+                        <h3 className="text-white text-xs xs:text-sm sm:text-xl md:text-3xl font-extrabold tracking-tight leading-tight line-clamp-1 sm:line-clamp-2">
                           {banner.title}
                         </h3>
-                        <p className="text-white/80 font-medium text-xs sm:text-sm md:text-lg line-clamp-1">
+                        <p className="text-white/80 font-medium text-[11px] sm:text-sm md:text-base line-clamp-1">
                           {banner.subtitle}
                         </p>
                         <p className="text-white/60 text-xs md:text-sm max-w-xl line-clamp-1 md:line-clamp-2 leading-relaxed hidden sm:block">
@@ -164,12 +173,12 @@ export default function BannerSlider() {
                         </p>
                       </div>
 
-                      {/* Indicator Line bottom */}
-                      <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-4 text-xs font-semibold uppercase tracking-wider text-white/50 w-full">
+                      {/* Indicator Line bottom (Desktop only to prevent cramming) */}
+                      <div className="hidden sm:flex items-center justify-between border-t border-white/10 pt-2.5 md:pt-4 text-[11px] md:text-xs font-semibold uppercase tracking-wider text-white/50 w-full">
                         <span>Eksklusif di Platform Kami</span>
                         <span className="text-white select-all cursor-pointer font-mono">Promo Spesial</span>
                       </div>
-                    </>
+                    </div>
                   )}
                 </>
               );
@@ -177,34 +186,45 @@ export default function BannerSlider() {
               return (
                 <motion.div
                   key={bannerKey}
-                  style={banner.bannerType === "image" && banner.imageUrl ? { backgroundImage: `url(${banner.imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : { background: banner.bgGradient || "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #020617 100%)" }}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.2}
+                  onDragEnd={(_, info) => {
+                    const swipeThreshold = 30;
+                    if (info.offset.x < -swipeThreshold || info.velocity.x < -300) {
+                      nextSlide();
+                    } else if (info.offset.x > swipeThreshold || info.velocity.x > 300) {
+                      prevSlide();
+                    }
+                  }}
+                  style={banner.bannerType === "image" ? { backgroundColor: "#0b071e" } : { background: banner.bgGradient || "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #020617 100%)" }}
                   initial={{
                     opacity: 0,
-                    scale: 0.8,
-                    x: position === "prev" ? -150 : position === "next" ? 150 : 0,
+                    scale: 0.85,
+                    x: position === "prev" ? "-50%" : position === "next" ? "50%" : "0%",
                     zIndex: isCenter ? 10 : 1,
                   }}
                   animate={{
-                    opacity: isCenter ? 1 : 0.4,
-                    scale: isCenter ? 1 : 0.85,
-                    x: position === "prev" ? -240 : position === "next" ? 240 : 0,
+                    opacity: isCenter ? 1 : 0.35,
+                    scale: isCenter ? 1 : 0.88,
+                    x: position === "prev" ? "-68%" : position === "next" ? "68%" : "0%",
                     zIndex: isCenter ? 10 : 1,
                   }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 28 }}
-                  className={`absolute w-[88%] sm:w-[82%] md:w-[65%] max-w-4xl min-h-[180px] h-[200px] sm:h-[240px] md:h-[280px] rounded-2xl md:rounded-3xl border border-white/10 overflow-hidden shadow-2xl transition-all banner-slide-card ${
-                    isCenter ? "shadow-indigo-500/5" : "cursor-pointer"
+                  exit={{ opacity: 0, scale: 0.85 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 30 }}
+                  className={`absolute w-[94%] sm:w-[84%] md:w-[72%] lg:w-[66%] max-w-4xl h-full rounded-xl sm:rounded-2xl md:rounded-3xl border border-white/10 overflow-hidden shadow-2xl transition-all banner-slide-card cursor-grab active:cursor-grabbing ${
+                    isCenter ? "shadow-indigo-500/10 ring-1 ring-white/10" : "cursor-pointer"
                   }`}
                   onClick={() => {
                     if (!isCenter) setCurrentIndex(index);
                   }}
                 >
                   {isCenter && banner.linkUrl ? (
-                    <Link href={banner.linkUrl} className="absolute inset-0 flex flex-col justify-between p-4 sm:p-6 md:p-10 z-20">
+                    <Link href={banner.linkUrl} className="w-full h-full block">
                       {cardContent}
                     </Link>
                   ) : (
-                    <div className="w-full h-full flex flex-col justify-between p-4 sm:p-6 md:p-10">
+                    <div className="w-full h-full">
                       {cardContent}
                     </div>
                   )}
@@ -214,27 +234,27 @@ export default function BannerSlider() {
           </AnimatePresence>
         </div>
 
-        {/* Next Button */}
+        {/* Next Button (Hidden on small mobile, accessible via swipe) */}
         {banners.length > 1 && (
           <button
             onClick={nextSlide}
-            className="absolute right-6 z-20 w-11 h-11 bg-black/40 hover:bg-black/60 border border-white/10 rounded-full flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-lg"
+            className="hidden sm:flex absolute right-2 md:right-6 z-20 w-9 h-9 md:w-11 md:h-11 bg-black/50 hover:bg-black/80 border border-white/10 rounded-full items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-xl backdrop-blur-sm"
             aria-label="Next Banner"
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
           </button>
         )}
       </div>
 
       {/* Indicator Dash Indicators */}
       {banners.length > 1 && (
-        <div className="flex justify-center gap-1.5 mt-2 md:mt-4">
+        <div className="flex justify-center gap-1.5 mt-2 sm:mt-3 md:mt-4">
           {banners.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`h-1 rounded-full transition-all duration-300 ${
-                index === currentIndex ? "w-8 bg-indigo-600" : "w-4 bg-gray-600"
+              className={`h-1 sm:h-1.5 rounded-full transition-all duration-300 ${
+                index === currentIndex ? "w-6 sm:w-8 bg-indigo-500 shadow-sm shadow-indigo-500/50" : "w-2.5 sm:w-4 bg-white/20 hover:bg-white/40"
               }`}
               aria-label={`Go to slide ${index + 1}`}
             />
