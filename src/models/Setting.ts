@@ -25,14 +25,14 @@ export interface ISetting extends Document {
 
 const SettingSchema = new Schema<ISetting>(
   {
-    siteName: { type: String, default: "GameTopUp" },
+    siteName: { type: String, default: "Gamerstore" },
     siteLogo: { type: String, default: "" },
     siteDescription: { type: String, default: "Platform top up game terpercaya" },
     companyAddress: { type: String, default: "Jakarta, Indonesia" },
-    contactEmail: { type: String, default: "support@gametopup.com" },
+    contactEmail: { type: String, default: "support@gamerstore.com" },
     contactPhone: { type: String, default: "+62 812-3456-7890" },
     whatsappNumber: { type: String, default: "6281234567890" },
-    instagramUrl: { type: String, default: "https://instagram.com/gametopup" },
+    instagramUrl: { type: String, default: "https://instagram.com/gamerstore" },
     maintenanceMode: { type: Boolean, default: false },
     maintenanceMessage: { type: String, default: "Website sedang dalam maintenance" },
     announcementEnabled: { type: Boolean, default: false },

@@ -34,10 +34,10 @@ const defaultSettings: Settings = {
   siteLogo: "",
   siteDescription: "Platform top up game terpercaya",
   companyAddress: "Jakarta, Indonesia",
-  contactEmail: "support@gametopup.com",
+  contactEmail: "support@gamerstore.com",
   contactPhone: "+62 812-3456-7890",
   whatsappNumber: "6281234567890",
-  instagramUrl: "https://instagram.com/gametopup",
+  instagramUrl: "https://instagram.com/gamerstore",
   maintenanceMode: false,
   maintenanceMessage: "Website sedang dalam maintenance. Silakan coba beberapa saat lagi.",
   announcementEnabled: false,
@@ -267,7 +267,7 @@ export default function AdminSettingsPage() {
             value={settings.contactEmail}
             onChange={(e) => update("contactEmail", e.target.value)}
             icon={<Mail className="w-4 h-4" />}
-            placeholder="support@gametopup.com"
+            placeholder="support@gamerstore.com"
           />
           <Input
             label="Alamat Perusahaan"
@@ -496,7 +496,7 @@ export default function AdminSettingsPage() {
             label="SMTP Sender (From Email)"
             value={settings.smtpFrom}
             onChange={(e) => update("smtpFrom", e.target.value)}
-            placeholder="GamerStore <no-reply@gametopup.com>"
+            placeholder="GamerStore <no-reply@gamerstore.com>"
           />
         </div>
       </div>

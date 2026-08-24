@@ -11,7 +11,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = useAuth();
   const { scrollY } = useScroll();
-  const [siteName, setSiteName] = useState("GameTopUp");
+  const [siteName, setSiteName] = useState("Gamerstore");
   const [siteLogo, setSiteLogo] = useState("");
 
   useEffect(() => {

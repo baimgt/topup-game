@@ -3,22 +3,29 @@ import { connectDB } from "./mongoose";
 import Setting from "@/models/Setting";
 
 export async function sendOtpEmail(email: string, name: string, otp: string) {
-  // Load SMTP config from database, or fallback to environment variables
+  // Load SMTP config & Site Branding from database, or fallback to environment variables
   let host = process.env.SMTP_HOST;
   let port = parseInt(process.env.SMTP_PORT || "587");
   let user = process.env.SMTP_USER;
   let pass = process.env.SMTP_PASS;
-  let from = process.env.SMTP_FROM || '"GamerStore" <no-reply@gametopup.com>';
+  let siteName = "GamerStore";
+  let siteLogo = "";
+  let siteDescription = "Top Up Game Terpercaya";
+  let from = process.env.SMTP_FROM || `"GamerStore" <no-reply@gamerstore.com>`;
 
   try {
     await connectDB();
     const settings = await Setting.findOne({});
     if (settings) {
+      if (settings.siteName) siteName = settings.siteName;
+      if (settings.siteLogo) siteLogo = settings.siteLogo;
+      if (settings.siteDescription) siteDescription = settings.siteDescription;
       if (settings.smtpHost) host = settings.smtpHost;
       if (settings.smtpPort) port = settings.smtpPort;
       if (settings.smtpUser) user = settings.smtpUser;
       if (settings.smtpPass) pass = settings.smtpPass;
       if (settings.smtpFrom) from = settings.smtpFrom;
+      else from = `"${siteName}" <no-reply@gamerstore.com>`;
     }
   } catch (error) {
     console.error("Failed to load SMTP settings from DB, using fallback:", error);
@@ -45,12 +52,13 @@ export async function sendOtpEmail(email: string, name: string, otp: string) {
   const mailOptions = {
     from,
     to: email,
-    subject: "Verifikasi Akun - GamerStore",
+    subject: `Verifikasi Akun - ${siteName}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #332759; border-radius: 12px; background-color: #0b071e; color: #ffffff;">
         <div style="text-align: center; margin-bottom: 20px;">
-          <h2 style="color: #a855f7; margin-bottom: 5px; font-weight: 900; font-size: 26px;">Game<span style="color: #06b6d4;">TopUp</span></h2>
-          <p style="color: #94a3b8; font-size: 14px; margin-top: 0;">Top Up Game Terpercaya</p>
+          ${siteLogo ? `<div style="margin-bottom: 8px;"><img src="${siteLogo}" alt="${siteName}" style="height: 48px; max-width: 200px; object-fit: contain;" /></div>` : ''}
+          <h2 style="color: #a855f7; margin: 0 0 5px 0; font-weight: 900; font-size: 26px;">${siteName}</h2>
+          <p style="color: #94a3b8; font-size: 14px; margin-top: 0;">${siteDescription}</p>
         </div>
         <hr style="border: 0; border-top: 1px solid #332759; margin: 20px 0;">
         <p>Halo, <strong>${name}</strong></p>
@@ -60,7 +68,7 @@ export async function sendOtpEmail(email: string, name: string, otp: string) {
         </div>
         <p style="color: #94a3b8; font-size: 14px; line-height: 1.6;">Kode ini berlaku selama <strong>10 menit</strong>. Jika Anda tidak merasa melakukan pendaftaran ini, silakan abaikan email ini.</p>
         <hr style="border: 0; border-top: 1px solid #332759; margin: 20px 0;">
-        <p style="font-size: 12px; color: #64748b; text-align: center;">&copy; ${new Date().getFullYear()} GamerStore. All rights reserved.</p>
+        <p style="font-size: 12px; color: #64748b; text-align: center;">&copy; ${new Date().getFullYear()} ${siteName}. All rights reserved.</p>
       </div>
     `,
   };
@@ -74,17 +82,24 @@ export async function sendInvoiceEmail(order: any) {
   let port = parseInt(process.env.SMTP_PORT || "587");
   let user = process.env.SMTP_USER;
   let pass = process.env.SMTP_PASS;
-  let from = process.env.SMTP_FROM || '"GamerStore" <no-reply@gametopup.com>';
+  let siteName = "GamerStore";
+  let siteLogo = "";
+  let siteDescription = "Top Up Game Terpercaya";
+  let from = process.env.SMTP_FROM || `"GamerStore" <no-reply@gamerstore.com>`;
 
   try {
     await connectDB();
     const settings = await Setting.findOne({});
     if (settings) {
+      if (settings.siteName) siteName = settings.siteName;
+      if (settings.siteLogo) siteLogo = settings.siteLogo;
+      if (settings.siteDescription) siteDescription = settings.siteDescription;
       if (settings.smtpHost) host = settings.smtpHost;
       if (settings.smtpPort) port = settings.smtpPort;
       if (settings.smtpUser) user = settings.smtpUser;
       if (settings.smtpPass) pass = settings.smtpPass;
       if (settings.smtpFrom) from = settings.smtpFrom;
+      else from = `"${siteName}" <no-reply@gamerstore.com>`;
     }
   } catch (error) {
     console.error("Failed to load SMTP settings from DB, using fallback:", error);
@@ -110,8 +125,8 @@ export async function sendInvoiceEmail(order: any) {
 
   const isPaid = order.paymentStatus === "PAID";
   const subject = isPaid 
-    ? `Pembayaran Berhasil - Pesanan #${order.orderNumber}` 
-    : `Menunggu Pembayaran - Pesanan #${order.orderNumber}`;
+    ? `Pembayaran Berhasil - Pesanan #${order.orderNumber} - ${siteName}` 
+    : `Menunggu Pembayaran - Pesanan #${order.orderNumber} - ${siteName}`;
 
   const formatCurrency = (val: number) => "Rp " + val.toLocaleString("id-ID");
 
@@ -122,8 +137,9 @@ export async function sendInvoiceEmail(order: any) {
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #332759; border-radius: 12px; background-color: #0b071e; color: #ffffff;">
         <div style="text-align: center; margin-bottom: 20px;">
-          <h2 style="color: #a855f7; margin-bottom: 5px; font-weight: 900; font-size: 26px;">Game<span style="color: #06b6d4;">TopUp</span></h2>
-          <p style="color: #94a3b8; font-size: 14px; margin-top: 0;">Top Up Game Terpercaya</p>
+          ${siteLogo ? `<div style="margin-bottom: 8px;"><img src="${siteLogo}" alt="${siteName}" style="height: 48px; max-width: 200px; object-fit: contain;" /></div>` : ''}
+          <h2 style="color: #a855f7; margin: 0 0 5px 0; font-weight: 900; font-size: 26px;">${siteName}</h2>
+          <p style="color: #94a3b8; font-size: 14px; margin-top: 0;">${siteDescription}</p>
         </div>
         <hr style="border: 0; border-top: 1px solid #332759; margin: 20px 0;">
         <p>Halo, <strong>${order.customerName || "Pelanggan"}</strong></p>
@@ -152,7 +168,7 @@ export async function sendInvoiceEmail(order: any) {
             </tr>
             <tr>
               <td style="padding: 6px 0; color: #94a3b8;">ID Tujuan</td>
-              <td style="padding: 6px 0; text-align: right; font-weight: bold; color: #ffffff;">${order.gameUserId} ${order.gameServerId ? `(${order.gameServerId})` : ""}</td>
+              <td style="padding: 6px 0; text-align: right; font-weight: bold; color: #ffffff;">${order.isVoucher || order.gameUserId === "VOUCHER" ? "🎟️ Voucher Digital (Tanpa Akun)" : `${order.gameUserId} ${order.gameServerId ? `(${order.gameServerId})` : ""}`}</td>
             </tr>
             <tr>
               <td style="padding: 6px 0; color: #94a3b8;">Metode Pembayaran</td>
@@ -184,7 +200,7 @@ export async function sendInvoiceEmail(order: any) {
 
         <p style="color: #94a3b8; font-size: 14px; line-height: 1.6;">${isPaid ? "Pesanan Anda sedang dalam antrean pemrosesan kami. Mohon ditunggu." : "Harap menyelesaikan pembayaran sebelum batas waktu berakhir agar pesanan tidak dibatalkan otomatis."}</p>
         <hr style="border: 0; border-top: 1px solid #332759; margin: 20px 0;">
-        <p style="font-size: 12px; color: #64748b; text-align: center;">&copy; ${new Date().getFullYear()} GamerStore. All rights reserved.</p>
+        <p style="font-size: 12px; color: #64748b; text-align: center;">&copy; ${new Date().getFullYear()} ${siteName}. All rights reserved.</p>
       </div>
     `,
   };
@@ -209,17 +225,24 @@ export async function sendVoucherSnEmail(order: any) {
   let port = parseInt(process.env.SMTP_PORT || "587");
   let user = process.env.SMTP_USER;
   let pass = process.env.SMTP_PASS;
-  let from = process.env.SMTP_FROM || '"GamerStore Voucher" <voucher@gametopup.com>';
+  let siteName = "GamerStore";
+  let siteLogo = "";
+  let siteDescription = "Top Up Game Terpercaya";
+  let from = process.env.SMTP_FROM || `"GamerStore Voucher" <voucher@gamerstore.com>`;
 
   try {
     await connectDB();
     const settings = await Setting.findOne({});
     if (settings) {
+      if (settings.siteName) siteName = settings.siteName;
+      if (settings.siteLogo) siteLogo = settings.siteLogo;
+      if (settings.siteDescription) siteDescription = settings.siteDescription;
       if (settings.smtpHost) host = settings.smtpHost;
       if (settings.smtpPort) port = settings.smtpPort;
       if (settings.smtpUser) user = settings.smtpUser;
       if (settings.smtpPass) pass = settings.smtpPass;
       if (settings.smtpFrom) from = settings.smtpFrom;
+      else from = `"${siteName} Voucher" <voucher@gamerstore.com>`;
     }
   } catch (error) {
     console.error("Failed to load SMTP settings from DB for voucher email:", error);
@@ -247,7 +270,7 @@ export async function sendVoucherSnEmail(order: any) {
   const mailOptions = {
     from,
     to: order.customerEmail,
-    subject: `🎟️ Kode Voucher / Serial Number (SN) - Pesanan #${order.orderNumber}`,
+    subject: `🎟️ Kode Voucher / Serial Number (SN) - Pesanan #${order.orderNumber} - ${siteName}`,
     html: `
       <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #3b2064; border-radius: 16px; background-color: #0b071e; color: #ffffff;">
         
@@ -256,8 +279,9 @@ export async function sendVoucherSnEmail(order: any) {
           <div style="display: inline-block; padding: 8px 16px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 20px; color: #c084fc; font-size: 12px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px;">
             🎟️ Pengiriman Kode Voucher Digital
           </div>
-          <h2 style="color: #ffffff; margin: 0 0 6px 0; font-weight: 900; font-size: 26px;">Game<span style="color: #06b6d4;">TopUp</span></h2>
-          <p style="color: #94a3b8; font-size: 13px; margin: 0;">Serial Number & Kode Voucher Resmi</p>
+          ${siteLogo ? `<div style="margin-bottom: 8px;"><img src="${siteLogo}" alt="${siteName}" style="height: 48px; max-width: 200px; object-fit: contain;" /></div>` : ''}
+          <h2 style="color: #ffffff; margin: 0 0 6px 0; font-weight: 900; font-size: 26px;">${siteName}</h2>
+          <p style="color: #94a3b8; font-size: 13px; margin: 0;">Serial Number &amp; Kode Voucher Resmi</p>
         </div>
 
         <hr style="border: 0; border-top: 1px solid #231647; margin: 20px 0;">
@@ -315,7 +339,7 @@ export async function sendVoucherSnEmail(order: any) {
 
         <hr style="border: 0; border-top: 1px solid #231647; margin: 20px 0;">
         <p style="font-size: 11px; color: #475569; text-align: center; margin: 0;">
-          &copy; ${new Date().getFullYear()} GamerStore. All rights reserved.
+          &copy; ${new Date().getFullYear()} ${siteName}. All rights reserved.
         </p>
       </div>
     `,

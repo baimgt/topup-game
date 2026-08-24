@@ -6,12 +6,12 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Footer() {
-  const [siteName, setSiteName] = useState("GameTopUp");
+  const [siteName, setSiteName] = useState("Gamerstore");
   const [siteLogo, setSiteLogo] = useState("");
   const [siteDesc, setSiteDesc] = useState("Platform top up game terpercaya dengan proses cepat, aman, dan harga terbaik.");
   const [whatsappNumber, setWhatsappNumber] = useState("6281234567890");
-  const [instagramUrl, setInstagramUrl] = useState("https://instagram.com/gametopup");
-  const [contactEmail, setContactEmail] = useState("support@gametopup.com");
+  const [instagramUrl, setInstagramUrl] = useState("https://instagram.com/gamerstore");
+  const [contactEmail, setContactEmail] = useState("support@gamerstore.com");
   const [contactPhone, setContactPhone] = useState("+62 812-3456-7890");
   const [companyAddress, setCompanyAddress] = useState("Jakarta, Indonesia");
 

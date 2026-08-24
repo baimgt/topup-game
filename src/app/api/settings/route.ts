@@ -18,14 +18,14 @@ export async function GET() {
           announcementEnabled: false,
           announcementText: "",
           announcementImage: "",
-          siteName: "GameTopUp",
+          siteName: "Gamerstore",
           siteLogo: "",
           siteDescription: "Platform top up game terpercaya",
           companyAddress: "Jakarta, Indonesia",
-          contactEmail: "support@gametopup.com",
+          contactEmail: "support@gamerstore.com",
           contactPhone: "+62 812-3456-7890",
           whatsappNumber: "6281234567890",
-          instagramUrl: "https://instagram.com/gametopup",
+          instagramUrl: "https://instagram.com/gamerstore",
         }
       });
     }
@@ -38,14 +38,14 @@ export async function GET() {
         announcementEnabled: settings.announcementEnabled,
         announcementText: settings.announcementText,
         announcementImage: settings.announcementImage,
-        siteName: settings.siteName || "GameTopUp",
+        siteName: settings.siteName || "Gamerstore",
         siteLogo: settings.siteLogo || "",
         siteDescription: settings.siteDescription || "Platform top up game terpercaya",
         companyAddress: settings.companyAddress || "Jakarta, Indonesia",
-        contactEmail: settings.contactEmail || "support@gametopup.com",
+        contactEmail: settings.contactEmail || "support@gamerstore.com",
         contactPhone: settings.contactPhone || "+62 812-3456-7890",
         whatsappNumber: settings.whatsappNumber || "6281234567890",
-        instagramUrl: settings.instagramUrl || "https://instagram.com/gametopup",
+        instagramUrl: settings.instagramUrl || "https://instagram.com/gamerstore",
       }
     });
   } catch (error) {
