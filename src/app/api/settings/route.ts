@@ -27,6 +27,7 @@ export async function GET() {
           contactPhone: "+62 812-3456-7890",
           whatsappNumber: "6281234567890",
           instagramUrl: "https://instagram.com/gamerstore",
+          pascabayarAdminFee: 2500,
         }
       });
     }
@@ -49,6 +50,7 @@ export async function GET() {
         contactPhone: settings.contactPhone || "+62 812-3456-7890",
         whatsappNumber: settings.whatsappNumber || "6281234567890",
         instagramUrl: settings.instagramUrl || "https://instagram.com/gamerstore",
+        pascabayarAdminFee: settings.pascabayarAdminFee ?? 2500,
       }
     });
   } catch (error) {

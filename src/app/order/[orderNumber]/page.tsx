@@ -262,22 +262,38 @@ export default function OrderDetailPage() {
               </div>
               <div>
                 <p className={`font-semibold text-sm ${order.orderStatus === "SUCCESS" ? "text-white" : "text-gray-500"}`}>
-                  {order.orderStatus === "SUCCESS"
+                  {(order as any).isPascabayar
+                    ? order.orderStatus === "SUCCESS"
+                      ? "Tagihan Berhasil Dilunasi"
+                      : order.orderStatus === "FAILED"
+                      ? "Pembayaran Tagihan Gagal"
+                      : (order.paymentStatus === "PAID" && order.orderStatus === "PROCESSING")
+                      ? "Sedang Dilunasi ke Biller Resmi"
+                      : "Menunggu Pelunasan"
+                    : order.orderStatus === "SUCCESS"
                     ? "Top-up Berhasil Masuk"
                     : order.orderStatus === "FAILED"
-                      ? "Pengiriman Saldo Gagal"
-                      : (order.paymentStatus === "PAID" && order.orderStatus === "PROCESSING")
-                        ? "Sedang Dikirim Ke ID Game"
-                        : "Menunggu Pengiriman"}
+                    ? "Pengiriman Saldo Gagal"
+                    : (order.paymentStatus === "PAID" && order.orderStatus === "PROCESSING")
+                    ? "Sedang Dikirim Ke ID Game"
+                    : "Menunggu Pengiriman"}
                 </p>
                 <p className="text-gray-400 text-xs mt-1 leading-relaxed">
-                  {order.orderStatus === "SUCCESS"
+                  {(order as any).isPascabayar
+                    ? order.orderStatus === "SUCCESS"
+                      ? "Tagihan bulanan Anda telah sukses terbayar dan lunas ke biller resmi. Struk bukti pembayaran telah diterbitkan."
+                      : order.orderStatus === "FAILED"
+                      ? "Pelunasan tagihan ke biller gagal. Silakan hubungi customer service."
+                      : (order.paymentStatus === "PAID" && order.orderStatus === "PROCESSING")
+                      ? "Pembayaran telah kami terima, sistem sedang menyelesaikan pelunasan ke biller resmi."
+                      : "Tagihan akan dilunasi otomatis setelah pembayaran diverifikasi."
+                    : order.orderStatus === "SUCCESS"
                     ? "Item game / diamond telah sukses dikirimkan ke ID game Anda. Silakan cek akun game Anda."
                     : order.orderStatus === "FAILED"
-                      ? "Pengiriman produk gagal dilakukan ke ID tujuan."
-                      : (order.paymentStatus === "PAID" && order.orderStatus === "PROCESSING")
-                        ? "Proses injeksi item/diamond sedang berjalan langsung ke akun Anda."
-                        : "Produk akan dikirim ke akun Anda setelah tahap pemrosesan selesai."}
+                    ? "Pengiriman produk gagal dilakukan ke ID tujuan."
+                    : (order.paymentStatus === "PAID" && order.orderStatus === "PROCESSING")
+                    ? "Proses injeksi item/diamond sedang berjalan langsung ke akun Anda."
+                    : "Produk akan dikirim ke akun Anda setelah tahap pemrosesan selesai."}
                 </p>
               </div>
             </div>
@@ -371,19 +387,27 @@ export default function OrderDetailPage() {
           </div>
         )}
 
-        {/* ── VOUCHER / SERIAL NUMBER (SN) DISPLAY BOX ─────────────────── */}
+        {/* ── VOUCHER / SERIAL NUMBER (SN) / STRUK RESMI DISPLAY BOX ─────── */}
         {order.sn && (
           <div className="bg-gradient-to-r from-purple-950/60 via-indigo-950/60 to-cyan-950/60 rounded-2xl border-2 border-cyan-500/40 p-6 mb-6 shadow-2xl relative overflow-hidden">
             <div className="flex items-center justify-between gap-3 mb-3 border-b border-white/10 pb-3">
               <div className="flex items-center gap-2.5">
-                <span className="text-2xl">🎟️</span>
+                <span className="text-2xl">{(order as any).isPascabayar ? "🧾" : "🎟️"}</span>
                 <div>
-                  <h3 className="text-white font-black text-base tracking-wide">SERIAL NUMBER / KODE VOUCHER DIGITAL</h3>
-                  <p className="text-cyan-300 text-xs font-semibold">Resmi &amp; Siap Digunakan</p>
+                  <h3 className="text-white font-black text-base tracking-wide">
+                    {(order as any).isPascabayar
+                      ? "NOMOR REFERENSI STRUK / BUKTI BAYAR RESMI"
+                      : "SERIAL NUMBER / KODE VOUCHER DIGITAL"}
+                  </h3>
+                  <p className="text-cyan-300 text-xs font-semibold">
+                    {(order as any).isPascabayar
+                      ? "Tagihan Sah & Lunas Terverifikasi Biller"
+                      : "Resmi & Siap Digunakan"}
+                  </p>
                 </div>
               </div>
               <span className="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full font-bold uppercase flex-shrink-0">
-                Sukses Terbit
+                {(order as any).isPascabayar ? "LUNAS" : "Sukses Terbit"}
               </span>
             </div>
 
@@ -398,27 +422,29 @@ export default function OrderDetailPage() {
                 className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold px-5 py-2.5 flex items-center justify-center gap-2 flex-shrink-0 shadow-lg shadow-cyan-500/20"
               >
                 {copiedSn ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4 text-white" />}
-                {copiedSn ? "Tersalin!" : "Salin Kode"}
+                {copiedSn ? "Tersalin!" : "Salin No. Ref"}
               </Button>
             </div>
 
             <p className="text-gray-300 text-xs leading-relaxed flex items-center gap-1.5 mt-2">
-              <span className="text-cyan-400 font-bold">ℹ️ Info:</span> Kode voucher ini juga telah otomatis dikirimkan ke email Anda (<strong>{order.customerEmail}</strong>).
+              <span className="text-cyan-400 font-bold">ℹ️ Info:</span> Bukti struk pembayaran ini juga telah otomatis dikirimkan ke email Anda (<strong>{order.customerEmail}</strong>).
             </p>
           </div>
         )}
 
         {/* Order Details */}
         <div className="bg-gaming-card rounded-2xl border border-white/5 p-6 mb-6">
-          <h2 className="text-white font-semibold mb-4">Detail Pesanan</h2>
+          <h2 className="text-white font-semibold mb-4">
+            {(order as any).isPascabayar ? "Detail Tagihan Pascabayar" : "Detail Pesanan"}
+          </h2>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-400">Game</span>
-              <span className="text-white">{order.gameName}</span>
+              <span className="text-gray-400">{(order as any).isPascabayar ? "Layanan Tagihan" : "Game"}</span>
+              <span className="text-white font-bold">{order.gameName}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">ID Akun</span>
-              <span className="text-white font-mono">
+              <span className="text-gray-400">{(order as any).isPascabayar ? "ID Pelanggan / No. Meter" : "ID Akun"}</span>
+              <span className="text-white font-mono font-bold">
                 {order.isVoucher || order.gameUserId === "VOUCHER" ? (
                   <span className="text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20 text-xs font-semibold">
                     🎟️ Voucher Digital (Tanpa Akun)
@@ -428,16 +454,28 @@ export default function OrderDetailPage() {
                 )}
               </span>
             </div>
+            {order.gameUsername && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">{(order as any).isPascabayar ? "Nama Pemilik Rekening" : "Nama Akun (Nickname)"}</span>
+                <span className="text-cyan-300 font-bold">{order.gameUsername}</span>
+              </div>
+            )}
+            {(order as any).pascabayarData?.period && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">Periode Tagihan</span>
+                <span className="text-white">{(order as any).pascabayarData.period}</span>
+              </div>
+            )}
+            {(order as any).pascabayarData?.tariff && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">Tarif / Daya</span>
+                <span className="text-white">{(order as any).pascabayarData.tariff}</span>
+              </div>
+            )}
             {order.gameServerId && (
               <div className="flex justify-between">
                 <span className="text-gray-400">Server ID</span>
                 <span className="text-white font-mono">{order.gameServerId}</span>
-              </div>
-            )}
-            {order.gameUsername && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">Nama Akun (Nickname)</span>
-                <span className="text-purple-400 font-bold">{order.gameUsername}</span>
               </div>
             )}
             {order.orderItems?.map((item) => (

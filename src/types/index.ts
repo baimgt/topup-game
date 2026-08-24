@@ -71,6 +71,9 @@ export interface Order {
   digiflazzRef?: string;
   sn?: string;
   isVoucher?: boolean;
+  isPascabayar?: boolean;
+  pascabayarData?: any;
+  receiptNo?: string;
   notes?: string;
   isFlashSale?: boolean;
   flashSaleDecremented?: boolean;

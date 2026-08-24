@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 import { PaymentStatus, OrderStatus } from "@/types";
 
 export interface IOrderItem {
-  productId: mongoose.Types.ObjectId;
+  productId?: mongoose.Types.ObjectId;
   productName: string;
   quantity: number;
   price: number;
@@ -17,7 +17,7 @@ export interface IOrder extends Document {
   customerEmail: string;
   customerPhone?: string;
   customerName: string;
-  gameId: mongoose.Types.ObjectId;
+  gameId?: mongoose.Types.ObjectId;
   gameName: string;
   gameUserId: string;
   gameServerId?: string;
@@ -32,9 +32,27 @@ export interface IOrder extends Document {
   qrString?: string;
   paidAt?: Date;
   digiflazzRef?: string;
-  sn?: string; // Serial Number / Kode Voucher dari Digiflazz
+  digiflazzSku?: string;
+  sn?: string; // Serial Number / Kode Voucher / No Referensi Biller
   isVoucher?: boolean;
-  snSentAt?: Date; // Waktu pengiriman email SN
+  isPascabayar?: boolean;
+  pascabayarData?: {
+    buyerSkuCode?: string;
+    productName?: string;
+    customerNo?: string;
+    customerName?: string;
+    admin?: number;
+    feeAdminStore?: number;
+    billAmount?: number;
+    penalty?: number;
+    period?: string;
+    tariff?: string;
+    daya?: number;
+    billCount?: number;
+    detail?: any[];
+  };
+  receiptNo?: string;
+  snSentAt?: Date; // Waktu pengiriman email SN / Struk
   notes?: string;
   orderItems: IOrderItem[];
   isFlashSale?: boolean;
@@ -49,7 +67,7 @@ export interface IOrder extends Document {
 
 const OrderItemSchema = new Schema<IOrderItem>(
   {
-    productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
+    productId: { type: Schema.Types.ObjectId, ref: "Product" },
     productName: { type: String, required: true },
     quantity: { type: Number, default: 1 },
     price: { type: Number, required: true },
@@ -65,7 +83,7 @@ const OrderSchema = new Schema<IOrder>(
     customerEmail: { type: String, required: true },
     customerPhone: { type: String },
     customerName: { type: String, default: "Guest" },
-    gameId: { type: Schema.Types.ObjectId, ref: "Game", required: true },
+    gameId: { type: Schema.Types.ObjectId, ref: "Game" },
     gameName: { type: String, required: true },
     gameUserId: { type: String, default: "VOUCHER" },
     gameServerId: { type: String },
@@ -88,8 +106,26 @@ const OrderSchema = new Schema<IOrder>(
     qrString: { type: String },
     paidAt: { type: Date },
     digiflazzRef: { type: String },
+    digiflazzSku: { type: String },
     sn: { type: String },
     isVoucher: { type: Boolean, default: false },
+    isPascabayar: { type: Boolean, default: false },
+    pascabayarData: {
+      buyerSkuCode: { type: String },
+      productName: { type: String },
+      customerNo: { type: String },
+      customerName: { type: String },
+      admin: { type: Number },
+      feeAdminStore: { type: Number },
+      billAmount: { type: Number },
+      penalty: { type: Number },
+      period: { type: String },
+      tariff: { type: String },
+      daya: { type: Number },
+      billCount: { type: Number },
+      detail: { type: Array },
+    },
+    receiptNo: { type: String },
     snSentAt: { type: Date },
     notes: { type: String },
     orderItems: [OrderItemSchema],

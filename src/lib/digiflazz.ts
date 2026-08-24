@@ -59,6 +59,36 @@ export interface DigiflazzTransactionResult {
   price?: number;
 }
 
+export interface DigiflazzInquiryPascaResult {
+  ref_id: string;
+  customer_no: string;
+  buyer_sku_code: string;
+  customer_name: string;
+  admin: number;
+  message: string;
+  status: "Sukses" | "Gagal" | "Pending";
+  rc: string;
+  sn?: string;
+  buyer_last_saldo?: number;
+  price: number; // Total tagihan dari biller
+  selling_price?: number;
+  desc?: {
+    tarif?: string;
+    daya?: number;
+    lembar_tagihan?: number;
+    tagihan?: {
+      detail?: Array<{
+        periode: string;
+        nilai_tagihan: string | number;
+        admin: string | number;
+        denda: string | number;
+        total: string | number;
+      }>;
+    };
+    [key: string]: any;
+  };
+}
+
 export async function getPriceList(type: "prepaid" | "pasca" = "prepaid"): Promise<DigiflazzProduct[]> {
   const { username, apiKey } = getCreds();
   const sign = makePricelistSign(username, apiKey);
@@ -101,6 +131,95 @@ export async function createTransaction(
   return response.data.data;
 }
 
+/**
+ * Cek Tagihan Pascabayar (Inquiry) ke Digiflazz
+ */
+export async function inquiryPascabayar(
+  buyerSkuCode: string,
+  customerNo: string,
+  refId: string,
+  options?: { username?: string; apiKey?: string; testing?: boolean }
+): Promise<DigiflazzInquiryPascaResult> {
+  const username = options?.username || getCreds().username;
+  const apiKey = options?.apiKey || getCreds().apiKey;
+  const testing = options?.testing ?? IS_TESTING;
+
+  const sign = makeSign(username, apiKey, refId);
+
+  const payload: Record<string, unknown> = {
+    commands: "inquiry-pasca",
+    username,
+    buyer_sku_code: buyerSkuCode,
+    customer_no: customerNo,
+    ref_id: refId,
+    sign,
+  };
+
+  if (testing) {
+    payload.testing = true;
+  }
+
+  const response = await axios.post(`${DIGIFLAZZ_BASE_URL}/transaction`, payload);
+  return response.data.data;
+}
+
+/**
+ * Bayar Tagihan Pascabayar ke Digiflazz
+ */
+export async function payPascabayar(
+  buyerSkuCode: string,
+  customerNo: string,
+  refId: string,
+  options?: { username?: string; apiKey?: string; testing?: boolean }
+): Promise<DigiflazzTransactionResult> {
+  const username = options?.username || getCreds().username;
+  const apiKey = options?.apiKey || getCreds().apiKey;
+  const testing = options?.testing ?? IS_TESTING;
+
+  const sign = makeSign(username, apiKey, refId);
+
+  const payload: Record<string, unknown> = {
+    commands: "pay-pasca",
+    username,
+    buyer_sku_code: buyerSkuCode,
+    customer_no: customerNo,
+    ref_id: refId,
+    sign,
+  };
+
+  if (testing) {
+    payload.testing = true;
+  }
+
+  const response = await axios.post(`${DIGIFLAZZ_BASE_URL}/transaction`, payload);
+  return response.data.data;
+}
+
+/**
+ * Cek Status Tagihan Pascabayar ke Digiflazz
+ */
+export async function checkStatusPascabayar(
+  buyerSkuCode: string,
+  customerNo: string,
+  refId: string,
+  options?: { username?: string; apiKey?: string }
+): Promise<DigiflazzTransactionResult> {
+  const username = options?.username || getCreds().username;
+  const apiKey = options?.apiKey || getCreds().apiKey;
+  const sign = makeSign(username, apiKey, refId);
+
+  const response = await axios.post(`${DIGIFLAZZ_BASE_URL}/transaction`, {
+    commands: "status-pasca",
+    username,
+    buyer_sku_code: buyerSkuCode,
+    customer_no: customerNo,
+    ref_id: refId,
+    sign,
+  });
+
+  return response.data.data;
+}
+
 export async function checkTransactionStatus(
   refId: string,
   options?: { username?: string; apiKey?: string }
@@ -135,5 +254,11 @@ export const DIGIFLAZZ_TEST_CASES = {
     pendingSukses: "087800001233",
     pendingGagal: "087800001234",
     skuTest: "xld10",
+  },
+  pasca: {
+    sukses: "530000000001",
+    gagal: "530000000002",
+    pending: "530000000003",
+    tagihanLunas: "530000000004",
   },
 } as const;

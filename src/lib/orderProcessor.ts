@@ -2,7 +2,12 @@ import mongoose from "mongoose";
 import Order from "@/models/Order";
 import PaymentConfig from "@/models/PaymentConfig";
 import { getTransactionStatus } from "@/lib/midtrans";
-import { createTransaction, generateRefId } from "@/lib/digiflazz";
+import {
+  createTransaction,
+  generateRefId,
+  payPascabayar,
+  checkStatusPascabayar,
+} from "@/lib/digiflazz";
 
 /**
  * Decrement flash sale stock for a given order if it is a flash sale order and hasn't been decremented yet.
@@ -12,9 +17,9 @@ export async function decrementFlashSaleStock(order: any) {
     try {
       const FlashSaleModel = mongoose.models.FlashSale || mongoose.model("FlashSale");
       const flashSale = await FlashSaleModel.findOne({
-        productId: order.orderItems[0].productId
+        productId: order.orderItems[0]?.productId,
       }).sort({ createdAt: -1 });
-      
+
       if (flashSale) {
         flashSale.stockLeft = Math.max(0, flashSale.stockLeft - 1);
         if (flashSale.stockLeft === 0) {
@@ -30,57 +35,110 @@ export async function decrementFlashSaleStock(order: any) {
 }
 
 /**
- * Memproses top-up ke Digiflazz setelah pembayaran berhasil.
+ * Memproses transaksi (Prabayar atau Pascabayar) ke Digiflazz setelah pembayaran berhasil.
  */
 export async function processOrderPayment(order: any) {
   try {
     await decrementFlashSaleStock(order);
-    
-    const item = order.orderItems[0];
-    if (item) {
-      const ProductModel = mongoose.models.Product || mongoose.model("Product");
-      const product = await ProductModel.findById(item.productId);
-      
-      if (!product || !product.digiflazzSku) {
-        throw new Error("SKU Digiflazz tidak ditemukan pada produk ini");
+
+    const paymentConfig = await PaymentConfig.findOne();
+    const digiCreds = {
+      username: paymentConfig?.digiflazzUsername,
+      apiKey: paymentConfig?.digiflazzApiKey,
+      testing: false,
+    };
+
+    // ── Alur Transaksi Khusus Pascabayar (PPOB Bill Payment) ──────────────────
+    if (order.isPascabayar) {
+      const sku = order.digiflazzSku || order.pascabayarData?.buyerSkuCode;
+      const customerNo = order.gameUserId || order.pascabayarData?.customerNo;
+      const refId = order.digiflazzRef || generateRefId();
+
+      if (!sku || !customerNo) {
+        throw new Error("Data SKU atau Nomor Pelanggan Pascabayar tidak lengkap");
       }
-
-      const isVoucherOrder = Boolean(
-        order.isVoucher ||
-        order.gameUserId === "VOUCHER" ||
-        !order.gameUserId
-      );
-
-      const refId = generateRefId();
-      const customerNo = isVoucherOrder
-        ? (order.customerPhone || "081234567890")
-        : (order.gameServerId ? `${order.gameUserId}${order.gameServerId}` : order.gameUserId);
 
       order.orderStatus = "PROCESSING";
       order.digiflazzRef = refId;
       await order.save();
 
-      const paymentConfig = await PaymentConfig.findOne();
+      const payResult = await payPascabayar(sku, customerNo, refId, digiCreds);
+
+      if (payResult.sn) {
+        order.sn = payResult.sn;
+        order.receiptNo = payResult.sn;
+      }
+
+      order.orderStatus =
+        payResult.status === "Sukses"
+          ? "SUCCESS"
+          : payResult.status === "Gagal"
+          ? "FAILED"
+          : "PROCESSING";
+      order.notes = payResult.message;
+      await order.save();
+
+      // Kirim Email Struk Bukti Bayar Tagihan jika sukses
+      if (order.orderStatus === "SUCCESS" && !order.snSentAt && order.customerEmail) {
+        const { sendInvoiceEmail } = await import("@/lib/mail");
+        sendInvoiceEmail(order).catch((e) =>
+          console.error("Pascabayar receipt email error:", e)
+        );
+      }
+      return;
+    }
+
+    // ── Alur Transaksi Prabayar (Top Up Game & Voucher) ──────────────────────
+    const item = order.orderItems[0];
+    if (item) {
+      const ProductModel = mongoose.models.Product || mongoose.model("Product");
+      const product = await ProductModel.findById(item.productId);
+
+      if (!product || !product.digiflazzSku) {
+        throw new Error("SKU Digiflazz tidak ditemukan pada produk ini");
+      }
+
+      const isVoucherOrder = Boolean(
+        order.isVoucher || order.gameUserId === "VOUCHER" || !order.gameUserId
+      );
+
+      const refId = generateRefId();
+      const customerNo = isVoucherOrder
+        ? order.customerPhone || "081234567890"
+        : order.gameServerId
+        ? `${order.gameUserId}${order.gameServerId}`
+        : order.gameUserId;
+
+      order.orderStatus = "PROCESSING";
+      order.digiflazzRef = refId;
+      await order.save();
+
       const digiResult = await createTransaction(
         product.digiflazzSku,
         customerNo,
         refId,
-        {
-          username: paymentConfig?.digiflazzUsername,
-          apiKey: paymentConfig?.digiflazzApiKey,
-          testing: false, // Jika pakai kredensial dari dashboard, matikan mode testing statis
-        }
+        digiCreds
       );
 
       if (digiResult.sn) {
         order.sn = digiResult.sn;
       }
-      order.orderStatus = digiResult.status === "Sukses" ? "SUCCESS" : digiResult.status === "Gagal" ? "FAILED" : "PROCESSING";
+      order.orderStatus =
+        digiResult.status === "Sukses"
+          ? "SUCCESS"
+          : digiResult.status === "Gagal"
+          ? "FAILED"
+          : "PROCESSING";
       order.notes = digiResult.message;
       await order.save();
 
       // Jika ada SN dan status SUCCESS, otomatis kirim Email Khusus Voucher / SN!
-      if (order.orderStatus === "SUCCESS" && order.sn && !order.snSentAt && order.customerEmail) {
+      if (
+        order.orderStatus === "SUCCESS" &&
+        order.sn &&
+        !order.snSentAt &&
+        order.customerEmail
+      ) {
         const { sendVoucherSnEmail } = await import("@/lib/mail");
         sendVoucherSnEmail(order)
           .then(async (sent) => {
@@ -95,7 +153,10 @@ export async function processOrderPayment(order: any) {
   } catch (err: any) {
     console.error("Digiflazz error:", err.response?.data || err);
     order.orderStatus = "FAILED";
-    const digiMsg = err.response?.data?.data?.message || err.response?.data?.message || err.message;
+    const digiMsg =
+      err.response?.data?.data?.message ||
+      err.response?.data?.message ||
+      err.message;
     order.notes = digiMsg || "Gagal memproses transaksi Digiflazz";
     await order.save();
   }
@@ -111,6 +172,33 @@ export async function syncOrderStatus(orderNumber: string) {
 
   const order = await Order.findOne({ orderNumber });
   if (!order || (order.paymentStatus !== "UNPAID" && order.orderStatus !== "PROCESSING")) return order;
+
+  // Jika order pascabayar sedang PROCESSING di Digiflazz, cek status ke Digiflazz
+  if (order.isPascabayar && order.orderStatus === "PROCESSING" && order.digiflazzRef) {
+    try {
+      const sku = order.digiflazzSku || order.pascabayarData?.buyerSkuCode || "";
+      const customerNo = order.gameUserId || order.pascabayarData?.customerNo || "";
+      const digiStatus = await checkStatusPascabayar(sku, customerNo, order.digiflazzRef, {
+        username: paymentConfig.digiflazzUsername,
+        apiKey: paymentConfig.digiflazzApiKey,
+      });
+      if (digiStatus) {
+        if (digiStatus.sn) {
+          order.sn = digiStatus.sn;
+          order.receiptNo = digiStatus.sn;
+        }
+        if (digiStatus.status === "Sukses") {
+          order.orderStatus = "SUCCESS";
+        } else if (digiStatus.status === "Gagal") {
+          order.orderStatus = "FAILED";
+        }
+        order.notes = digiStatus.message;
+        await order.save();
+      }
+    } catch (e) {
+      console.error("Failed to sync pascabayar Digiflazz status:", e);
+    }
+  }
 
   // Sync Midtrans/Duitku if UNPAID
   if (order.paymentStatus === "UNPAID") {

@@ -21,6 +21,7 @@ export interface ISetting extends Document {
   smtpUser: string;
   smtpPass: string;
   smtpFrom: string;
+  pascabayarAdminFee: number;
   updatedAt: Date;
 }
 
@@ -46,6 +47,7 @@ const SettingSchema = new Schema<ISetting>(
     smtpUser: { type: String, default: "" },
     smtpPass: { type: String, default: "" },
     smtpFrom: { type: String, default: "" },
+    pascabayarAdminFee: { type: Number, default: 2500 },
   },
   { timestamps: true }
 );

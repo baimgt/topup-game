@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       "companyAddress", "contactEmail", "contactPhone",
       "whatsappNumber", "instagramUrl",
       "smtpHost", "smtpPort", "smtpUser", "smtpPass", "smtpFrom",
+      "pascabayarAdminFee",
     ];
     const safeBody = Object.fromEntries(
       Object.entries(body).filter(([key]) => ALLOWED_FIELDS.includes(key))
