@@ -34,6 +34,16 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
         if (data.success && data.data) {
           setIsMaintenance(data.data.maintenanceMode);
           if (data.data.maintenanceMessage) setMaintenanceMsg(data.data.maintenanceMessage);
+
+          if (data.data.siteLogo) {
+            let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+            if (!link) {
+              link = document.createElement("link");
+              link.rel = "icon";
+              document.head.appendChild(link);
+            }
+            link.href = data.data.siteLogo;
+          }
           
           if (data.data.announcementEnabled) {
             setIsAnnouncement(true);
