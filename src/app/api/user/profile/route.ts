@@ -51,8 +51,11 @@ export async function PATCH(req: NextRequest) {
     if (email && email !== auth.email) {
       if (!otp) return NextResponse.json({ success: false, error: "OTP wajib diisi untuk mengubah email" }, { status: 400 });
       
-      const otpRecord = await ProfileOtp.findOne({ userId: auth.userId, type: "email", otp });
-      if (!otpRecord) return NextResponse.json({ success: false, error: "OTP salah atau sudah kedaluwarsa" }, { status: 400 });
+      const otpRecord = await ProfileOtp.findOne({ userId: auth.userId, type: "email", otp: otp.trim() });
+      if (!otpRecord || (otpRecord.expiresAt && new Date() > otpRecord.expiresAt)) {
+        if (otpRecord) await ProfileOtp.deleteOne({ _id: otpRecord._id });
+        return NextResponse.json({ success: false, error: "OTP salah atau sudah kedaluwarsa" }, { status: 400 });
+      }
 
       const existing = await User.findOne({ email, _id: { $ne: auth.userId } });
       if (existing) return NextResponse.json({ success: false, error: "Email sudah digunakan" }, { status: 400 });
@@ -69,8 +72,11 @@ export async function PATCH(req: NextRequest) {
       }
       if (!otp) return NextResponse.json({ success: false, error: "OTP wajib diisi untuk mengubah password" }, { status: 400 });
 
-      const otpRecord = await ProfileOtp.findOne({ userId: auth.userId, type: "password", otp });
-      if (!otpRecord) return NextResponse.json({ success: false, error: "OTP salah atau sudah kedaluwarsa" }, { status: 400 });
+      const otpRecord = await ProfileOtp.findOne({ userId: auth.userId, type: "password", otp: otp.trim() });
+      if (!otpRecord || (otpRecord.expiresAt && new Date() > otpRecord.expiresAt)) {
+        if (otpRecord) await ProfileOtp.deleteOne({ _id: otpRecord._id });
+        return NextResponse.json({ success: false, error: "OTP salah atau sudah kedaluwarsa" }, { status: 400 });
+      }
 
       const user = await User.findById(auth.userId);
       const valid = await comparePassword(currentPassword, user!.password);

@@ -8,11 +8,12 @@ export async function GET(req: NextRequest, props: { params: Promise<{ filename:
   const filename = params.filename;
   
   try {
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    const filePath = path.join(uploadDir, filename);
+    const uploadDir = path.resolve(process.cwd(), "public", "uploads");
+    const safeFilename = path.basename(filename);
+    const filePath = path.resolve(uploadDir, safeFilename);
 
     // Pastikan tidak ada directory traversal attack (path traversal)
-    if (!filePath.startsWith(uploadDir)) {
+    if (!filePath.startsWith(uploadDir) || safeFilename !== filename) {
       return new NextResponse("Forbidden", { status: 403 });
     }
 
@@ -23,11 +24,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ filename:
     const fileBuffer = await readFile(filePath);
     
     let contentType = "application/octet-stream";
-    if (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) contentType = "image/jpeg";
-    else if (filename.endsWith(".png")) contentType = "image/png";
-    else if (filename.endsWith(".svg")) contentType = "image/svg+xml";
-    else if (filename.endsWith(".webp")) contentType = "image/webp";
-    else if (filename.endsWith(".gif")) contentType = "image/gif";
+    const lower = safeFilename.toLowerCase();
+    if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) contentType = "image/jpeg";
+    else if (lower.endsWith(".png")) contentType = "image/png";
+    else if (lower.endsWith(".svg")) contentType = "image/svg+xml";
+    else if (lower.endsWith(".webp")) contentType = "image/webp";
+    else if (lower.endsWith(".gif")) contentType = "image/gif";
+    else if (lower.endsWith(".ico")) contentType = "image/x-icon";
 
     return new NextResponse(fileBuffer, {
       headers: {

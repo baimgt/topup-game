@@ -14,7 +14,11 @@ export async function GET(
       .populate("orderItems.productId")
       .lean();
 
-    if (order && (order.paymentStatus === "UNPAID" || order.orderStatus === "PROCESSING")) {
+    if (!order) {
+      return NextResponse.json({ success: false, error: "Pesanan tidak ditemukan" }, { status: 404 });
+    }
+
+    if (order.paymentStatus === "UNPAID" || order.orderStatus === "PROCESSING") {
       const { syncOrderStatus } = await import("@/lib/orderProcessor");
       const syncedOrder = await syncOrderStatus(orderNumber);
       if (syncedOrder && (syncedOrder.paymentStatus !== order.paymentStatus || syncedOrder.orderStatus !== order.orderStatus)) {
@@ -22,6 +26,10 @@ export async function GET(
           .populate("orderItems.productId")
           .lean();
       }
+    }
+
+    if (!order) {
+      return NextResponse.json({ success: false, error: "Pesanan tidak ditemukan" }, { status: 404 });
     }
 
     const PaymentConfig = (await import("@/models/PaymentConfig")).default;

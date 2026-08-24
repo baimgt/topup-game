@@ -39,10 +39,13 @@ export async function POST(req: NextRequest) {
     const otpRecord = await ProfileOtp.findOne({ 
       userId: user._id, 
       type: "reset_password", 
-      otp 
+      otp: otp.toString().trim(),
     });
 
-    if (!otpRecord) {
+    if (!otpRecord || (otpRecord.expiresAt && new Date() > otpRecord.expiresAt)) {
+      if (otpRecord) {
+        await ProfileOtp.deleteOne({ _id: otpRecord._id });
+      }
       return NextResponse.json(
         { success: false, error: "OTP salah atau sudah kedaluwarsa" },
         { status: 400 }
