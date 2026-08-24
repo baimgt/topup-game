@@ -96,12 +96,12 @@ export default function BannerSlider() {
   if (banners.length === 0) return null;
 
   return (
-    <div className="relative py-3 sm:py-6 w-full select-none overflow-hidden" style={{ perspective: "1200px" }}>
+    <div className="relative py-2 sm:py-5 w-full select-none overflow-hidden" style={{ perspective: "1200px" }}>
       {/* Slides Container */}
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 relative flex items-center justify-center">
+      <div className="max-w-7xl mx-auto px-1 sm:px-4 relative flex items-center justify-center">
         
-        {/* 3D Carousel Stage */}
-        <div className="w-full flex items-center justify-center min-h-[160px] h-[200px] sm:h-[250px] md:h-[300px] lg:h-[340px] relative">
+        {/* 3D Carousel Stage with Proportional Aspect Ratio */}
+        <div className="w-full relative flex items-center justify-center aspect-[2.1/1] sm:aspect-[2.3/1] md:aspect-[2.6/1] max-h-[360px] min-h-[140px]">
           <AnimatePresence initial={false} mode="popLayout">
             {banners.map((banner, index) => {
               // Calculate relative positioning for 3D/center active layout
@@ -127,19 +127,19 @@ export default function BannerSlider() {
                   )}
                   
                   {banner.bannerType === "image" ? (
-                    <div className="relative w-full h-full bg-[#0b071e]">
+                    <div className="relative w-full h-full bg-[#0b071e] flex items-center justify-center">
                       {banner.imageUrl && (
                         <img
                           src={banner.imageUrl}
                           alt={banner.title || "Promo Banner"}
-                          className="w-full h-full object-cover object-center rounded-2xl md:rounded-3xl pointer-events-none select-none"
+                          className="w-full h-full object-contain sm:object-cover object-center rounded-xl sm:rounded-2xl md:rounded-3xl pointer-events-none select-none"
                           loading="lazy"
                         />
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10 hover:bg-black/0 transition-colors duration-300 pointer-events-none rounded-2xl md:rounded-3xl" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none rounded-xl sm:rounded-2xl md:rounded-3xl" />
                     </div>
                   ) : (
-                    <div className="w-full h-full flex flex-col justify-between p-3.5 sm:p-6 md:p-8 relative z-10">
+                    <div className="w-full h-full flex flex-col justify-between p-3 sm:p-6 md:p-8 relative z-10">
                       {/* Banner Header */}
                       <div className="flex justify-between items-start w-full gap-2">
                         <span className="bg-white/10 backdrop-blur-md text-white font-bold text-[10px] sm:text-xs uppercase tracking-wider px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-white/10">
@@ -190,16 +190,16 @@ export default function BannerSlider() {
                   style={banner.bannerType === "image" ? { backgroundColor: "#0b071e" } : { background: banner.bgGradient || "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #020617 100%)" }}
                   initial={{
                     opacity: 0,
-                    scale: 0.8,
-                    x: position === "prev" ? "-55%" : position === "next" ? "55%" : "0%",
-                    rotateY: position === "prev" ? 14 : position === "next" ? -14 : 0,
+                    scale: 0.82,
+                    x: position === "prev" ? "-60%" : position === "next" ? "60%" : "0%",
+                    rotateY: position === "prev" ? 12 : position === "next" ? -12 : 0,
                     zIndex: isCenter ? 20 : 5,
                   }}
                   animate={{
-                    opacity: isCenter ? 1 : 0.45,
-                    scale: isCenter ? 1 : 0.86,
-                    x: position === "prev" ? "-62%" : position === "next" ? "62%" : "0%",
-                    rotateY: position === "prev" ? 14 : position === "next" ? -14 : 0,
+                    opacity: isCenter ? 1 : 0.4,
+                    scale: isCenter ? 1 : 0.88,
+                    x: position === "prev" ? "-66%" : position === "next" ? "66%" : "0%",
+                    rotateY: position === "prev" ? 12 : position === "next" ? -12 : 0,
                     zIndex: isCenter ? 20 : 5,
                   }}
                   exit={{
@@ -213,7 +213,7 @@ export default function BannerSlider() {
                     damping: 26,
                     mass: 0.8
                   }}
-                  className={`absolute w-[88%] sm:w-[80%] md:w-[70%] lg:w-[64%] max-w-4xl h-full rounded-2xl md:rounded-3xl border border-white/10 overflow-hidden shadow-2xl transition-shadow banner-slide-card cursor-grab active:cursor-grabbing ${
+                  className={`absolute w-[92%] sm:w-[84%] md:w-[72%] lg:w-[65%] max-w-4xl h-full rounded-xl sm:rounded-2xl md:rounded-3xl border border-white/10 overflow-hidden shadow-2xl transition-shadow banner-slide-card cursor-grab active:cursor-grabbing ${
                     isCenter ? "shadow-indigo-500/10 ring-1 ring-white/15 cursor-pointer" : "cursor-pointer hover:opacity-70"
                   }`}
                   onClick={() => {
@@ -238,15 +238,15 @@ export default function BannerSlider() {
 
       {/* Minimalist Bottom Indicator Dots */}
       {banners.length > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-3 sm:mt-4">
+        <div className="flex justify-center items-center gap-2 mt-2.5 sm:mt-4">
           {banners.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
               className={`h-1.5 rounded-full transition-all duration-300 ${
                 index === currentIndex
-                  ? "w-8 bg-indigo-500 shadow-md shadow-indigo-500/50"
-                  : "w-2.5 bg-white/20 hover:bg-white/40"
+                  ? "w-7 sm:w-8 bg-indigo-500 shadow-md shadow-indigo-500/50"
+                  : "w-2 sm:w-2.5 bg-white/20 hover:bg-white/40"
               }`}
               aria-label={`Go to slide ${index + 1}`}
             />
