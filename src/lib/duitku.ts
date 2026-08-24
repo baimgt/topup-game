@@ -33,7 +33,7 @@ export async function createDuitkuTransaction(
   const signatureString = `${merchantCode}${params.orderId}${params.amount}${apiKey}`;
   const signature = crypto.createHash("md5").update(signatureString).digest("hex");
 
-  const baseUrl = config.appUrl || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const baseUrl = config.appUrl || process.env.NEXT_PUBLIC_APP_URL || "https://gamerstoreplus.com";
 
   const payload: any = {
     merchantCode: merchantCode,

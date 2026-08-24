@@ -129,6 +129,8 @@ export async function sendInvoiceEmail(order: any) {
     : `Menunggu Pembayaran - Pesanan #${order.orderNumber} - ${siteName}`;
 
   const formatCurrency = (val: number) => "Rp " + val.toLocaleString("id-ID");
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "https://gamerstoreplus.com";
+  const orderUrl = `${appUrl}/order/${order.orderNumber}`;
 
   const mailOptions = {
     from,
@@ -192,11 +194,25 @@ export async function sendInvoiceEmail(order: any) {
           </table>
         </div>
 
-        ${!isPaid && order.paymentUrl ? `
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${order.paymentUrl}" style="background-color: #a855f7; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Bayar Sekarang</a>
+        ${isPaid ? `
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${orderUrl}" style="background-color: #7c3aed; background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%); color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 15px; display: inline-block; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);">
+            Buka Detail Pesanan di Web ➔
+          </a>
         </div>
-        ` : ''}
+        ` : order.paymentUrl ? `
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${order.paymentUrl}" style="background-color: #7c3aed; background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 15px; display: inline-block; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);">
+            Bayar Sekarang ➔
+          </a>
+        </div>
+        ` : `
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${orderUrl}" style="background-color: #7c3aed; background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%); color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 15px; display: inline-block;">
+            Buka Detail Pesanan di Web ➔
+          </a>
+        </div>
+        `}
 
         <p style="color: #94a3b8; font-size: 14px; line-height: 1.6;">${isPaid ? "Pesanan Anda sedang dalam antrean pemrosesan kami. Mohon ditunggu." : "Harap menyelesaikan pembayaran sebelum batas waktu berakhir agar pesanan tidak dibatalkan otomatis."}</p>
         <hr style="border: 0; border-top: 1px solid #332759; margin: 20px 0;">
@@ -264,7 +280,7 @@ export async function sendVoucherSnEmail(order: any) {
     auth: { user, pass },
   });
 
-  const appUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "https://gamerstoreplus.com";
   const orderUrl = `${appUrl}/order/${order.orderNumber}`;
 
   const mailOptions = {

@@ -140,6 +140,8 @@ export async function syncOrderStatus(orderNumber: string) {
           if (newStatus === "PAID") {
             order.paidAt = new Date();
             await order.save();
+            const { sendInvoiceEmail } = await import("@/lib/mail");
+            sendInvoiceEmail(order).catch((e) => console.error("Receipt email error:", e));
             await processOrderPayment(order);
           } else {
             await order.save();
@@ -174,6 +176,8 @@ export async function syncOrderStatus(orderNumber: string) {
           if (newStatus === "PAID") {
             order.paidAt = new Date();
             await order.save();
+            const { sendInvoiceEmail } = await import("@/lib/mail");
+            sendInvoiceEmail(order).catch((e) => console.error("Receipt email error:", e));
             await processOrderPayment(order);
           } else {
             await order.save();
