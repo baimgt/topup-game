@@ -69,6 +69,34 @@ function escapeRegExp(string: string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function parseCheckedUsername(raw: string) {
+  if (!raw) return [];
+  const trimmed = raw.trim();
+  // If it contains slashes like IdPel:86289227133/Nama:PRSYAKIRAH C8/Tarif:R1/Daya:2200VA
+  if (trimmed.includes("/") && (trimmed.includes(":") || trimmed.toLowerCase().includes("nama") || trimmed.toLowerCase().includes("idpel"))) {
+    const parts = trimmed.split("/").map((p) => p.trim()).filter(Boolean);
+    const parsed: Array<{ label: string; value: string }> = [];
+    parts.forEach((part) => {
+      const colIdx = part.indexOf(":");
+      if (colIdx > 0) {
+        let label = part.slice(0, colIdx).trim();
+        const value = part.slice(colIdx + 1).trim();
+        const lLower = label.toLowerCase();
+        if (lLower === "idpel" || lLower === "id_pel") label = "ID Pelanggan";
+        else if (lLower === "nama") label = "Nama Pelanggan";
+        else if (lLower === "tarif") label = "Tarif";
+        else if (lLower === "daya") label = "Daya Listrik";
+        else if (lLower === "standmeter" || lLower === "stand_meter") label = "Stand Meter";
+        parsed.push({ label, value });
+      } else {
+        parsed.push({ label: "Informasi", value: part });
+      }
+    });
+    if (parsed.length > 0) return parsed;
+  }
+  return [{ label: "Nama Akun / In-Game Name", value: trimmed }];
+}
+
 type CheckStatus = "idle" | "checking" | "valid" | "invalid" | "unsupported";
 
 interface OrderFormProps {
@@ -588,13 +616,20 @@ export default function OrderForm({ game }: OrderFormProps) {
                       </p>
                     )}
                     {checkStatus === "valid" && (
-                      <p className="text-green-400 text-sm font-medium flex items-center gap-1.5">
-                        <CheckCircle className="w-4 h-4" /> Terverifikasi: {checkedUsername} {checkedRegion ? `(${checkedRegion})` : ""}
-                      </p>
+                      <div className="text-green-400 text-xs sm:text-sm font-medium flex items-start gap-1.5 break-words break-all">
+                        <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span>Terverifikasi: </span>
+                          <span className="font-bold text-white">
+                            {checkedUsername}
+                          </span>
+                          {checkedRegion ? ` (${checkedRegion})` : ""}
+                        </div>
+                      </div>
                     )}
                     {checkStatus === "invalid" && (
-                      <p className="text-red-400 text-sm font-medium flex items-center gap-1.5">
-                        <XCircle className="w-4 h-4" /> {checkError}
+                      <p className="text-red-400 text-xs sm:text-sm font-medium flex items-center gap-1.5 break-words">
+                        <XCircle className="w-4 h-4 flex-shrink-0" /> {checkError}
                       </p>
                     )}
                   </div>
@@ -1012,43 +1047,52 @@ export default function OrderForm({ game }: OrderFormProps) {
       </form>
 
       {/* ── Modal Hasil Cek Akun ─────────────────────────────────────────── */}
-      <Modal open={showResultModal} onClose={() => setShowResultModal(false)} title="Detail Akun" size="sm">
-        <div className="text-center pb-2">
-          <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(52,211,153,0.3)]">
-            <CheckCircle className="w-8 h-8 text-white" />
+      <Modal open={showResultModal} onClose={() => setShowResultModal(false)} title="Detail Akun Terverifikasi" size="md">
+        <div className="text-center pb-1">
+          <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3.5 shadow-[0_0_20px_rgba(52,211,153,0.3)]">
+            <CheckCircle className="w-7 h-7 text-white" />
           </div>
           <h3 className="text-xl font-bold text-white mb-1">Akun Ditemukan!</h3>
-          <p className="text-gray-400 text-sm mb-6">Pastikan data di bawah ini sudah sesuai dengan akun Anda.</p>
+          <p className="text-gray-400 text-xs sm:text-sm mb-5">Pastikan data di bawah ini sudah sesuai dengan akun Anda sebelum melanjutkan.</p>
           
-          <div className="bg-black/30 border border-white/10 rounded-xl p-4 mb-6 space-y-3">
-            <div className="bg-black/20 p-4 rounded-xl border border-white/5 space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-500 font-medium">Username in-game</span>
-                <span className="text-lg font-black text-white">{checkedUsername}</span>
-              </div>
+          <div className="bg-black/40 border border-white/10 rounded-2xl p-4 sm:p-5 mb-5 space-y-3.5 text-left">
+            {/* Account Info Box */}
+            <div className="bg-white/[0.03] border border-emerald-500/20 rounded-xl p-3.5 sm:p-4 space-y-2.5">
+              {parseCheckedUsername(checkedUsername).map((item, idx) => (
+                <div key={idx} className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 pb-2 border-b border-white/5 last:border-0 last:pb-0">
+                  <span className="text-xs text-gray-400 font-medium flex-shrink-0">{item.label}:</span>
+                  <span className="text-sm sm:text-base font-bold text-emerald-400 break-words break-all text-left sm:text-right font-mono">
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+
               {checkedRegion && (
-                <div className="flex justify-between items-center border-t border-white/5 pt-2">
-                  <span className="text-xs text-gray-500 font-medium">Region</span>
-                  <span className="text-sm font-bold text-cyan-400">{checkedRegion}</span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pt-2 border-t border-white/5">
+                  <span className="text-xs text-gray-400 font-medium">Region / Server:</span>
+                  <span className="text-sm font-bold text-cyan-400 font-mono">{checkedRegion}</span>
                 </div>
               )}
             </div>
-            <div className="h-px w-full bg-white/5" />
-            <div className="grid grid-cols-2 gap-2 text-left">
-              <div className="flex flex-col">
-                <span className="text-xs text-gray-500 font-medium">User ID</span>
-                <span className="text-sm font-bold text-gray-300 font-mono">{userId}</span>
+
+            {/* Target ID Details */}
+            <div className="bg-black/30 border border-white/5 rounded-xl p-3.5 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-gray-500 block mb-0.5 font-medium">User ID / No. Tujuan</span>
+                <span className="text-gray-200 font-bold font-mono text-sm break-all">
+                  {hasCustomInputs ? formatCustomerNo(game.targetInputs!, customInputs, game.targetFormat) : (userId || "-")}
+                </span>
               </div>
               {needsServerId && serverId && (
-                <div className="flex flex-col">
-                  <span className="text-xs text-gray-500 font-medium">Server ID</span>
-                  <span className="text-sm font-bold text-gray-300 font-mono">{serverId}</span>
+                <div>
+                  <span className="text-gray-500 block mb-0.5 font-medium">Server / Zone ID</span>
+                  <span className="text-gray-200 font-bold font-mono text-sm break-all">{serverId}</span>
                 </div>
               )}
             </div>
           </div>
 
-          <Button variant="primary" className="w-full" onClick={() => setShowResultModal(false)}>
+          <Button variant="primary" size="lg" className="w-full py-3 font-bold" onClick={() => setShowResultModal(false)}>
             Ya, Lanjutkan Pembelian
           </Button>
         </div>
