@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
     });
     const deletedDigiCount = deleteStaleResult.deletedCount || 0;
 
-    // 3. Sinkronisasi otomatis ke koleksi Product toko (produk yang dijual di website)
+    // 3. Sinkronisasi aman ke koleksi Product toko (hanya update produk yang SKU-nya ada di batch sync ini)
     const digiMap = new Map<string, any>();
     for (const p of apiProducts) {
       if (p.buyer_sku_code) {
@@ -206,52 +206,53 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const websiteProducts = await Product.find({});
+    // Ambil produk website yang memiliki digiflazzSku
+    const websiteProducts = await Product.find({
+      digiflazzSku: { $in: Array.from(digiMap.keys()) },
+    });
+
     let updatedWebsiteCount = 0;
     let disabledWebsiteCount = 0;
+    let reactivatedWebsiteCount = 0;
 
     for (const wp of websiteProducts) {
       const digiItem = digiMap.get(wp.digiflazzSku);
+      if (!digiItem) continue;
 
-      if (!digiItem) {
-        // Jika SKU sudah TIDAK ADA di Digiflazz API (Digiflazz telah menghapus produk ini):
-        // Otomatis nonaktifkan produk agar user tidak bisa membeli SKU yang sudah hilang
-        if (wp.isActive) {
-          wp.isActive = false;
-          await wp.save();
-          disabledWebsiteCount++;
+      let changed = false;
+
+      // Update harga modal (price) jika ada perubahan harga dari Digiflazz
+      if (wp.price !== digiItem.price) {
+        wp.price = digiItem.price ?? 0;
+        changed = true;
+
+        // Jika harga modal naik melebihi harga jual, otomatis naikkan harga jual (margin 5%) agar toko tidak rugi
+        if (wp.sellingPrice < wp.price) {
+          wp.sellingPrice = Math.ceil(wp.price * 1.05);
         }
-      } else {
-        // Jika SKU ADA di Digiflazz API:
-        const isDigiActive =
-          digiItem.buyer_product_status &&
-          digiItem.seller_product_status &&
-          (digiItem.unlimited_stock || (digiItem.stock ?? 0) > 0);
+      }
 
-        let changed = false;
+      // Cek apakah produk aktif di supplier Digiflazz
+      const isSellerActive = Boolean(digiItem.seller_product_status);
+      const hasStock = Boolean(digiItem.unlimited_stock || (digiItem.stock ?? 0) > 0);
+      const isDigiAvailable = isSellerActive && hasStock;
 
-        // Update harga modal (price) jika ada perubahan harga dari Digiflazz
-        if (wp.price !== digiItem.price) {
-          wp.price = digiItem.price ?? 0;
-          changed = true;
+      // Jika produk tersedia di Digiflazz tapi saat ini nonaktif di website -> Aktifkan kembali
+      if (isDigiAvailable && !wp.isActive) {
+        wp.isActive = true;
+        changed = true;
+        reactivatedWebsiteCount++;
+      }
+      // Jika produk sedang cut-off / gangguan / habis stok di Digiflazz -> Nonaktifkan sementara
+      else if (!isDigiAvailable && wp.isActive) {
+        wp.isActive = false;
+        changed = true;
+        disabledWebsiteCount++;
+      }
 
-          // Jika harga modal naik melebihi harga jual, otomatis naikkan harga jual (margin 5%) agar toko tidak rugi
-          if (wp.sellingPrice < wp.price) {
-            wp.sellingPrice = Math.ceil(wp.price * 1.05);
-          }
-        }
-
-        // Jika status di Digiflazz nonaktif atau stok habis, otomatis nonaktifkan produk di website
-        if (!isDigiActive && wp.isActive) {
-          wp.isActive = false;
-          changed = true;
-          disabledWebsiteCount++;
-        }
-
-        if (changed) {
-          await wp.save();
-          updatedWebsiteCount++;
-        }
+      if (changed) {
+        await wp.save();
+        updatedWebsiteCount++;
       }
     }
 
@@ -263,10 +264,11 @@ export async function POST(req: NextRequest) {
         deletedFromDigiflazz: deletedDigiCount,
         updatedWebsiteCount,
         disabledWebsiteCount,
+        reactivatedWebsiteCount,
         syncedAt: syncedAt.toISOString(),
         type,
       },
-      message: `Sync berhasil — ${apiProducts.length} produk Digiflazz diperbarui (${updatedWebsiteCount} produk website diupdate, ${disabledWebsiteCount} produk nonaktif/dihapus)`,
+      message: `Sync berhasil — ${apiProducts.length} produk Digiflazz diperbarui (${updatedWebsiteCount} produk website disinkronkan, ${reactivatedWebsiteCount} diaktifkan kembali, ${disabledWebsiteCount} nonaktif/stok habis)`,
     });
   } catch (error) {
     console.error("Sync digiflazz products error:", error);

@@ -144,16 +144,29 @@ export default function PaymentMethodsTab() {
       </div>
 
       {/* Summary bar */}
-      <div className="flex items-center justify-between bg-gaming-card rounded-xl border border-white/5 px-5 py-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gaming-card rounded-xl border border-white/5 px-5 py-3">
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <Info className="w-4 h-4" />
           <span>
             <span className="text-white font-semibold">{enabledCount}</span> dari {methods.length} metode aktif
           </span>
         </div>
-        <Button variant="primary" size="sm" onClick={handleSave} loading={saving}>
-          <Save className="w-4 h-4" /> Simpan
-        </Button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const fallbackMethods = gateway === "duitku" ? defaultDuitkuMethods : defaultMethods;
+              setMethods(fallbackMethods);
+              toast.success(`Daftar saluran direset ke default ${gateway === "duitku" ? "Duitku" : "Midtrans"}. Klik Simpan untuk menerapkan.`);
+            }}
+            className="px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 text-gray-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+          >
+            🔄 Reset ke Saluran Resmi
+          </button>
+          <Button variant="primary" size="sm" onClick={handleSave} loading={saving}>
+            <Save className="w-4 h-4" /> Simpan Perubahan
+          </Button>
+        </div>
       </div>
 
       {/* Groups */}
