@@ -14,7 +14,13 @@ export async function GET(req: NextRequest) {
     
     let methods;
     if (dbMethods && dbMethods.length > 0) {
-      methods = dbMethods;
+      methods = dbMethods.map((m: any) => {
+        if (activeGateway === "duitku") {
+          if (m.id === "SP") return { ...m, id: "SA" };
+          if (m.id === "M1") return { ...m, id: "VA" };
+        }
+        return m;
+      });
     } else if (activeGateway === "duitku") {
       methods = defaultDuitkuMethods;
     } else {

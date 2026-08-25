@@ -305,9 +305,12 @@ export async function POST(req: NextRequest) {
         gateway: activeGateway,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Create order error:", error);
-    return NextResponse.json({ success: false, error: "Gagal membuat pesanan" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error?.message || "Gagal membuat pesanan" },
+      { status: 400 }
+    );
   }
 }
 

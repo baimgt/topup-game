@@ -7,6 +7,20 @@ interface DuitkuConfig {
   appUrl?: string;
 }
 
+export const DUITKU_CHANNEL_MAP: Record<string, string> = {
+  SP: "SA",   // ShopeePay App (Duitku live code is SA)
+  M1: "VA",   // Maybank VA (Duitku live code is VA)
+  D1: "DM",   // Danamon VA (Duitku live code is DM)
+  BNC: "NC",  // Bank Neo Commerce VA
+  BSI: "BV",  // BSI VA
+};
+
+export function normalizeDuitkuPaymentMethod(methodId?: string): string {
+  if (!methodId) return "";
+  const upper = methodId.toUpperCase();
+  return DUITKU_CHANNEL_MAP[upper] || upper;
+}
+
 export async function createDuitkuTransaction(
   params: {
     orderId: string;
@@ -35,13 +49,23 @@ export async function createDuitkuTransaction(
 
   const baseUrl = config.appUrl || process.env.NEXT_PUBLIC_APP_URL || "https://gamerstoreplus.com";
 
+  let phone = (params.customerPhone || "").replace(/[^0-9]/g, "");
+  if (phone.startsWith("62")) {
+    phone = "0" + phone.slice(2);
+  } else if (!phone.startsWith("0") && phone.length > 0) {
+    phone = "08" + phone;
+  }
+  if (!phone || phone.length < 10) {
+    phone = "081234567890";
+  }
+
   const payload: any = {
     merchantCode: merchantCode,
     paymentAmount: params.amount,
     merchantOrderId: params.orderId,
     productDetails: `Pembayaran Order ${params.orderId}`,
     email: params.customerEmail,
-    phoneNumber: params.customerPhone || "081234567890", // Duitku needs a phone number for direct API
+    phoneNumber: phone,
     customerVaName: params.customerName,
     itemDetails: params.items,
     callbackUrl: `${baseUrl}/api/payment/duitku`,
@@ -50,9 +74,10 @@ export async function createDuitkuTransaction(
     expiryPeriod: 60, // 60 menit
   };
 
-  // Gunakan Direct API V2 Inquiry (Option A)
-  if (params.paymentMethod) {
-    payload.paymentMethod = params.paymentMethod;
+  // Gunakan Direct API V2 Inquiry (Option A) dengan channel resmi Duitku
+  const mappedMethod = normalizeDuitkuPaymentMethod(params.paymentMethod);
+  if (mappedMethod) {
+    payload.paymentMethod = mappedMethod;
   }
 
   try {
@@ -65,7 +90,7 @@ export async function createDuitkuTransaction(
     });
 
     const data = await response.json();
-    
+
     if (data.statusCode === "00") {
       return {
         paymentUrl: data.paymentUrl,
@@ -75,11 +100,26 @@ export async function createDuitkuTransaction(
       };
     } else {
       console.error("Duitku API Error Response:", JSON.stringify(data, null, 2));
-      throw new Error(`Gagal membuat transaksi Duitku: ${JSON.stringify(data)}`);
+      const rawMsg =
+        data.statusMessage ||
+        data.Message ||
+        data.message ||
+        data.responseMessage ||
+        data.errorMessage ||
+        `Gagal membuat transaksi Duitku (Kode ${data.statusCode || "Error"})`;
+
+      let userMsg = rawMsg;
+      if (
+        rawMsg.toLowerCase().includes("payment channel not available") ||
+        rawMsg.toLowerCase().includes("failed to generate")
+      ) {
+        userMsg = `Saluran pembayaran "${params.paymentMethod || ""}" belum aktif / tidak tersedia di akun Duitku Anda. Silakan gunakan QRIS, Transfer Bank VA, atau aktifkan saluran ini di dashboard Duitku.`;
+      }
+      throw new Error(userMsg);
     }
   } catch (error: any) {
     console.error("Duitku create transaction error:", error);
-    throw new Error(`Duitku error: ${error.message}`);
+    throw new Error(error.message?.replace(/^Duitku error:\s*/i, "") || "Gagal membuat transaksi Duitku");
   }
 }
 

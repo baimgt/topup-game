@@ -36,9 +36,9 @@ export const defaultMethods: PaymentMethod[] = [
 
 export const defaultDuitkuMethods: PaymentMethod[] = [
   // E-Wallet
-  { id: "SP", name: "ShopeePay App", group: "E-Wallet", enabled: true, fee: 1.5, feeType: "percent" },
+  { id: "SA", name: "ShopeePay App", group: "E-Wallet", enabled: true, fee: 1.5, feeType: "percent" },
   { id: "OV", name: "OVO", group: "E-Wallet", enabled: true, fee: 1.5, feeType: "percent" },
-  { id: "DA", name: "DANA", group: "E-Wallet", enabled: true, fee: 1.5, feeType: "percent" },
+  { id: "DA", name: "DANA", group: "E-Wallet", enabled: false, fee: 1.5, feeType: "percent" },
   { id: "LA", name: "LinkAja", group: "E-Wallet", enabled: true, fee: 1.5, feeType: "percent" },
   // QRIS
   { id: "NQ", name: "QRIS Nobu", group: "QRIS", enabled: true, fee: 0.7, feeType: "percent" },
