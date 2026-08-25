@@ -185,6 +185,7 @@ export async function POST(req: NextRequest) {
       subtotalAmount: baseSubtotal,
       discountAmount: 0,
       ppn: 0,
+      profit: adminFee,
       paymentStatus: "UNPAID",
       orderStatus: "PENDING",
       paymentMethod: selectedMethod.name,

@@ -7,6 +7,8 @@ export interface IOrderItem {
   productName: string;
   quantity: number;
   price: number;
+  costPrice?: number;
+  profit?: number;
   subtotal: number;
 }
 
@@ -61,6 +63,7 @@ export interface IOrder extends Document {
   isFlashSale?: boolean;
   flashSaleDecremented?: boolean;
   ppn?: number;
+  profit?: number;
   voucherCode?: string;
   discountAmount?: number;
   subtotalAmount?: number;
@@ -74,6 +77,8 @@ const OrderItemSchema = new Schema<IOrderItem>(
     productName: { type: String, required: true },
     quantity: { type: Number, default: 1 },
     price: { type: Number, required: true },
+    costPrice: { type: Number },
+    profit: { type: Number },
     subtotal: { type: Number, required: true },
   },
   { _id: false }
@@ -138,6 +143,7 @@ const OrderSchema = new Schema<IOrder>(
     isFlashSale: { type: Boolean, default: false },
     flashSaleDecremented: { type: Boolean, default: false },
     ppn: { type: Number, default: 0 },
+    profit: { type: Number, default: 0 },
     voucherCode: { type: String },
     discountAmount: { type: Number, default: 0 },
     subtotalAmount: { type: Number },

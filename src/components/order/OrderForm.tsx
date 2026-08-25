@@ -496,8 +496,7 @@ export default function OrderForm({ game }: OrderFormProps) {
       ? Math.round(priceAfterDiscount * (selectedPaymentMethod.fee / 100))
       : selectedPaymentMethod.fee
     : 0;
-  const ppnAmount = selectedProduct ? Math.round(priceAfterDiscount * 0.11) : 0;
-  const totalPayment = selectedProduct ? priceAfterDiscount + feeAmount + ppnAmount : 0;
+  const totalPayment = selectedProduct ? priceAfterDiscount + feeAmount : 0;
 
   return (
     <>
@@ -715,14 +714,14 @@ export default function OrderForm({ game }: OrderFormProps) {
                       <span className="text-[10px] bg-purple-500/20 text-purple-300 font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">Nominal Terpilih</span>
                       <p className="text-white font-bold text-base mt-0.5">{selectedProduct.name}</p>
                       <p className="text-gray-400 text-xs mt-0.5">
-                        Harga: {formatCurrency(basePrice)} + PPN (11%): {formatCurrency(ppnAmount)}
+                        Harga: {formatCurrency(basePrice)}
                       </p>
                     </div>
                   </div>
                   <div className="text-left sm:text-right border-t sm:border-t-0 border-white/10 pt-2 sm:pt-0">
-                    <span className="text-gray-400 text-xs">Harga Nominal + PPN</span>
+                    <span className="text-gray-400 text-xs">Harga Nominal</span>
                     <p className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 font-black text-lg">
-                      {formatCurrency(basePrice + ppnAmount)}
+                      {formatCurrency(basePrice)}
                     </p>
                   </div>
                 </div>
@@ -817,7 +816,7 @@ export default function OrderForm({ game }: OrderFormProps) {
                         const feeAmount = m.feeType === "percent" 
                           ? Math.round(priceAfterDiscount * (m.fee / 100))
                           : m.fee;
-                        const methodTotal = selectedProduct ? priceAfterDiscount + feeAmount + ppnAmount : 0;
+                        const methodTotal = selectedProduct ? priceAfterDiscount + feeAmount : 0;
 
                         return (
                           <button
@@ -968,10 +967,6 @@ export default function OrderForm({ game }: OrderFormProps) {
                   </div>
                 )}
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400">PPN (11%)</span>
-                  <span className="text-white font-medium">{formatCurrency(ppnAmount)}</span>
-                </div>
-                <div className="flex justify-between items-center">
                   <span className="text-gray-400">Biaya Layanan Payment Gateway</span>
                   {selectedPaymentMethod ? (
                     <span className="text-white font-medium">{feeAmount === 0 ? "Bebas Biaya (Rp 0)" : formatCurrency(feeAmount)}</span>
@@ -989,7 +984,7 @@ export default function OrderForm({ game }: OrderFormProps) {
                   )}
                 </div>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 font-black text-xl">
-                  {formatCurrency(totalPayment || (priceAfterDiscount + ppnAmount))}
+                  {formatCurrency(totalPayment || priceAfterDiscount)}
                 </span>
               </div>
             </div>

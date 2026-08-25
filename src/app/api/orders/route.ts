@@ -153,9 +153,14 @@ export async function POST(req: NextRequest) {
       ? Math.round(priceAfterDiscount * (selectedMethod.fee / 100))
       : selectedMethod.fee;
       
-    // Hitung PPN 11%
-    const ppnAmount = Math.round(priceAfterDiscount * 0.11);
-    const totalAmount = priceAfterDiscount + feeAmount + ppnAmount;
+    // PPN dihapus (0%)
+    const ppnAmount = 0;
+    const totalAmount = priceAfterDiscount + feeAmount;
+
+    // Hitung keuntungan margin dari produk
+    const productCost = Number(product.price) || 0;
+    const itemProfit = Math.max(0, basePrice - productCost);
+    const orderProfit = Math.max(0, itemProfit - discountAmount);
 
     const orderItems = [
       {
@@ -163,6 +168,8 @@ export async function POST(req: NextRequest) {
         productName: product.name,
         quantity: 1,
         price: basePrice,
+        costPrice: productCost,
+        profit: itemProfit,
         subtotal: basePrice,
       }
     ];
@@ -181,15 +188,6 @@ export async function POST(req: NextRequest) {
         id: `DISCOUNT-${appliedVoucherCode}`,
         name: `Diskon Promo (${appliedVoucherCode})`,
         price: -discountAmount,
-        quantity: 1,
-      });
-    }
-
-    if (ppnAmount > 0) {
-      midtransItems.push({
-        id: `PPN-${product._id}`,
-        name: "PPN (11%)",
-        price: ppnAmount,
         quantity: 1,
       });
     }
@@ -226,7 +224,8 @@ export async function POST(req: NextRequest) {
       subtotalAmount: basePrice,
       voucherCode: appliedVoucherCode,
       discountAmount,
-      ppn: ppnAmount,
+      ppn: 0,
+      profit: orderProfit,
       customerPhone: customerPhone || undefined,
       paymentStatus: "UNPAID",
       orderStatus: "PENDING",

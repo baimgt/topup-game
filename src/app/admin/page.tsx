@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ShoppingBag, Users, Gamepad2, TrendingUp, CheckCircle,
-  Clock, XCircle, ArrowUpRight, ArrowDownRight, Trophy, Percent,
+  Clock, XCircle, ArrowUpRight, ArrowDownRight, Trophy, DollarSign,
+  Coins, Sparkles, Layers, Percent,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/Badge";
-import { RevenueAreaChart, OrdersBarChart } from "@/components/admin/RevenueChart";
+import { RevenueAreaChart, ProfitAreaChart, OrdersBarChart } from "@/components/admin/RevenueChart";
 
 interface Stats {
   totalOrders: number;
@@ -16,22 +17,42 @@ interface Stats {
   pendingOrders: number;
   failedOrders: number;
   totalRevenue: number;
+  totalProfit: number;
+  thisMonthProfit: number;
+  lastMonthProfit: number;
+  profitGrowth: string;
   totalUsers: number;
   totalGames: number;
   thisMonthRevenue: number;
   lastMonthRevenue: number;
   revenueGrowth: string;
   recentOrders: any[];
-  chartData: { month: string; revenue: number; orders: number }[];
+  chartData: { month: string; revenue: number; profit?: number; orders: number }[];
   topGames: { _id: string; count: number; revenue: number }[];
-  totalPpn: number;
-  thisMonthPpn: number;
+  marginStats?: {
+    totalProducts: number;
+    avgMarginRp: number;
+    avgMarginPercent: string;
+    totalCatalogMargin: number;
+    totalCatalogCost: number;
+    totalCatalogSelling: number;
+    topMarginProducts: Array<{
+      _id: string;
+      name: string;
+      gameName: string;
+      gameImage: string;
+      costPrice: number;
+      sellingPrice: number;
+      marginRp: number;
+      marginPercent: number;
+    }>;
+  };
 }
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeChart, setActiveChart] = useState<"revenue" | "orders">("revenue");
+  const [activeChart, setActiveChart] = useState<"revenue" | "profit" | "orders">("revenue");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -54,6 +75,7 @@ export default function AdminDashboard() {
   }
 
   const growth = parseFloat(stats?.revenueGrowth || "0");
+  const profitGrowthNum = parseFloat(stats?.profitGrowth || "0");
 
   const statCards = [
     {
@@ -66,13 +88,13 @@ export default function AdminDashboard() {
       border: "border-purple-500/20",
     },
     {
-      label: "Keuntungan PPN",
-      value: formatCurrency(stats?.totalPpn || 0),
-      sub: `Bulan ini: ${formatCurrency(stats?.thisMonthPpn || 0)}`,
-      icon: <Percent className="w-5 h-5" />,
-      color: "from-amber-500/20 to-amber-600/5",
-      iconColor: "text-amber-400",
-      border: "border-amber-500/20",
+      label: "Keuntungan Margin",
+      value: formatCurrency(stats?.totalProfit || 0),
+      sub: `Bulan ini: ${formatCurrency(stats?.thisMonthProfit || 0)}`,
+      icon: <Coins className="w-5 h-5" />,
+      color: "from-emerald-500/20 to-emerald-600/5",
+      iconColor: "text-emerald-400",
+      border: "border-emerald-500/20",
     },
     {
       label: "Total Transaksi",
@@ -84,22 +106,22 @@ export default function AdminDashboard() {
       border: "border-blue-500/20",
     },
     {
-      label: "Total User",
-      value: stats?.totalUsers || 0,
-      sub: "Pengguna terdaftar",
-      icon: <Users className="w-5 h-5" />,
+      label: "Rata-rata Margin",
+      value: `${stats?.marginStats?.avgMarginPercent || 0}%`,
+      sub: `Rp ${formatCurrency(stats?.marginStats?.avgMarginRp || 0)} / item`,
+      icon: <DollarSign className="w-5 h-5" />,
+      color: "from-amber-500/20 to-amber-600/5",
+      iconColor: "text-amber-400",
+      border: "border-amber-500/20",
+    },
+    {
+      label: "Total Produk Aktif",
+      value: `${stats?.marginStats?.totalProducts || 0} Produk`,
+      sub: `dari ${stats?.totalGames || 0} Game`,
+      icon: <Gamepad2 className="w-5 h-5" />,
       color: "from-cyan-500/20 to-cyan-600/5",
       iconColor: "text-cyan-400",
       border: "border-cyan-500/20",
-    },
-    {
-      label: "Total Game",
-      value: stats?.totalGames || 0,
-      sub: "Game aktif",
-      icon: <Gamepad2 className="w-5 h-5" />,
-      color: "from-green-500/20 to-green-600/5",
-      iconColor: "text-green-400",
-      border: "border-green-500/20",
     },
   ];
 
@@ -116,13 +138,22 @@ export default function AdminDashboard() {
         <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-[80px] rounded-full pointer-events-none" />
         <div className="relative z-10">
           <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">Dashboard Overview</h1>
-          <p className="text-gray-400 text-sm mt-1">Ringkasan performa bisnis Top-Up Anda hari ini.</p>
+          <p className="text-gray-400 text-sm mt-1">Ringkasan performa penjualan & keuntungan margin produk toko Anda.</p>
         </div>
-        <div className="relative z-10 text-right bg-black/20 px-4 py-3 rounded-xl border border-white/5">
-          <p className="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">Pertumbuhan Bulan Ini</p>
-          <div className={`flex items-center gap-1.5 justify-end font-bold text-lg ${growth >= 0 ? "text-green-400" : "text-red-400"}`}>
-            {growth >= 0 ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
-            <span>{Math.abs(growth)}%</span>
+        <div className="relative z-10 flex gap-3">
+          <div className="bg-black/20 px-4 py-3 rounded-xl border border-white/5 text-right">
+            <p className="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">Pertumbuhan Revenue</p>
+            <div className={`flex items-center gap-1.5 justify-end font-bold text-base ${growth >= 0 ? "text-green-400" : "text-red-400"}`}>
+              {growth >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+              <span>{Math.abs(growth)}%</span>
+            </div>
+          </div>
+          <div className="bg-black/20 px-4 py-3 rounded-xl border border-white/5 text-right">
+            <p className="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">Pertumbuhan Margin</p>
+            <div className={`flex items-center gap-1.5 justify-end font-bold text-base ${profitGrowthNum >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+              {profitGrowthNum >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+              <span>{Math.abs(profitGrowthNum)}%</span>
+            </div>
           </div>
         </div>
       </div>
@@ -130,7 +161,7 @@ export default function AdminDashboard() {
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
         {statCards.map((card) => (
-          <div key={card.label} className={`relative overflow-hidden bg-gradient-to-br ${card.color} rounded-2xl border ${card.border} p-5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg hover:shadow-${card.color.split("-")[1]}-500/10 group`}>
+          <div key={card.label} className={`relative overflow-hidden bg-gradient-to-br ${card.color} rounded-2xl border ${card.border} p-5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg group`}>
             <div className={`absolute -right-6 -top-6 w-24 h-24 bg-current opacity-[0.05] rounded-full blur-2xl group-hover:opacity-10 transition-opacity ${card.iconColor}`} />
             <div className={`w-10 h-10 rounded-xl bg-black/20 flex items-center justify-center ${card.iconColor} mb-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]`}>
               {card.icon}
@@ -165,19 +196,25 @@ export default function AdminDashboard() {
         <div className="lg:col-span-2 bg-white/[0.02] backdrop-blur-md rounded-2xl border border-white/5 p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-lg font-bold text-white">Grafik 6 Bulan Terakhir</h2>
-              <p className="text-gray-400 text-sm mt-1">Perbandingan revenue dan jumlah transaksi</p>
+              <h2 className="text-lg font-bold text-white">Grafik Tren 6 Bulan Terakhir</h2>
+              <p className="text-gray-400 text-sm mt-1">Perbandingan omset, keuntungan margin bersih, dan volume transaksi</p>
             </div>
             <div className="flex gap-1.5 bg-black/20 rounded-xl p-1.5 border border-white/5">
               <button
                 onClick={() => setActiveChart("revenue")}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${activeChart === "revenue" ? "bg-purple-500 text-white shadow-lg shadow-purple-500/25" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${activeChart === "revenue" ? "bg-purple-500 text-white shadow-lg shadow-purple-500/25" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
               >
                 Revenue
               </button>
               <button
+                onClick={() => setActiveChart("profit")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${activeChart === "profit" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+              >
+                Keuntungan
+              </button>
+              <button
                 onClick={() => setActiveChart("orders")}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${activeChart === "orders" ? "bg-purple-500 text-white shadow-lg shadow-purple-500/25" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${activeChart === "orders" ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/25" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
               >
                 Transaksi
               </button>
@@ -185,9 +222,9 @@ export default function AdminDashboard() {
           </div>
           {stats?.chartData && stats.chartData.length > 0 ? (
             <div className="relative z-10">
-              {activeChart === "revenue"
-                ? <RevenueAreaChart data={stats.chartData} />
-                : <OrdersBarChart data={stats.chartData} />}
+              {activeChart === "revenue" && <RevenueAreaChart data={stats.chartData} />}
+              {activeChart === "profit" && <ProfitAreaChart data={stats.chartData} />}
+              {activeChart === "orders" && <OrdersBarChart data={stats.chartData} />}
             </div>
           ) : (
             <div className="h-64 flex items-center justify-center text-gray-500 text-sm bg-black/10 rounded-xl border border-white/5">
@@ -233,6 +270,144 @@ export default function AdminDashboard() {
                 Belum ada data
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── FITUR ANALISIS MARGIN KEUNTUNGAN PRODUK ───────────────────────── */}
+      <div className="bg-gradient-to-b from-emerald-500/10 via-white/[0.02] to-transparent rounded-2xl border border-emerald-500/20 p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                Analisis Margin Keuntungan Produk
+                <span className="text-xs bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full font-semibold border border-emerald-500/30">
+                  Live Margin
+                </span>
+              </h2>
+              <p className="text-gray-400 text-xs mt-0.5">
+                Laporan detail margin keuntungan (selisih harga jual vs modal Digiflazz) dari seluruh produk aktif.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="bg-black/40 border border-white/10 px-3.5 py-2 rounded-xl text-xs">
+              <span className="text-gray-400 block text-[10px] uppercase font-semibold">Total Margin Katalog</span>
+              <span className="text-emerald-400 font-bold text-sm">
+                {formatCurrency(stats?.marginStats?.totalCatalogMargin || 0)}
+              </span>
+            </div>
+            <Link
+              href="/admin/products"
+              className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all"
+            >
+              Kelola Semua Produk →
+            </Link>
+          </div>
+        </div>
+
+        {/* Product Margin Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-black/30 border border-white/5 rounded-xl p-4">
+            <div className="flex items-center justify-between text-gray-400 text-xs mb-1">
+              <span>Total Produk Aktif</span>
+              <Layers className="w-4 h-4 text-purple-400" />
+            </div>
+            <div className="text-xl font-bold text-white">{stats?.marginStats?.totalProducts || 0} Item</div>
+            <p className="text-gray-500 text-[11px] mt-1">Siap dijual di katalog toko</p>
+          </div>
+
+          <div className="bg-black/30 border border-white/5 rounded-xl p-4">
+            <div className="flex items-center justify-between text-gray-400 text-xs mb-1">
+              <span>Rata-Rata Margin (Rp)</span>
+              <Coins className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="text-xl font-bold text-emerald-400">
+              {formatCurrency(stats?.marginStats?.avgMarginRp || 0)}
+            </div>
+            <p className="text-gray-500 text-[11px] mt-1">Keuntungan per produk</p>
+          </div>
+
+          <div className="bg-black/30 border border-white/5 rounded-xl p-4">
+            <div className="flex items-center justify-between text-gray-400 text-xs mb-1">
+              <span>Rata-Rata Margin (%)</span>
+              <Percent className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="text-xl font-bold text-amber-400">
+              {stats?.marginStats?.avgMarginPercent || 0}%
+            </div>
+            <p className="text-gray-500 text-[11px] mt-1">Persentase markup rata-rata</p>
+          </div>
+
+          <div className="bg-black/30 border border-white/5 rounded-xl p-4">
+            <div className="flex items-center justify-between text-gray-400 text-xs mb-1">
+              <span>Keuntungan Terkumpul</span>
+              <TrendingUp className="w-4 h-4 text-cyan-400" />
+            </div>
+            <div className="text-xl font-bold text-cyan-400">
+              {formatCurrency(stats?.totalProfit || 0)}
+            </div>
+            <p className="text-gray-500 text-[11px] mt-1">Dari transaksi berstatus sukses</p>
+          </div>
+        </div>
+
+        {/* Top Margin Products Table */}
+        <div className="bg-black/40 rounded-xl border border-white/5 overflow-hidden">
+          <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
+            <h3 className="text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+              🏆 Produk dengan Margin Keuntungan Terbesar
+            </h3>
+            <span className="text-gray-500 text-xs">Top 6 Rekomendasi Profit</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-white/[0.02] border-b border-white/5 text-gray-400">
+                  <th className="px-5 py-3 font-semibold">Game & Produk</th>
+                  <th className="px-5 py-3 font-semibold text-right">Modal Supplier</th>
+                  <th className="px-5 py-3 font-semibold text-right">Harga Jual</th>
+                  <th className="px-5 py-3 font-semibold text-right text-emerald-400">Keuntungan Bersih (Rp)</th>
+                  <th className="px-5 py-3 font-semibold text-right text-amber-400">Margin (%)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {stats?.marginStats?.topMarginProducts && stats.marginStats.topMarginProducts.length > 0 ? (
+                  stats.marginStats.topMarginProducts.map((p) => (
+                    <tr key={p._id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-5 py-3">
+                        <div className="font-bold text-white">{p.name}</div>
+                        <div className="text-gray-400 text-[11px]">{p.gameName}</div>
+                      </td>
+                      <td className="px-5 py-3 text-right text-gray-400 font-mono">
+                        {formatCurrency(p.costPrice)}
+                      </td>
+                      <td className="px-5 py-3 text-right text-white font-bold font-mono">
+                        {formatCurrency(p.sellingPrice)}
+                      </td>
+                      <td className="px-5 py-3 text-right font-bold text-emerald-400 font-mono">
+                        + {formatCurrency(p.marginRp)}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <span className="inline-block px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 font-bold border border-amber-500/20">
+                          {p.marginPercent}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-8 text-center text-gray-500">
+                      Belum ada data produk
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

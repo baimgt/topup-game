@@ -79,6 +79,7 @@ export interface Order {
   isFlashSale?: boolean;
   flashSaleDecremented?: boolean;
   ppn?: number;
+  profit?: number;
   voucherCode?: string;
   discountAmount?: number;
   subtotalAmount?: number;
@@ -88,11 +89,14 @@ export interface Order {
 }
 
 export interface OrderItem {
-  id: string;
-  orderId: string;
+  id?: string;
+  orderId?: string;
   productId: string;
+  productName?: string;
   quantity: number;
   price: number;
+  costPrice?: number;
+  profit?: number;
   subtotal: number;
   product?: Product;
 }
