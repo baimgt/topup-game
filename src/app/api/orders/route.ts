@@ -61,14 +61,23 @@ export async function POST(req: NextRequest) {
 
     const orderNumber = generateOrderNumber();
 
-    // Check for active Flash Sale
+    // Check for active Flash Sale — ATOMIC stock reservation to prevent overselling
     const FlashSale = (await import("@/models/FlashSale")).default;
-    const activeFlashSale = await FlashSale.findOne({
-      productId: product._id,
-      isActive: true,
-      endTime: { $gt: new Date() },
-      stockLeft: { $gt: 0 }
-    });
+    const activeFlashSale = await FlashSale.findOneAndUpdate(
+      {
+        productId: product._id,
+        isActive: true,
+        endTime: { $gt: new Date() },
+        stockLeft: { $gt: 0 },
+      },
+      { $inc: { stockLeft: -1 } },
+      { new: true }
+    );
+
+    // Jika flash sale ditemukan dan stock baru saja habis, nonaktifkan
+    if (activeFlashSale && activeFlashSale.stockLeft <= 0) {
+      await FlashSale.findByIdAndUpdate(activeFlashSale._id, { isActive: false });
+    }
 
     const basePrice = activeFlashSale ? activeFlashSale.discountPrice : product.sellingPrice;
 
@@ -232,6 +241,7 @@ export async function POST(req: NextRequest) {
       paymentMethod: selectedMethod.name,
       orderItems,
       isFlashSale: !!activeFlashSale,
+      flashSaleDecremented: !!activeFlashSale, // Stock sudah di-decrement secara atomic di atas
     });
 
 

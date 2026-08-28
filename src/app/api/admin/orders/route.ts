@@ -3,6 +3,11 @@ import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
 import { getUserFromRequest } from "@/lib/auth";
 
+// ── SECURITY: Escape karakter regex untuk mencegah ReDoS ─────────────────
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
@@ -12,8 +17,8 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get("limit") || "20")), 100);
     const status = searchParams.get("status");
     const search = searchParams.get("search");
     const skip = (page - 1) * limit;
@@ -29,11 +34,12 @@ export async function GET(req: NextRequest) {
       }
     }
     if (search) {
+      const safeSearch = escapeRegex(search);
       filter.$or = [
-        { orderNumber: { $regex: search, $options: "i" } },
-        { customerName: { $regex: search, $options: "i" } },
-        { customerEmail: { $regex: search, $options: "i" } },
-        { gameName: { $regex: search, $options: "i" } },
+        { orderNumber: { $regex: safeSearch, $options: "i" } },
+        { customerName: { $regex: safeSearch, $options: "i" } },
+        { customerEmail: { $regex: safeSearch, $options: "i" } },
+        { gameName: { $regex: safeSearch, $options: "i" } },
       ];
     }
 
@@ -50,3 +56,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
   }
 }
+

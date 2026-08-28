@@ -261,6 +261,7 @@ export default function OrderForm({ game }: OrderFormProps) {
         body: JSON.stringify({
           code: voucherCodeInput.trim(),
           gameId: game.id || game._id,
+          productId: selectedProduct.id || selectedProduct._id,
           price: selectedProduct.sellingPrice,
         }),
       });

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Voucher from "@/models/Voucher";
+import Product from "@/models/Product";
 
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
-    const { code, gameId, price } = await req.json();
+    const { code, gameId, price, productId } = await req.json();
 
     if (!code || typeof code !== "string") {
       return NextResponse.json({ success: false, error: "Kode promo wajib diisi" }, { status: 400 });
@@ -34,7 +35,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Voucher ini tidak berlaku untuk game yang dipilih" }, { status: 400 });
     }
 
-    const itemPrice = Number(price) || 0;
+    // ── SECURITY: Ambil harga dari DB, JANGAN percaya dari client ────────
+    let itemPrice = 0;
+    if (productId) {
+      const product = await Product.findById(productId).lean();
+      if (product) {
+        // Cek apakah ada flash sale aktif
+        const FlashSale = (await import("@/models/FlashSale")).default;
+        const activeFlashSale = await FlashSale.findOne({
+          productId: product._id,
+          isActive: true,
+          endTime: { $gt: new Date() },
+          stockLeft: { $gt: 0 },
+        });
+        itemPrice = activeFlashSale ? activeFlashSale.discountPrice : (product as any).sellingPrice;
+      }
+    }
+    // Fallback ke price dari client HANYA jika productId tidak diberikan (backward compat)
+    if (!itemPrice && price) {
+      itemPrice = Number(price) || 0;
+    }
+
     if (voucher.minPurchase > 0 && itemPrice < voucher.minPurchase) {
       return NextResponse.json({
         success: false,
@@ -75,3 +96,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
   }
 }
+

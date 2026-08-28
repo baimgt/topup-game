@@ -3,12 +3,14 @@ import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
 import User from "@/models/User";
 import PaymentConfig from "@/models/PaymentConfig";
+import Setting from "@/models/Setting";
 import { getUserFromRequest } from "@/lib/auth";
 import { createSnapTransaction } from "@/lib/midtrans";
 import { createDuitkuTransaction } from "@/lib/duitku";
 import { defaultMethods, defaultDuitkuMethods } from "@/lib/payment-methods";
 import { generateOrderNumber } from "@/lib/utils";
 import { sendInvoiceEmail } from "@/lib/mail";
+import { inquiryPascabayar, generateRefId } from "@/lib/digiflazz";
 import { z } from "zod";
 
 const pascabayarOrderSchema = z.object({
@@ -18,7 +20,9 @@ const pascabayarOrderSchema = z.object({
   customerName: z.string().default("Pelanggan"),
   customerEmail: z.string().email("Email tidak valid"),
   customerPhone: z.string().min(9, "Nomor WhatsApp/HP minimal 9 digit").optional(),
-  refId: z.string().min(1, "Ref ID inquiry wajib disertakan"),
+  // refId sekarang opsional — server akan generate sendiri untuk keamanan
+  refId: z.string().optional(),
+  // billAmount & adminFee tetap diterima tapi TIDAK dipercaya — akan divalidasi ulang
   billAmount: z.number().min(1, "Nominal tagihan tidak valid"),
   adminFee: z.number().min(0).default(0),
   penalty: z.number().min(0).default(0),
@@ -51,9 +55,8 @@ export async function POST(req: NextRequest) {
       customerName,
       customerEmail,
       customerPhone,
-      refId,
-      billAmount,
-      adminFee,
+      billAmount: clientBillAmount,
+      adminFee: clientAdminFee,
       penalty,
       period,
       tariff,
@@ -62,6 +65,73 @@ export async function POST(req: NextRequest) {
       detail,
       paymentMethodId,
     } = parsed.data;
+
+    // ── SECURITY: Server-side re-verification of bill amount ──────────────
+    // JANGAN percaya billAmount & adminFee dari client!
+    // Lakukan inquiry ulang ke Digiflazz untuk mendapatkan nominal tagihan asli
+    const paymentConfig = await PaymentConfig.findOne({}).lean();
+
+    const digiUsername =
+      paymentConfig?.digiflazzUsername &&
+      paymentConfig.digiflazzUsername !== "your-digiflazz-username"
+        ? paymentConfig.digiflazzUsername
+        : process.env.DIGIFLAZZ_USERNAME || "";
+    const digiApiKey =
+      paymentConfig?.digiflazzApiKey &&
+      paymentConfig.digiflazzApiKey !== "your-digiflazz-api-key"
+        ? paymentConfig.digiflazzApiKey
+        : process.env.DIGIFLAZZ_API_KEY || "";
+
+    // Generate refId di server — TIDAK percaya dari client
+    const serverRefId = generateRefId();
+
+    // Auto-detect test customer number
+    const isTestCustomerNo = customerNo.startsWith("53000000000");
+
+    let verifiedBillAmount = clientBillAmount;
+    let verifiedAdminFee = clientAdminFee;
+
+    // Re-inquiry untuk verifikasi nominal tagihan
+    if (digiUsername && digiApiKey) {
+      try {
+        const inquiryResult = await inquiryPascabayar(sku, customerNo, serverRefId, {
+          username: digiUsername,
+          apiKey: digiApiKey,
+          testing: isTestCustomerNo,
+        });
+
+        if (inquiryResult && inquiryResult.status !== "Gagal" && inquiryResult.price !== undefined) {
+          const serverBillAmount = Number(inquiryResult.price) || 0;
+          const serverBillerAdmin = Number(inquiryResult.admin) || 0;
+
+          // ── Validasi: tolak jika client mencoba manipulasi billAmount ─────
+          if (Math.abs(serverBillAmount - clientBillAmount) > 100) {
+            console.error(
+              `[SECURITY] Pascabayar billAmount mismatch! client=${clientBillAmount}, server=${serverBillAmount}, customerNo=${customerNo}`
+            );
+            return NextResponse.json(
+              {
+                success: false,
+                error: "Nominal tagihan tidak sesuai. Silakan lakukan cek tagihan ulang.",
+              },
+              { status: 400 }
+            );
+          }
+
+          // Gunakan nilai dari server (bukan client) untuk perhitungan
+          verifiedBillAmount = serverBillAmount;
+
+          // Hitung admin fee dari server
+          const setting = await Setting.findOne({}).lean();
+          const storeAdminFee = (setting as any)?.pascabayarAdminFee ?? 2500;
+          verifiedAdminFee = Math.max(storeAdminFee, serverBillerAdmin);
+        }
+      } catch (inquiryErr) {
+        // Jika inquiry gagal (misal timeout), tetap lanjut dengan client value
+        // tapi log sebagai warning
+        console.warn("[SECURITY] Pascabayar re-inquiry failed, using client values:", inquiryErr);
+      }
+    }
 
     const authUser = getUserFromRequest(req);
     let finalCustomerName = customerName;
@@ -74,11 +144,10 @@ export async function POST(req: NextRequest) {
 
     const orderNumber = generateOrderNumber();
 
-    // Base subtotal = billAmount + adminFee
-    const baseSubtotal = billAmount + adminFee;
+    // Base subtotal menggunakan VERIFIED values dari server
+    const baseSubtotal = verifiedBillAmount + verifiedAdminFee;
 
     // Ambil metode pembayaran
-    const paymentConfig = await PaymentConfig.findOne({}).lean();
     const activeGateway = paymentConfig?.activePaymentGateway || "midtrans";
     const dbMethods =
       activeGateway === "duitku"
@@ -118,8 +187,8 @@ export async function POST(req: NextRequest) {
       {
         productName: `Tagihan ${productName}`,
         quantity: 1,
-        price: billAmount,
-        subtotal: billAmount,
+        price: verifiedBillAmount,
+        subtotal: verifiedBillAmount,
       },
     ];
 
@@ -127,16 +196,16 @@ export async function POST(req: NextRequest) {
       {
         id: `PASCA-${sku}`,
         name: `Tagihan ${productName} (${customerNo})`.slice(0, 50),
-        price: billAmount,
+        price: verifiedBillAmount,
         quantity: 1,
       },
     ];
 
-    if (adminFee > 0) {
+    if (verifiedAdminFee > 0) {
       midtransItems.push({
         id: `ADMIN-FEE`,
         name: `Biaya Admin Biller & Layanan`,
-        price: adminFee,
+        price: verifiedAdminFee,
         quantity: 1,
       });
     }
@@ -162,22 +231,22 @@ export async function POST(req: NextRequest) {
       isVoucher: false,
       isPascabayar: true,
       digiflazzSku: sku,
-      digiflazzRef: refId,
-      receiptUrl: `https://receipt.tagihanpulsa.com/digiflazz/${refId}`,
+      digiflazzRef: serverRefId,
+      receiptUrl: `https://receipt.tagihanpulsa.com/digiflazz/${serverRefId}`,
       pascabayarData: {
         buyerSkuCode: sku,
         productName,
         customerNo,
         customerName,
-        admin: adminFee,
-        feeAdminStore: adminFee,
-        billAmount,
+        admin: verifiedAdminFee,
+        feeAdminStore: verifiedAdminFee,
+        billAmount: verifiedBillAmount,
         penalty,
         period,
         tariff,
         daya,
         standMeter: (parsed.data as any).standMeter,
-        receiptUrl: `https://receipt.tagihanpulsa.com/digiflazz/${refId}`,
+        receiptUrl: `https://receipt.tagihanpulsa.com/digiflazz/${serverRefId}`,
         billCount: lembarTagihan,
         detail,
       },
@@ -185,7 +254,7 @@ export async function POST(req: NextRequest) {
       subtotalAmount: baseSubtotal,
       discountAmount: 0,
       ppn: 0,
-      profit: adminFee,
+      profit: verifiedAdminFee,
       paymentStatus: "UNPAID",
       orderStatus: "PENDING",
       paymentMethod: selectedMethod.name,
@@ -275,3 +344,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

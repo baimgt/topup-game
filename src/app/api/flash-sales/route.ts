@@ -20,9 +20,17 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
-    const isAdmin = searchParams.get("admin") === "1";
+    const requestedAdmin = searchParams.get("admin") === "1";
+
+    // ── SECURITY: Validasi auth sebelum menggunakan filter admin ──────────
+    let isAdmin = false;
+    if (requestedAdmin) {
+      const user = getUserFromRequest(req);
+      isAdmin = !!(user && user.role === "ADMIN");
+    }
 
     const filter = isAdmin ? {} : { isActive: true, endTime: { $gt: new Date() } };
+
     
     const sales = await FlashSale.find(filter)
       .populate({
