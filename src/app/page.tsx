@@ -80,6 +80,9 @@ export default async function HomePage() {
 
   return (
     <div className="gaming-light-theme min-h-screen overflow-hidden">
+      {/* Hidden semantic H1 for Google Search & Screen Readers */}
+      <h1 className="sr-only">GamerStore Plus - Website Top Up Game & Voucher Digital Murah Terpercaya</h1>
+
       {/* Spacer for Navbar */}
       <div className="h-24 md:h-28" />
 

@@ -31,19 +31,33 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase: new URL(baseUrl),
-    title: `${siteName} - Top Up Game Terpercaya`,
+    title: {
+      default: `${siteName} Plus - Top Up Game Terpercaya & Termurah`,
+      template: `%s | ${siteName} Plus`,
+    },
     description: siteDesc,
     keywords: [
+      "gamerstore",
+      "gamerstoreplus",
+      "gamerstore plus",
+      "gamer store",
+      "gamerstore.com",
+      "gamerstoreplus.com",
       "top up game",
+      "top up game murah",
+      "top up ml",
+      "top up ff",
       "mobile legends",
       "free fire",
-      "pubg",
+      "pubg mobile",
       "valorant",
       "genshin impact",
       "voucher game",
-      "top up game murah",
-      "gamerstore plus",
+      "jasa top up game",
     ],
+    authors: [{ name: siteName, url: baseUrl }],
+    creator: siteName,
+    publisher: siteName,
     alternates: {
       canonical: baseUrl,
     },
@@ -79,10 +93,10 @@ export async function generateMetadata(): Promise<Metadata> {
       ],
     },
     openGraph: {
-      title: `${siteName} - Top Up Game Terpercaya`,
+      title: `${siteName} Plus - Top Up Game Terpercaya & Termurah`,
       description: siteDesc,
       url: baseUrl,
-      siteName: siteName,
+      siteName: `${siteName} Plus`,
       locale: "id_ID",
       type: "website",
       images: [
@@ -90,23 +104,65 @@ export async function generateMetadata(): Promise<Metadata> {
           url: siteLogo || "/og-image.jpg",
           width: 1200,
           height: 630,
-          alt: siteName,
+          alt: `${siteName} Plus`,
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: `${siteName} - Top Up Game Terpercaya`,
+      title: `${siteName} Plus - Top Up Game Terpercaya`,
       description: siteDesc,
       images: [siteLogo || "/og-image.jpg"],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
     },
   };
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://gamerstoreplus.com";
+  
+  // JSON-LD Structured Data for Google Brand Recognition
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${baseUrl}/#website`,
+        "url": baseUrl,
+        "name": "GamerStore Plus",
+        "alternateName": ["GamerStore", "Gamer Store", "GamerStorePlus", "GamerStore+"],
+        "description": "Platform top up game dan voucher digital terpercaya, termurah, dan instan.",
+        "inLanguage": "id-ID"
+      },
+      {
+        "@type": "Organization",
+        "@id": `${baseUrl}/#organization`,
+        "name": "GamerStore Plus",
+        "alternateName": ["GamerStore", "GamerStorePlus"],
+        "url": baseUrl,
+        "logo": `${baseUrl}/favicon.svg`,
+        "sameAs": []
+      }
+    ]
+  };
+
   return (
     <html lang="id">
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <script
           type="text/javascript"
           src="https://app.sandbox.midtrans.com/snap/snap.js"
