@@ -14,19 +14,19 @@ import { MetadataRoute } from "next";
         priority: 1.0,
       },
       {
-        url: `${baseUrl}/games`,
+        url: `${baseUrl}games`,
         lastModified: new Date(),
         changeFrequency: "daily",
         priority: 0.9,
       },
       {
-        url: `${baseUrl}/order/check`,
+        url: `${baseUrl}order/check`,
         lastModified: new Date(),
         changeFrequency: "weekly",
         priority: 0.8,
       },
       {
-        url: `${baseUrl}/leaderboard`,
+        url: `${baseUrl}leaderboard`,
         lastModified: new Date(),
         changeFrequency: "daily",
         priority: 0.7,
@@ -39,7 +39,7 @@ import { MetadataRoute } from "next";
       await connectDB();
       const games = await Game.find({ isActive: true }).select("slug updatedAt").lean();
       gameRoutes = games.map((game: any) => ({
-        url: `${baseUrl}/games/${game.slug}`,
+        url: `${baseUrl}games/${game.slug}`,
         lastModified: game.updatedAt ? new Date(game.updatedAt) : new Date(),
         changeFrequency: "daily",
         priority: 0.85,
